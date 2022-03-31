@@ -53,6 +53,13 @@ rownames(annotation_df) <- annotation_df$EH_ID
 # Match the row names to the heatmap data frame
 rownames(annotation_df) <- colnames(facs)
 
- heatmap_data %>% 
-   pheatmap(annotation_col = annotation_df, scale = "row")
+#remove the unecessary column
+annotation_df <- annotation_df %>% select(-EH_ID, )
 
+
+#plot the heatmap
+jpeg("data_products/02_output_files/02_plots/Pheatmap_facs_lab.jpg", width = 800, height = 1000)
+heatmap_data %>% 
+   pheatmap(annotation_col = annotation_df, scale = "row")
+#close the jpeg file
+dev.off()
