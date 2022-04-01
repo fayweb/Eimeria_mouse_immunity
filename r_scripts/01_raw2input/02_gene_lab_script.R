@@ -3,9 +3,33 @@ library(tidyr)
 library(janitor)
 library(tibble)
 
+### Go back into the data prep (producing Challenge.csv)
+# Give the columns names that allow selection:
+# E.g. GE_xyz for gene-expression NGE_xyz for normalized gene-expression (xyz is
+# a gene-name), FACS_xyz etc...
+
+### clean the naming conventions in the analysis repository! 
+
+## use summarize data per mouse at the beginning of the analysis here (e.g. 
+# using the example code in the repo or better mutate instead of summarize
+# to keep the other values)
+
+## get one dataset to work with, try to not litter the environment
+
+## in addition to pheatmap:
+# plot gene expression against intensity and ESpecies in challenge infection
+# (different genes e.g. in different panels/facets)
+
+## cor/cor.test for each gene expression with intensity, 
+## even lm (linear models?)
+
+## generally you want the data in a state at which you can do any of this
+## in as few lines of code as possible
 
 ### Import the data
 Challenge <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
+
+cor(Challenge[, grepl("_N", colnames(Challenge))], use="pairwise.complete.obs")
 
 ## vectors for selecting columns
 basics <- c("EH_ID", "mouse_strain", "experiment", "primary_infection", 
@@ -19,9 +43,31 @@ Gene.Exp.cols   <- c("IFNy", "IL.12", "IRG6", "CXCR3", "IL.6", "IL.10",
                      "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
                      "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
 
+Gene.Exp.cols.norm   <-paste0(Gene.Exp.cols, "_N")
+
+Gene.Exp.cols.norm <- Gene.Exp.cols.norm[!Gene.Exp.cols.norm%in%c("IL.12_N", "IRG6_N")]
+
+## this is only a figure, so ideally we would not produce any objects but just
+## create the figure
+##Challenge %>% ### just start with the data
+##  filter(dpi==death) ## select only the dissection dpi 
+
+### this falls into the same category 
+
+
+
+##  select(ends_with("_N")) %>% ### select the columns you want to plot
+##  filter(if_any(everything(), ~ !is.na(.)))%>% ## remove rows only NA
+##  summarise_each(funs(sum(is.na(.)))) ### remove columns only NA
+##.... 
+##... 
+##pheatmap() ## do the pheatmap
+
 #somehow gene "GBP2" doesn't exist in challenge, hence removed from vector
 ### Select the necessary columns (as shown in the vectors above)
-df_gene <- Challenge %>% select(basics, weight_loss, Gene.Exp.cols)
+df_gene <- Challenge %>% select(basics, weight_loss, Gene.Exp.cols, Gene.Exp.cols.norm)
+
+# where are the columns IL.
 
 ### Create a new column showing maximum weight loss over every dpi for each
 ## mouse
@@ -85,5 +131,3 @@ df_gene <- unique(df_gene)
 
 # for some mice the weight was not noted on day 0
 #how should I evaluate this?
-
-write.csv(df_gene, "data_products/01_intermediate_files/02_lab_gene", row.names=FALSE)
