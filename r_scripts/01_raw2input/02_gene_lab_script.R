@@ -27,10 +27,10 @@ df_gene <- Challenge %>% select(basics, weight_loss, Gene.Exp.cols)
 ## mouse
 # select the necessary columns
 Cha_dpi_chal <- Challenge %>% filter(infection == "challenge") %>%
-  select(c(EH_ID, dpi, weight, weight_dpi0, death))
+  select(c(EH_ID, dpi, weight, weight_dpi0, death, infection, experiment))
 
 Cha_dpi_prim  <- Challenge %>% filter(death == "prim_11") %>%
-  select(c(EH_ID, dpi, weight, weight_dpi0, death))
+  select(c(EH_ID, dpi, weight, weight_dpi0, death, infection, experiment))
 
 Cha_dpi <- rbind(Cha_dpi_chal, Cha_dpi_prim)
 rm(Cha_dpi_chal)
@@ -60,17 +60,36 @@ Cha_dpi_wide$max_weight_loss <- apply(Cha_dpi_wide[2:8], MARGIN =  1, FUN = min,
 
 
 ### Drop the columns that contain nas in some of the facs columns
-df_facs_mln <- df_facs_mln %>% drop_na("CD4")
+#df_facs_mln <- df_facs_mln %>% drop_na("CD4")
 
 ### See the structure of the data frame
-glimpse(df_facs_mln) #Cell count columns values are indeed numeric
+#glimpse(df_facs_mln) #Cell count columns values are indeed numeric
 
 ### join the maximum weight loss
-Cha_weight_loss <- Cha_dpi_wide %>% select(EH_ID, max_weight_loss)
+Cha_weight_loss <- Cha_dpi_wide %>% select(EH_ID, max_weight_loss, death, 
+                                           infection, experiment)
+## Add a column for dpi 
+Cha_weight_loss1 <- Cha_weight_loss %>% 
+  filter(death == "chal_8") %>%
+  mutate(dpi = "8")
 
-df_facs_mln <- df_facs_mln %>% left_join(Cha_weight_loss, by = "EH_ID")
+Cha_weight_loss2 <- Cha_weight_loss %>% 
+  filter(death == "prim_11") %>%
+  mutate(dpi = "11")
+
+Cha_weight_loss <- rbind(Cha_weight_loss1, Cha_weight_loss2)
+
+Cha_weight_loss$dpi <- as.integer(Cha_weight_loss$dpi)
+
+rm(Cha_weight_loss1)
+rm(Cha_weight_loss2)
+rm(Cha_dpi_wide)
+
+df_gene <- Cha_weight_loss %>% left_join(df_gene, by = intersect(colnames(Cha_weight_loss),
+                                                                 colnames(df_gene)))
+df_gene <- unique(df_gene)
 
 # for some mice the weight was not noted on day 0
 #how should I evaluate this?
 
-write.csv(df_facs_mln, "data_products/01_intermediate_files/01_lab_facs_mLN", row.names=FALSE)
+write.csv(df_gene, "data_products/01_intermediate_files/02_lab_gene", row.names=FALSE)
