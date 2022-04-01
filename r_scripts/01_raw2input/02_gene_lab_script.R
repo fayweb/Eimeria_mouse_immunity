@@ -32,7 +32,10 @@ Cha_dpi_chal <- Challenge %>% filter(infection == "challenge") %>%
 Cha_dpi_prim  <- Challenge %>% filter(death == "prim_11") %>%
   select(c(EH_ID, dpi, weight, weight_dpi0, death, infection, experiment))
 
+# combine the two data frames
 Cha_dpi <- rbind(Cha_dpi_chal, Cha_dpi_prim)
+
+# remove the unecessary data frames
 rm(Cha_dpi_chal)
 rm(Cha_dpi_prim)
 
@@ -45,6 +48,7 @@ Cha_dpi <- Cha_dpi %>%
   #remove now the columns weight_dpi0 and weight
   select(-c(weight_dpi0, weight))
 
+# remove duplicates
 Cha_dpi <- unique(Cha_dpi)
 
 # change the format to wide
@@ -52,18 +56,6 @@ Cha_dpi_wide <- Cha_dpi %>% pivot_wider(names_from = dpi, values_from = weight_c
 rm(Cha_dpi)
 
 Cha_dpi_wide$max_weight_loss <- apply(Cha_dpi_wide[2:8], MARGIN =  1, FUN = min, na.rm = FALSE)
-
-### Select the measurements from the mesenterial lymphnodes
-# The spleen measurements are not so plenty and not comparable to the mln 
-# measurements
-#df_facs_mln <- df_facs %>% filter(Position == "mLN")
-
-
-### Drop the columns that contain nas in some of the facs columns
-#df_facs_mln <- df_facs_mln %>% drop_na("CD4")
-
-### See the structure of the data frame
-#glimpse(df_facs_mln) #Cell count columns values are indeed numeric
 
 ### join the maximum weight loss
 Cha_weight_loss <- Cha_dpi_wide %>% select(EH_ID, max_weight_loss, death, 
@@ -85,8 +77,10 @@ rm(Cha_weight_loss1)
 rm(Cha_weight_loss2)
 rm(Cha_dpi_wide)
 
-df_gene <- Cha_weight_loss %>% left_join(df_gene, by = intersect(colnames(Cha_weight_loss),
-                                                                 colnames(df_gene)))
+# now merge the gene expression data
+df_gene <- Cha_weight_loss %>% 
+  left_join(df_gene, by = intersect(colnames(Cha_weight_loss), colnames(df_gene)))
+
 df_gene <- unique(df_gene)
 
 # for some mice the weight was not noted on day 0
