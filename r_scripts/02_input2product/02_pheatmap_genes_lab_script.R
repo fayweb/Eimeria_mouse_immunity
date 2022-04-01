@@ -65,15 +65,13 @@ annotation_df <- annotation_df %>% select(-EH_ID, )
 heatmap_data2 <- heatmap_data[rowSums(is.na(heatmap_data))<41,
                               colSums(is.na(heatmap_data))<6]
 
-annotation_df$max_weight_loss <- as.numeric(annotation_df$max_weight_loss)
-
-
 
 #plot the heatmap
 jpeg("data_products/02_output_files/02_plots/Pheatmap_gene_lab.jpg", width = 800, height = 1000)
 
-pheatmap(heatmap_data2, scale = "row")
+pheatmap(heatmap_data2, annotation_col = annotation_df, scale = "row")
 
 
 #close the jpeg file
 dev.off()
+
