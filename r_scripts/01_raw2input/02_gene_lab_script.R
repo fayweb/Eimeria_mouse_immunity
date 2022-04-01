@@ -131,3 +131,6 @@ df_gene <- unique(df_gene)
 
 # for some mice the weight was not noted on day 0
 #how should I evaluate this?
+
+
+###

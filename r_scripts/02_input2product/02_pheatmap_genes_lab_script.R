@@ -44,7 +44,7 @@ gene[-1, ] -> heatmap_data
 
 table(rowSums(is.na(heatmap_data))==nrow(heatmap_data))
 
-
+#hhh
 # How do our data look like?
 glimpse(heatmap_data) #alll columns appear to be numeric
 
