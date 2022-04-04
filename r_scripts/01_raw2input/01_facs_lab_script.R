@@ -69,6 +69,8 @@ df_facs_mln <- df_facs_mln %>% left_join(Cha_weight_loss, by = "EH_ID")
 # for some mice the weight was not noted on day 0
 #how should I evaluate this?
 
+
+#make github work
 write.csv(df_facs_mln, "data_products/01_intermediate_files/01_lab_facs_mLN", row.names=FALSE)
 
 
