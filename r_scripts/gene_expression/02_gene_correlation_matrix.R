@@ -1,12 +1,19 @@
 library(corrplot)
 library(RColorBrewer)
 
+source("r_scripts/gene_expression/01_gene_pheatmap.R")
+
 # draw correlation between the genes
 gene_correlation <- as.matrix(cor(Challenge[, grepl("_N", colnames(Challenge))], use="pairwise.complete.obs"))
 
-jpeg("output_data/Corrplot_gene_lab.jpg", width = 1400, height = 1000)
 
+##Combining correlogram with the significance test
+## Computing the p-value of correlations
+## To compute the matrix of p-value, a custom R function is used 
 # ... : further arguments to pass to the native R cor.test function
+#tutorial: http://www.sthda.com/english/wiki/visualize-correlation-matrix-using-correlogram
+
+# mat : is a matrix of data
 cor.mtest <- function(mat, ...) {
     mat <- as.matrix(mat)
     n <- ncol(mat)
@@ -25,16 +32,29 @@ cor.mtest <- function(mat, ...) {
 # matrix of the p-value of the correlatio
 p.mat <- cor.mtest(gene_correlation)
 
+jpeg("output_data/gene_expression/Corrplot_gene_lab.jpg", width = 1400, height = 1000)
 
-
-
-head(p.mat[, 1:5])
 
 corrplot(gene_correlation, 
          method = "circle",  #method of the plot, "color" would show colour gradient
          tl.col = "black", tl.srt=45, #colour of labels and rotation
          col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
-         order="hclust" #hclust reordering ) 
+         order="hclust") #hclust reordering
+dev.off()
+
+
+jpeg("output_data/gene_expression/Corrplot_gene_lab_significant.jpg", width = 1400, height = 1000)
+
+
+corrplot(gene_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank") #Add significance level to the correlogram
+        #remove the values that are insignificant
          
-         dev.off()
-         
+dev.off()
+
+#switch off all dev devices
+while (!is.null(dev.list()))  dev.off()         
