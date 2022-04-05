@@ -55,7 +55,16 @@ gene <- basics_gene %>% dplyr::select(c(EH_ID, ends_with("_N")))
  
 
 ### Prepare the annotation data frame for the heatmap
-annotation_df <- basics_gene %>%
+ 
+## First select the common mice between your two data frames
+ #now we have different row names in the two data frames because I removed the Nas
+ #join the heatmap data to the basic data frame and get only the common columns
+ gene_na_omit <- basics_gene %>% 
+     inner_join((t(heatmap_data) %>% as.data.frame() %>% 
+                     tibble::rownames_to_column("EH_ID")), by = "EH_ID")
+ 
+ 
+annotation_df <- gene_na_omit %>%
   select(c("EH_ID", "primary_infection", "challenge_infection", "infection_history",
            "mouse_strain", "max_WL"))
 
@@ -65,17 +74,16 @@ annotation_df <- as.data.frame(annotation_df)
 ### Prepare the annotation columns for the heatmap
 rownames(annotation_df) <- annotation_df$EH_ID
 
+
+
 # Match the row names to the heatmap data frame
-rownames(annotation_df) <- colnames(basics_gene)
+rownames(annotation_df) <- colnames(heatmap_data)
 
 #remove the unecessary column
 annotation_df <- annotation_df %>% select(-EH_ID, )
 
-#heatmap_data2 <- heatmap_data[rowSums(is.na(heatmap_data))<41,
-                             # colSums(is.na(heatmap_data))<6]
-
 #plot the heatmap
-jpeg("output_data/gene_expression/Pheatmap_gene_lab.jpg", width = 1400, height = 1000)
+jpeg("output_data/gene_expression/01_Pheatmap_gene_lab.jpg", width = 1400, height = 1000)
 
 pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 
