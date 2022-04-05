@@ -13,7 +13,7 @@ basics_gene <- as_tibble(Challenge) %>%
   dplyr::filter(infection == "challenge", dpi == "8") %>%
   dplyr::group_by(EH_ID, infection) %>%
   dplyr::select(c("EH_ID", "primary_infection", "challenge_infection", "infection_history",
-           "mouse_strain", "max_WL", ends_with("_N"))) 
+           "mouse_strain", "max_WL", ends_with("_N")), "delta") 
 
 # remove duplicated and change the format to data frame 
 basics_gene <- unique(basics_gene) %>% as.data.frame(basics_gene) %>% select(-infection)
@@ -60,8 +60,10 @@ gene <- basics_gene %>% dplyr::select(c(EH_ID, ends_with("_N")))
  #now we have different row names in the two data frames because I removed the Nas
  #join the heatmap data to the basic data frame and get only the common columns
  gene_na_omit <- basics_gene %>% 
-     inner_join((t(heatmap_data) %>% as.data.frame() %>% 
-                     tibble::rownames_to_column("EH_ID")), by = "EH_ID")
+   select(c(EH_ID, primary_infection, challenge_infection, infection_history, mouse_strain, 
+            max_WL, delta)) %>%
+     inner_join((t(heatmap_data) %>% as.data.frame() %>% tibble::rownames_to_column("EH_ID")), 
+                by = "EH_ID")
  
  
 annotation_df <- gene_na_omit %>%
@@ -93,3 +95,4 @@ dev.off()
 
 #switch off all dev devices
 while (!is.null(dev.list()))  dev.off()
+
