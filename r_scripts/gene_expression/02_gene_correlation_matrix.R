@@ -32,7 +32,7 @@ cor.mtest <- function(mat, ...) {
 # matrix of the p-value of the correlatio
 p.mat <- cor.mtest(gene_correlation)
 
-jpeg("output_data/gene_expression/Corrplot_gene_lab.jpg", width = 1400, height = 1000)
+jpeg("output_data/gene_expression/02_Corrplot_gene_lab.jpg", width = 1400, height = 1000)
 
 
 corrplot(gene_correlation, 
@@ -43,7 +43,7 @@ corrplot(gene_correlation,
 dev.off()
 
 
-jpeg("output_data/gene_expression/Corrplot_gene_lab_significant.jpg", width = 1400, height = 1000)
+jpeg("output_data/gene_expression/03_Corrplot_gene_lab_significant.jpg", width = 1400, height = 1000)
 
 
 corrplot(gene_correlation, 

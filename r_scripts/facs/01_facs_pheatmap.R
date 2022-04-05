@@ -71,7 +71,7 @@ annotation_df <- annotation_df %>% select(-EH_ID, )
 
 
 #plot the heatmap
-jpeg("output_data/facs/Pheatmap_facs_lab.jpg", width = 1400, height = 1000)
+jpeg("output_data/facs/01_Pheatmap_facs_lab.jpg", width = 1400, height = 1000)
 heatmap_data %>% 
   pheatmap(annotation_col = annotation_df, scale = "row")
 #close the jpeg file
