@@ -130,3 +130,46 @@ gene_expr_delta +
   theme_bw()
 
 dev.off()
+
+jpeg("output_data/gene_expression/11_gene_expression_eimeria_boxplot", 
+     width = 800, height = 600)
+
+gene_na_omit %>%
+  pivot_longer(cols = 8:28, names_to = "Gene", values_to = "gene_expression") %>%
+  na.omit(expression) %>%
+  ggplot(aes(x = challenge_infection, y = gene_expression, color = challenge_infection))+ 
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~ Gene, scales = "free") +
+  theme_bw()
+
+
+dev.off()
+
+jpeg("output_data/gene_expression/12_gene_expression_eimeria_stat_smooth", 
+     width = 800, height = 600)
+
+gene_na_omit %>%
+  pivot_longer(cols = 8:28, names_to = "Gene", values_to = "gene_expression") %>%
+  na.omit(expression) %>%
+  ggplot(aes(x = delta, y = gene_expression, color = challenge_infection)) +
+  geom_jitter() +
+  facet_wrap(~ c(challenge_infection, gene), scales = "free") +
+  theme_bw()
+
+
+dev.off()
+
+jpeg("output_data/gene_expression/12_gene_expression_eimeria_stat_smooth", 
+     width = 800, height = 600)
+
+gene_na_omit %>%
+  pivot_longer(cols = 8:28, names_to = "Gene", values_to = "gene_expression") %>%
+  na.omit(expression) %>%
+  ggplot(aes(x = challenge_infection, y = gene_expression, color = challenge_infection)) +
+  geom_jitter() +
+  facet_wrap(~ Gene, scales = "free") +
+  theme_bw()
+
+
+dev.off()
