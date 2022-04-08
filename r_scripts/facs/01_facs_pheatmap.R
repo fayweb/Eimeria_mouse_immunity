@@ -67,7 +67,7 @@ rownames(annotation_df) <- annotation_df$EH_ID
 rownames(annotation_df) <- colnames(FACS)
 
 #remove the unecessary column
-annotation_df <- annotation_df %>% select(-EH_ID, )
+annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
 
 
 #plot the heatmap
