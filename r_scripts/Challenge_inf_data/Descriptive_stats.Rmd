@@ -31,7 +31,7 @@ tibble::as_tibble(CI)
 ```
 
 
-#### Summarizing data by each mouse
+### Summarizing data by each mouse
 
 ```{r}
 CIMouse <- as_tibble(CI) %>%
@@ -48,24 +48,23 @@ CIMouse <- as_tibble(CI) %>%
             hybrid_status = unique(hybrid_status),
             death = unique(death))
 ```
-#### Summary statistics
+### Summary statistics
 
-How many mice do we have in each infection ? (primary or challenge infection)
-```{r}
+#### How many mice do we have in each infection ? (primary or challenge infection)
+```{r, echo = FALSE}
 CIMouse %>% 
   group_by(infection) %>%
   dplyr::summarise(total_mice = length(EH_ID))
 ```
-How many experiments do we have? How many mice are in each experiment?
-```{r}
+####  How many experiments do we have? How many mice are in each experiment?
+```{r, echo = FALSE}
 CIMouse %>% 
   group_by(experiment) %>%
   dplyr::summarise(total_mice = length(EH_ID))
 ```
-
-How many mouse strains do we have? 
-```{r}
-CIMouse2 <- CIMouse %>% mutate(hybrid_status = case_when(
+#### How many mouse strains do we have? 
+```{r, echo = FALSE}
+CIMouse <- CIMouse %>% mutate(hybrid_status = case_when(
   mouse_strain == "BUSNA_BUSNA" ~ "parental strains",
   mouse_strain == "NMRI" ~ "other",
   TRUE ~ as.character(hybrid_status)
@@ -74,24 +73,59 @@ CIMouse2 <- CIMouse %>% mutate(hybrid_status = case_when(
 CIMouse %>%
   group_by(mouse_strain, hybrid_status) %>%
   dplyr::summarise(total_mice = length(EH_ID))
+
+#now only show the hybrid status
+CIMouse %>% 
+  group_by(hybrid_status) %>%
+  dplyr::summarise(total_mice = length(EH_ID))
+  
 ```
-
-
-### How many mice died in each infection
-```{r}
+#### Which Eimeria strains were used, how were the control groups? 
+First for the primary infections
+```{r, echo = FALSE}
+CIMouse %>% 
+  filter(infection == "primary") %>%
+  group_by(primary_infection) %>%
+  dplyr::summarise(tatal_mice = length(EH_ID)) %>%
+  dplyr::mutate(Parasite_strain = case_when(
+    primary_infection == "E64" ~ "Eimeria ferrisi",
+    primary_infection == "E88" ~ "Eimeria falciformis",
+    primary_infection == "Eflab" ~ "E. falciformis BayerHaberkorn1970",
+    primary_infection == "E139" ~ "?",
+    primary_infection == "UNI" ~ "uninfected mice",
+    TRUE ~ ""))
+```
+#### How many mice died in each infection?
+```{r, echo = FALSE}
 CIMouse %>% 
   group_by(death) %>%
-  summarise(length(EH_ID))
+  dplyr::summarise(length(EH_ID)) 
 ```
-From the mice that died in the primary infection, what was the infection status?
+#### From the mice that died in the primary infection, what was the infection status?
 
-```{r}
+```{r, echo = FALSE}
 CIMouse %>%
   filter(death == "primary", infection == "primary") %>%
   group_by(primary_infection) %>%
-  summarise(length(EH_ID))
+  dplyr::summarise(total_mice = length(EH_ID)) %>%
+  dplyr::mutate(Parasite_strain = case_when(
+    primary_infection == "E64" ~ "Eimeria ferrisi",
+    primary_infection == "E88" ~ "Eimeria falciformis",
+    TRUE ~ ""))
 ```
+Most of the mice dying in the first infections are infected with Eimeria falciformis.
 
+#### What is the avarege maximum oocysts output for each mouse in each infection?
+max_OOC = We are calculating the peak of the oocyst shedding for each mouse across all days 
+post infection. 
+
+```{r, echo = FALSE}
+CIMouse %>% 
+  group_by(infection) %>%
+  dplyr:: summarize(total_mice = length(EH_ID),
+            Mean_max_OOC = mean(na.omit(max_OOC)))
+  
+```
 
 ```{r}
 
@@ -100,12 +134,14 @@ CIMouse %>%
 CIMouse %>%
   #group by infections (primary or challenge infections)
   dplyr::group_by(infection) %>%
-  summarize(total_mice = length(EH_ID),
+  dplyr__summarize(total_mice = length(EH_ID),
             Mean_weightchange = mean(na.omit(max_WL)))
   
 ```
 We here observe a lower weight loss average in the challenge infections when
 compared to the primary infections
 
-
+## Effect of mouse strain 
+## Effect of Eimeria strain
+## Effe
 
