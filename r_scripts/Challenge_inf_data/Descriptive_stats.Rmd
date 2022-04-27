@@ -1,0 +1,82 @@
+---
+title: "Descriptive"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Challenge infections with *Eimeria*. Here I am presenting some summary 
+statistics on the laboratory infection with different *Eimeria* strains 
+
+
+```{r, include=FALSE}
+## Load the required libraries
+library(dplyr)
+library(tidyverse)
+library(tibble)
+```
+
+
+```{r}
+#### Read the file
+CI <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
+```
+
+### Wrangling
+
+```{r, echo = FALSE}
+tibble::as_tibble(CI)
+```
+
+
+#### summarize data by mouse and infection 
+
+```{r}
+CIMouse <- as_tibble(CI) %>%
+  group_by(EH_ID, infection) %>%
+  summarize(max_OOC = max(OOC),
+            max_WL = min(relative_weight),
+            experiment = unique(experiment),
+            mouse_strain = unique(mouse_strain),
+            primary_infection = unique(primary_infection),
+            challenge_infection =unique(challenge_infection),
+            infection_history=unique(infection_history),
+            infection = unique(infection),
+            experiment=unique(experiment),
+            death = unique(death))
+
+```
+#### Let's do some summary statistics
+
+```{r}
+
+# Summaries for weight loss
+
+CIMouse %>%
+  #group by infections (primary or challenge infections)
+  dplyr::group_by(infection) %>%
+  summarize(total_mice = length(EH_ID),
+            Mean_weightchange = mean(na.omit(max_WL)))
+  
+```
+We here observe a lower weight loss average in the challenge infections when
+compared to the primary infections
+
+
+### How many mice died in each infection
+```{r}
+CIMouse %>% 
+  group_by(death) %>%
+  summarise(length(EH_ID))
+```
+From the mice that died in the primary infection, what was the infection status?
+
+```{r}
+CIMouse %>%
+  filter(death == "primary", infection == "primary") %>%
+  group_by(primary_infection) %>%
+  summarise(length(EH_ID))
+```
+
