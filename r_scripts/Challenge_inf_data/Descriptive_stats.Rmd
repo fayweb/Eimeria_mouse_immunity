@@ -1,5 +1,5 @@
 ---
-title: "Descriptive"
+title: "Challenge infections - Descreptive statistics"
 output: html_document
 ---
 
@@ -7,8 +7,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Challenge infections with *Eimeria*. Here I am presenting some summary 
-statistics on the laboratory infection with different *Eimeria* strains 
+### Challenge infections with *Eimeria*. Here I am presenting some summary 
+### statistics on the laboratory infection of mice with different *Eimeria* strains.
 
 
 ```{r, include=FALSE}
@@ -18,25 +18,25 @@ library(tidyverse)
 library(tibble)
 ```
 
-
+Here is a data frame containing all information derived from the experimental infections
+with *Eimeria*.
 ```{r}
 #### Read the file
 CI <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
 ```
 
 ### Wrangling
-
 ```{r, echo = FALSE}
 tibble::as_tibble(CI)
 ```
 
 
-#### summarize data by mouse and infection 
+#### Summarizing data by each mouse
 
 ```{r}
 CIMouse <- as_tibble(CI) %>%
-  group_by(EH_ID, infection) %>%
-  summarize(max_OOC = max(OOC),
+  dplyr::group_by(EH_ID, infection) %>%
+  dplyr::summarize(max_OOC = max(OOC),
             max_WL = min(relative_weight),
             experiment = unique(experiment),
             mouse_strain = unique(mouse_strain),
@@ -46,23 +46,22 @@ CIMouse <- as_tibble(CI) %>%
             infection = unique(infection),
             experiment=unique(experiment),
             death = unique(death))
-
 ```
-#### Let's do some summary statistics
+#### Summary statistics
 
+How many mice do we have in each infection ? (primary or challenge infection)
 ```{r}
-
-# Summaries for weight loss
-
-CIMouse %>%
-  #group by infections (primary or challenge infections)
-  dplyr::group_by(infection) %>%
-  summarize(total_mice = length(EH_ID),
-            Mean_weightchange = mean(na.omit(max_WL)))
-  
+CIMouse %>% 
+  group_by(infection) %>%
+  dplyr::summarise(total_mice = length(EH_ID))
 ```
-We here observe a lower weight loss average in the challenge infections when
-compared to the primary infections
+How many experiments do we have? 
+```{r}
+unique(CI$experiment)
+```
+We have 4 different experiments
+
+
 
 
 ### How many mice died in each infection
@@ -79,4 +78,21 @@ CIMouse %>%
   group_by(primary_infection) %>%
   summarise(length(EH_ID))
 ```
+
+
+```{r}
+
+# Summaries for weight loss
+
+CIMouse %>%
+  #group by infections (primary or challenge infections)
+  dplyr::group_by(infection) %>%
+  summarize(total_mice = length(EH_ID),
+            Mean_weightchange = mean(na.omit(max_WL)))
+  
+```
+We here observe a lower weight loss average in the challenge infections when
+compared to the primary infections
+
+
 
