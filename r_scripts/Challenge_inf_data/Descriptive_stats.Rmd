@@ -45,6 +45,7 @@ CIMouse <- as_tibble(CI) %>%
             infection_history=unique(infection_history),
             infection = unique(infection),
             experiment=unique(experiment),
+            hybrid_status = unique(hybrid_status),
             death = unique(death))
 ```
 #### Summary statistics
@@ -55,13 +56,25 @@ CIMouse %>%
   group_by(infection) %>%
   dplyr::summarise(total_mice = length(EH_ID))
 ```
-How many experiments do we have? 
+How many experiments do we have? How many mice are in each experiment?
 ```{r}
-unique(CI$experiment)
+CIMouse %>% 
+  group_by(experiment) %>%
+  dplyr::summarise(total_mice = length(EH_ID))
 ```
-We have 4 different experiments
 
+How many mouse strains do we have? 
+```{r}
+CIMouse2 <- CIMouse %>% mutate(hybrid_status = case_when(
+  mouse_strain == "BUSNA_BUSNA" ~ "parental strains",
+  mouse_strain == "NMRI" ~ "other",
+  TRUE ~ as.character(hybrid_status)
+))
 
+CIMouse %>%
+  group_by(mouse_strain, hybrid_status) %>%
+  dplyr::summarise(total_mice = length(EH_ID))
+```
 
 
 ### How many mice died in each infection
