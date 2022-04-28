@@ -168,17 +168,49 @@ pre code {
 </div>
 
 
-<div id="challenge-infections-with-eimeria.-here-i-am-presenting-some-summary" class="section level3">
-<h3>Challenge infections with <em>Eimeria</em>. Here I am presenting some summary</h3>
-</div>
-<div id="statistics-on-the-laboratory-infection-of-mice-with-different-eimeria-strains." class="section level3">
-<h3>statistics on the laboratory infection of mice with different <em>Eimeria</em> strains.</h3>
+<div id="challenge-infections-with-eimeria.-here-i-am-presenting-some-summary-statistics-on-the-laboratory-infection-of-mice-with-different-eimeria-strains." class="section level4">
+<h4>Challenge infections with <em>Eimeria</em>. Here I am presenting some summary statistics on the laboratory infection of mice with different <em>Eimeria</em> strains.</h4>
+<div id="outlook" class="section level5">
+<h5>Outlook:</h5>
+<ul>
+<li><ol style="list-style-type: decimal">
+<li>Merged data frame consinsting of all experimental data on mice, performed in the lab of Prof. Emanuel Heitlinger</li>
+</ol></li>
+<li><ol start="2" style="list-style-type: decimal">
+<li>Summary statistics on experimental design</li>
+</ol>
+<ul>
+<li>2.1 Summarizing data per mouse</li>
+<li>2.2 How many mice do we have in each infection ? (primary or challenge infection)</li>
+<li>2.3 How many experiments do we have? How many mice are in each experiment?</li>
+<li>2.4 How many mouse strains do we have?</li>
+<li>2.5 Which Eimeria strains were used?</li>
+<li>2.6 How many mice died in each infection?
+<ul>
+<li>2.6.1 From the mice that died in the primary infection, what was the infection status?</li>
+</ul></li>
+</ul></li>
+<li>3 Summary statistics - Resistance/ Tolerance proxies
+<ul>
+<li>3.1 What is the avarege maximum oocysts output for each mouse in each infection?</li>
+<li>3.2 What is the avarege maximum oocysts output for each Eimeria strain in each infection?</li>
+<li>3.3 What is the avarege maximum oocysts output for each parasite strain in each infection?
+<ul>
+<li>3.3.1 What about the effect of the different experiments on weight loss?</li>
+</ul></li>
+<li>3.4 What is the maximum weight loss for each mouse in each infection?</li>
+<li>3.5 What is the average weight loss for mice in each infection for the different mice strains?</li>
+<li>3.6 What is the average weight loss for mice in each infection for the different parasite strains?</li>
+<li>3.7 What is the effect of each experiment on weight loss?</li>
+</ul></li>
+</ul>
 <p>Here is a data frame containing all information derived from the experimental infections with <em>Eimeria</em>.</p>
 <pre class="r"><code>#### Read the file
 CI &lt;- read.csv(&quot;https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv&quot;)</code></pre>
 </div>
+</div>
 <div id="wrangling" class="section level3">
-<h3>Wrangling</h3>
+<h3>1 Wrangling</h3>
 <pre><code>## # A tibble: 2,984 × 98
 ##    EH_ID experiment primary_infecti… challenge_infec… mouse_strain labels weight
 ##    &lt;chr&gt; &lt;chr&gt;      &lt;chr&gt;            &lt;chr&gt;            &lt;chr&gt;        &lt;chr&gt;   &lt;dbl&gt;
@@ -200,8 +232,10 @@ CI &lt;- read.csv(&quot;https://raw.githubusercontent.com/derele/Eimeria_Lab/mas
 ## #   IRG6 &lt;dbl&gt;, IL.12 &lt;dbl&gt;, CASP1 &lt;dbl&gt;, CXCL9 &lt;dbl&gt;, CXCR3_bio &lt;dbl&gt;,
 ## #   IDO1 &lt;dbl&gt;, IFNy &lt;dbl&gt;, IL.10 &lt;dbl&gt;, IL.12A &lt;dbl&gt;, IL1RN &lt;dbl&gt;, …</code></pre>
 </div>
-<div id="summarizing-data-by-each-mouse" class="section level3">
-<h3>Summarizing data by each mouse</h3>
+<div id="summary-statistics-on-experimental-design" class="section level3">
+<h3>2 Summary statistics on experimental design</h3>
+<div id="summarizing-data-by-each-mouse" class="section level4">
+<h4>2.1 Summarizing data by each mouse</h4>
 <pre class="r"><code>CIMouse &lt;- as_tibble(CI) %&gt;%
   dplyr::group_by(EH_ID, infection) %&gt;%
   dplyr::summarize(max_OOC = max(OOC),
@@ -216,11 +250,10 @@ CI &lt;- read.csv(&quot;https://raw.githubusercontent.com/derele/Eimeria_Lab/mas
             hybrid_status = unique(hybrid_status),
             death = unique(death))</code></pre>
 <pre><code>## `summarise()` has grouped output by &#39;EH_ID&#39;. You can override using the `.groups` argument.</code></pre>
+<p>Let’s add a column with the parasite names</p>
 </div>
-<div id="summary-statistics" class="section level3">
-<h3>Summary statistics</h3>
 <div id="how-many-mice-do-we-have-in-each-infection-primary-or-challenge-infection" class="section level4">
-<h4>How many mice do we have in each infection ? (primary or challenge infection)</h4>
+<h4>2.2 How many mice do we have in each infection ? (primary or challenge infection)</h4>
 <pre><code>## # A tibble: 2 × 2
 ##   infection total_mice
 ##   &lt;chr&gt;          &lt;int&gt;
@@ -228,10 +261,7 @@ CI &lt;- read.csv(&quot;https://raw.githubusercontent.com/derele/Eimeria_Lab/mas
 ## 2 primary          153</code></pre>
 </div>
 <div id="how-many-experiments-do-we-have-how-many-mice-are-in-each-experiment" class="section level4">
-<h4>How many experiments do we have? How many mice are in each experiment?</h4>
-<pre class="r"><code>CIMouse %&gt;% 
-  group_by(experiment) %&gt;%
-  dplyr::summarise(total_mice = length(EH_ID))</code></pre>
+<h4>2.3 How many experiments do we have? How many mice are in each experiment?</h4>
 <pre><code>## # A tibble: 5 × 2
 ##   experiment total_mice
 ##   &lt;chr&gt;           &lt;int&gt;
@@ -242,50 +272,62 @@ CI &lt;- read.csv(&quot;https://raw.githubusercontent.com/derele/Eimeria_Lab/mas
 ## 5 P4                 40</code></pre>
 </div>
 <div id="how-many-mouse-strains-do-we-have" class="section level4">
-<h4>How many mouse strains do we have?</h4>
-<pre class="r"><code>CIMouse &lt;- CIMouse %&gt;% mutate(hybrid_status = case_when(
-  mouse_strain == &quot;BUSNA_BUSNA&quot; ~ &quot;parental strains&quot;,
-  mouse_strain == &quot;NMRI&quot; ~ &quot;other&quot;,
-  TRUE ~ as.character(hybrid_status)
-))
-
-CIMouse %&gt;%
-  group_by(mouse_strain, hybrid_status) %&gt;%
-  dplyr::summarise(total_mice = length(EH_ID))</code></pre>
+<h4>2.4 How many mouse strains do we have?</h4>
+<p>We here use four wild-derived inbred mouse strains. from these mouse strains F1 hybrids were generated.</p>
+<p>Two parental strains represented M. m. domesticus: - SCHUNT (Locality: Schweben, Hessen, Germany [N: 5°0 26′, E: 9°36′] (Martincová et al., 2019))<br />
+- STRA (Locality: Straas, Bavaria, Germany [N: 50°11′, E: 11°46′] (Piálek et al., 2008), Two parental strains represented M. m. musculus: - BUSNA (Locality: Buškovice, Bohemia, Czech Republic [N: 5°0 14′, E: 1°3 22′] (Piálek et al., 2008)) - PWD (Locality: Kunratice, Bohemia, Czech Republic [N: 5°0 01′, E: 14 2°9′] (Gregorová &amp; Forejt, 2000))</p>
 <pre><code>## `summarise()` has grouped output by &#39;mouse_strain&#39;. You can override using the `.groups` argument.</code></pre>
 <pre><code>## # A tibble: 13 × 3
 ## # Groups:   mouse_strain [13]
-##    mouse_strain  hybrid_status    total_mice
-##    &lt;chr&gt;         &lt;chr&gt;                 &lt;int&gt;
-##  1 BUSNA_BUSNA   parental strains          8
-##  2 BUSNA_PWD     outbred hybrids           6
-##  3 BUSNA_STRA    outbred hybrids          10
-##  4 NMRI          other                    72
-##  5 PWD_BUSNA     outbred hybrids           8
-##  6 PWD_PWD       parental strains         56
-##  7 PWD_SCHUNT    outbred hybrids           6
-##  8 SCHUNT_PWD    outbred hybrids           8
-##  9 SCHUNT_SCHUNT parental strains         73
-## 10 SCHUNT_STRA   outbred hybrids           6
-## 11 STRA_BUSNA    outbred hybrids          10
-## 12 STRA_SCHUNT   outbred hybrids          10
-## 13 STRA_STRA     parental strains         12</code></pre>
-<pre class="r"><code>#now only show the hybrid status
-CIMouse %&gt;% 
-  group_by(hybrid_status) %&gt;%
-  dplyr::summarise(total_mice = length(EH_ID))</code></pre>
+##    mouse_strain  hybrid_status       total_mice
+##    &lt;chr&gt;         &lt;chr&gt;                    &lt;int&gt;
+##  1 BUSNA_BUSNA   F0 M. m. musculus            8
+##  2 BUSNA_PWD     F1 M. m. musculus            6
+##  3 BUSNA_STRA    F1 hybrid                   10
+##  4 NMRI          other                       72
+##  5 PWD_BUSNA     F1 M. m. musculus            8
+##  6 PWD_PWD       F0 M. m. musculus           56
+##  7 PWD_SCHUNT    F1 hybrid                    6
+##  8 SCHUNT_PWD    F1 hybrid                    8
+##  9 SCHUNT_SCHUNT F0 M. m. domesticus         73
+## 10 SCHUNT_STRA   F1 M. m. domesticus          6
+## 11 STRA_BUSNA    F1 hybrid                   10
+## 12 STRA_SCHUNT   F1 M. m. domesticus         10
+## 13 STRA_STRA     F0 M. m. domesticus         12</code></pre>
+<pre><code>## # A tibble: 6 × 2
+##   hybrid_status       total_mice
+##   &lt;chr&gt;                    &lt;int&gt;
+## 1 F0 M. m. domesticus         85
+## 2 F0 M. m. musculus           64
+## 3 F1 hybrid                   34
+## 4 F1 M. m. domesticus         16
+## 5 F1 M. m. musculus           14
+## 6 other                       72</code></pre>
+</div>
+<div id="which-eimeria-strains-were-used" class="section level4">
+<h4>2.5 Which Eimeria strains were used?</h4>
+<p>The three parasite isolates used in this study were isolated from feces of three different M. m. domesticus/M. m. musculus hybrid mice captured in Brandenburg, Germany, in 2016 (capture permit No. 2347/35/2014). The parasite isolates belong to both the most prevalent Eimeria species in this area, namely E. ferrisi (isolate Brandenburg64) and E. falciformis (isolate Brandenburg88)(Jarquín-Díaz et al., 2019). Isolate Brandenburg64 was isolated in a 92% M. m. domesticus individual (hybrid index (HI) = 0.08: Proportion of M. m. musculus alleles in a set of 14 diagnostic markers, see Balard et al. (2020)) and isolate Brandenburg88 in a 80% M. m. domesticus (HI = 0.2).</p>
+<p>Prepatency and the peak day of parasite shedding for these isolates were estimated during infection in NMRI laboratory mice (Al-khlifeh et al., 2019) which were also used for serial passaging of the isolates. Previous to the experiment, the isolates had been passaged, respectively, 3 and 4 times in NMRI laboratory mice. Parasite infective forms (oocysts) were recovered by flotation in saturated NaCl solution followed by washing and observation under light microscope (following the protocol described in Clerc et al. (2019)) and stored at room temperature in 1 ml of 2% potassium dichromate for a maximum of 2 months before infection of the wild-derived mice. Oocysts were allowed to sporulate 10 days before infection in a water bath at 30°C</p>
+<ol style="list-style-type: decimal">
+<li>Primary:</li>
+</ol>
+<pre><code>## # A tibble: 4 × 2
+##   Parasite_primary                  total_mice
+##   &lt;chr&gt;                                  &lt;int&gt;
+## 1 E. falciformis BayerHaberkorn1970          7
+## 2 Eimeria falciformis                       53
+## 3 Eimeria ferrisi                           69
+## 4 uninfected                                24</code></pre>
+<p>Further, for the challenge infections 1. Primary:</p>
 <pre><code>## # A tibble: 3 × 2
-##   hybrid_status    total_mice
-##   &lt;chr&gt;                 &lt;int&gt;
-## 1 other                    72
-## 2 outbred hybrids          64
-## 3 parental strains        149</code></pre>
+##   Parasite_challenge  total_mice
+##   &lt;chr&gt;                    &lt;int&gt;
+## 1 Eimeria falciformis         27
+## 2 Eimeria ferrisi             54
+## 3 uninfected                  51</code></pre>
 </div>
 <div id="how-many-mice-died-in-each-infection" class="section level4">
-<h4>How many mice died in each infection?</h4>
-<pre class="r"><code>CIMouse %&gt;% 
-  group_by(death) %&gt;%
-  dplyr::summarise(length(EH_ID))</code></pre>
+<h4>2.6 How many mice died in each infection?</h4>
 <pre><code>## # A tibble: 2 × 2
 ##   death     `length(EH_ID)`
 ##   &lt;chr&gt;               &lt;int&gt;
@@ -293,28 +335,165 @@ CIMouse %&gt;%
 ## 2 primary                21</code></pre>
 </div>
 <div id="from-the-mice-that-died-in-the-primary-infection-what-was-the-infection-status" class="section level4">
-<h4>From the mice that died in the primary infection, what was the infection status?</h4>
-<pre class="r"><code>CIMouse %&gt;%
-  filter(death == &quot;primary&quot;, infection == &quot;primary&quot;) %&gt;%
-  group_by(primary_infection) %&gt;%
-  dplyr::summarise(total_mice = length(EH_ID)) %&gt;%
-  dplyr::mutate(Parasite_strain = case_when(
-    primary_infection == &quot;E64&quot; ~ &quot;Eimeria ferrisi&quot;,
-    primary_infection == &quot;E88&quot; ~ &quot;Eimeria falciformis&quot;,
-    TRUE ~ &quot;&quot;))</code></pre>
-<pre><code>## # A tibble: 2 × 3
-##   primary_infection total_mice Parasite_strain    
-##   &lt;chr&gt;                  &lt;int&gt; &lt;chr&gt;              
-## 1 E64                        3 Eimeria ferrisi    
-## 2 E88                       18 Eimeria falciformis</code></pre>
+<h4>2.6.1 From the mice that died in the primary infection, what was the infection status?</h4>
+<pre><code>## # A tibble: 2 × 2
+##   Parasite_primary    total_mice
+##   &lt;chr&gt;                    &lt;int&gt;
+## 1 Eimeria falciformis         18
+## 2 Eimeria ferrisi              3</code></pre>
 <p>Most of the mice dying in the first infections are infected with Eimeria falciformis.</p>
-<p>What</p>
+</div>
+</div>
+<div id="summary-statistics---resistance-tolerance-proxies" class="section level3">
+<h3>3 Summary statistics - Resistance/ Tolerance proxies</h3>
+<div id="what-is-the-avarege-maximum-oocysts-output-for-each-mouse-in-the-primary-and-challenge-infections" class="section level4">
+<h4>3.1 What is the avarege maximum oocysts output for each mouse in the primary and challenge infections?</h4>
+<p>As resistance is the capacity of a host to reduce its parasite burden, it is usually estimated by the inverse of infection intensity (Råberg et al., 2009). Prepatency (the time to shedding of infectious stages, so-called oocysts) is longer for E. falciformis (7 days) than for E. ferrisi (5 days) (Al-khlifeh et al., 2019). Therefore, as a proxy of (inverse of) resistance, we used the number of oocysts per gram of feces (OPG) at the day of maximal shedding.</p>
+<pre><code>## # A tibble: 2 × 3
+##   infection total_mice Mean_max_OOC
+##   &lt;chr&gt;          &lt;int&gt;        &lt;dbl&gt;
+## 1 challenge        132      232312.
+## 2 primary          153      178864.</code></pre>
+<p>We here observe that the maximum oocyst shedding is higher during the challenge infection.</p>
+</div>
+<div id="what-is-the-avarege-maximum-oocysts-output-for-each-mouse-strain-in-each-infection" class="section level4">
+<h4>3.2 What is the avarege maximum oocysts output for each mouse strain in each infection?</h4>
+<ol style="list-style-type: decimal">
+<li>Primary infections:</li>
+</ol>
+<pre><code>## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf
+
+## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf
+
+## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf
+
+## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## # A tibble: 6 × 6
+##   hybrid_status       total_mice Mean_OOC Median_OOC Min_OOC Max_OOC
+##   &lt;chr&gt;                    &lt;int&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 F0 M. m. domesticus         45   187500     102500       0  462500
+## 2 F0 M. m. musculus           40   163750     137500       0  380000
+## 3 F1 hybrid                   17      NaN         NA     Inf    -Inf
+## 4 F1 M. m. domesticus          8      NaN         NA     Inf    -Inf
+## 5 F1 M. m. musculus            7      NaN         NA     Inf    -Inf
+## 6 other                       36      NaN         NA     Inf    -Inf</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Challenge infections:</li>
+</ol>
+<pre><code>## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## # A tibble: 6 × 6
+##   hybrid_status       total_mice Mean_OOC Median_OOC Min_OOC Max_OOC
+##   &lt;chr&gt;                    &lt;int&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 F0 M. m. domesticus         40  198269.      15000       0 1107500
+## 2 F0 M. m. musculus           24  258068.     162500       0 1447500
+## 3 F1 hybrid                   17  237794.       2500       0 1257500
+## 4 F1 M. m. domesticus          8  282500      113750       0 1272500
+## 5 F1 M. m. musculus            7  270357.     200000       0  650000
+## 6 other                       36     NaN          NA     Inf    -Inf</code></pre>
+</div>
+<div id="what-is-the-avarege-maximum-oocysts-output-for-each-parasite-strain-in-each-infection" class="section level4">
+<h4>3.3 What is the avarege maximum oocysts output for each parasite strain in each infection?</h4>
+<ol style="list-style-type: decimal">
+<li>Primary infections:</li>
+</ol>
+<pre><code>## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## # A tibble: 4 × 6
+##   Parasite_primary                total_mice Mean_OOC Median_OOC Min_OOC Max_OOC
+##   &lt;chr&gt;                                &lt;int&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 E. falciformis BayerHaberkorn1…          7      NaN         NA     Inf    -Inf
+## 2 Eimeria falciformis                     53   377500     382500  282500  462500
+## 3 Eimeria ferrisi                         69   114375     106250   80000  165000
+## 4 uninfected                              24        0          0       0       0</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Challenge:</li>
+</ol>
+<pre><code>## # A tibble: 3 × 6
+##   Parasite_challenge  total_mice Mean_OOC Median_OOC Min_OOC Max_OOC
+##   &lt;chr&gt;                    &lt;int&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 Eimeria falciformis         27  522727.     350000   10000 1447500
+## 2 Eimeria ferrisi             54  377143.     298750       0 1272500
+## 3 uninfected                  51     375           0       0   12500</code></pre>
+<p>What do I do wih the infected uninfected mice?</p>
+<pre class="r"><code>uni &lt;- data.frame(CIMouse %&gt;% filter(infection == &quot;challenge&quot;, Parasite_challenge == &quot;uninfected&quot;))</code></pre>
+<p>We have two mice with oocysts output in this group</p>
+<p>In both cases E. falciformis (E88 shows the highest Oocyst shedding)</p>
+</div>
+<div id="what-about-the-effect-of-the-different-experiments-on-weight-loss" class="section level4">
+<h4>3.3.1 What about the effect of the different experiments on weight loss?</h4>
+<ol style="list-style-type: decimal">
+<li>Primary infections:</li>
+</ol>
+<pre><code>## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf
+
+## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf
+
+## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf
+
+## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## # A tibble: 5 × 6
+##   experiment total_mice Mean_OOC Median_OOC Min_OOC Max_OOC
+##   &lt;chr&gt;           &lt;int&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 E10                32     NaN          NA     Inf    -Inf
+## 2 E11                32  178864.     110000       0  462500
+## 3 E57                53     NaN          NA     Inf    -Inf
+## 4 P3                 16     NaN          NA     Inf    -Inf
+## 5 P4                 20     NaN          NA     Inf    -Inf</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Challenge:</li>
+</ol>
+<pre><code>## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf
+
+## Warning in min(na.omit(max_OOC)): no non-missing arguments to min; returning Inf</code></pre>
+<pre><code>## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(na.omit(max_OOC)): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## # A tibble: 5 × 6
+##   experiment total_mice Mean_OOC Median_OOC Min_OOC Max_OOC
+##   &lt;chr&gt;           &lt;int&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 E10                20  325125      228750       0 1107500
+## 2 E11                23  145750       42500       0 1447500
+## 3 E57                53  229953.      47500       0 1272500
+## 4 P3                 16     NaN          NA     Inf    -Inf
+## 5 P4                 20     NaN          NA     Inf    -Inf</code></pre>
+</div>
+<div id="what-is-the-maximum-weight-loss-for-mice-in-each-infection" class="section level4">
+<h4>3.4 What is the maximum weight loss for mice in each infection?</h4>
+<p>Both parasite species provoke inflammation, cellular infiltration, enteric lesions, diarrhea, and ultimately weight loss (Al-khlifeh et al., 2019; Ankrom et al., 1975; Ehret et al., 2017; Schito et al., 1996). Therefore, the impact of parasites on host health was measured as the maximum relative weight loss compared to day 0 (body weight measured at the start of the experimental infection). For mice sacrificed at humane end points before the end of the experiment, the last weight of the living animal was used. This weight (loss) can be expected to be a very conservative estimate for our analyses (rendering tolerance conservatively low for these animals, which might have lost more weight if not sacrificed).</p>
+<p>Tolerance is usually defined as a reaction norm, that is, the regression slope of host fitness (or health condition if that is the parameter of interest) on infection intensity per host genotype (Råberg et al., 2009; Simms, 2000). Thus, tolerance was assessed as the slope of maximum relative weight loss compared to day 0 on number of OPG at the day of maximal shedding, within each mouse group and for each parasite isolate. A steep slope indicates a low tolerance (high weight lost for a given parasite burden).</p>
 <pre class="r"><code># Summaries for weight loss
 
 CIMouse %&gt;%
   #group by infections (primary or challenge infections)
   dplyr::group_by(infection) %&gt;%
-  summarize(total_mice = length(EH_ID),
+  dplyr::summarize(total_mice = length(EH_ID),
             Mean_weightchange = mean(na.omit(max_WL)))</code></pre>
 <pre><code>## # A tibble: 2 × 3
 ##   infection total_mice Mean_weightchange
@@ -322,6 +501,80 @@ CIMouse %&gt;%
 ## 1 challenge        132              92.7
 ## 2 primary          153              89.1</code></pre>
 <p>We here observe a lower weight loss average in the challenge infections when compared to the primary infections</p>
+</div>
+<div id="what-is-the-average-weight-loss-for-mice-in-each-infection-for-the-different-mice-strains" class="section level4">
+<h4>3.5 What is the average weight loss for mice in each infection for the different mice strains?</h4>
+<ol style="list-style-type: decimal">
+<li>Primary infections Weight loss:</li>
+</ol>
+<pre><code>## # A tibble: 6 × 6
+##   hybrid_status       total_mice Mean_WL Median_WL Min_WL max_WL
+##   &lt;chr&gt;                    &lt;int&gt;   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 F0 M. m. domesticus         45    89.5      89.9   75.4  100  
+## 2 F0 M. m. musculus           40    89.8      89.7   78.6  102. 
+## 3 F1 hybrid                   17    91.9      94.9   82.3   98.4
+## 4 F1 M. m. domesticus          8    93.5      94.8   84.2  100  
+## 5 F1 M. m. musculus            7    94.8      94.8   94.8   94.8
+## 6 other                       36    86.9      86.5   75     97.4</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Challenge infections weight loss:</li>
+</ol>
+<pre><code>## # A tibble: 6 × 6
+##   hybrid_status       total_mice Mean_WL Median_WL Min_WL max_WL
+##   &lt;chr&gt;                    &lt;int&gt;   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 F0 M. m. domesticus         40    92.8      94.6   75.3  100  
+## 2 F0 M. m. musculus           24    91.4      94.7   73.4  100  
+## 3 F1 hybrid                   17    96.4      97.7   89.4  100  
+## 4 F1 M. m. domesticus          8    91.8      92.7   81.8   97.7
+## 5 F1 M. m. musculus            7    95.8      95.4   91.9  100  
+## 6 other                       36    91.0      92.6   77.9  100</code></pre>
+</div>
+<div id="what-is-the-average-weight-loss-for-mice-in-each-infection-for-the-different-parasite-strains" class="section level4">
+<h4>3.6 What is the average weight loss for mice in each infection for the different parasite strains?</h4>
+<ol style="list-style-type: decimal">
+<li>Primary infections Weight loss:</li>
+</ol>
+<pre><code>## # A tibble: 4 × 6
+##   Parasite_primary                  total_mice Mean_WL Median_WL Min_WL max_WL
+##   &lt;chr&gt;                                  &lt;int&gt;   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 E. falciformis BayerHaberkorn1970          7    80.0      81.2   75     84.8
+## 2 Eimeria falciformis                       53    87.6      86.0   75.4  100  
+## 3 Eimeria ferrisi                           69    87.6      87.6   78.3   94.3
+## 4 uninfected                                24    95.3      95.5   87.0  102.</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Challenge infections weight loss:</li>
+</ol>
+<pre><code>## # A tibble: 3 × 6
+##   Parasite_challenge  total_mice Mean_WL Median_WL Min_WL max_WL
+##   &lt;chr&gt;                    &lt;int&gt;   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 Eimeria falciformis         27    86.2      85.3   73.4    100
+## 2 Eimeria ferrisi             54    92.2      92.0   78.1    100
+## 3 uninfected                  51    96.1      96.3   81.8    100</code></pre>
+</div>
+<div id="what-is-the-effect-of-each-experiment-on-weight-loss" class="section level4">
+<h4>3.7 What is the effect of each experiment on weight loss?</h4>
+<ol style="list-style-type: decimal">
+<li>Primary infections Weight loss:</li>
+</ol>
+<pre><code>## # A tibble: 5 × 6
+##   experiment total_mice Mean_WL Median_WL Min_WL max_WL
+##   &lt;chr&gt;           &lt;int&gt;   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 E10                32    89.7      88.3   79.0  100  
+## 2 E11                32    89.4      90.7   75.4  102. 
+## 3 E57                53    91.5      92.2   82.3  100  
+## 4 P3                 16    86.8      86.5   75     97.3
+## 5 P4                 20    87.0      86.7   76.0   97.4</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Challenge infections weight loss:</li>
+</ol>
+<pre><code>## # A tibble: 5 × 6
+##   experiment total_mice Mean_WL Median_WL Min_WL max_WL
+##   &lt;chr&gt;           &lt;int&gt;   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 E10                20    92.7      94.2   79.9  100  
+## 2 E11                23    88.2      88.7   73.4   98.9
+## 3 E57                53    95.4      95.8   81.8  100  
+## 4 P3                 16    91.5      92.7   83.6   97.0
+## 5 P4                 20    90.5      92.4   77.9  100</code></pre>
 </div>
 </div>
 
