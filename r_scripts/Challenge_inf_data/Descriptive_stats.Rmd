@@ -176,8 +176,18 @@ Most of the mice dying in the first infections are infected with Eimeria falcifo
 CIMouse %>% 
   group_by(infection) %>%
   dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_max_OOC = mean(na.omit(max_OOC)))
-  
+            Mean_OOC = mean(na.omit(max_OOC)),
+            Median_OOC = median(na.omit(max_OOC)))
+
+CIMouse %>% 
+  filter(infection == "primary") %>%
+  ggplot(aes(max_OOC)) +
+  geom_histogram()
+
+CIMouse %>% 
+  filter(infection == "challenge") %>%
+  ggplot(aes(max_OOC)) +
+  geom_histogram()
 ```
 We here observe that the maximum oocyst shedding is higher during the challenge infection.
 
