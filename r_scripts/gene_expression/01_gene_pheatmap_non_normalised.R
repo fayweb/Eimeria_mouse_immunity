@@ -96,14 +96,14 @@ annotation_df <- annotation_df %>% select(-EH_ID, )
 
 
 #plot the heatmap
-jpeg("output_data/gene_expression/01_Pheatmap_gene_lab.jpg", width = 1400, height = 1000)
+jpeg("output_data/gene_expression/01_Pheatmap_gene_lab_non_normalised.jpg", width = 1400, height = 1000)
 
 pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 
 #close the jpeg file
 dev.off()
 
-pdf("output_data/gene_expression/01_Pheatmap_gene_lab.pdf", width = 14, height = 10)
+pdf("output_data/gene_expression/01_Pheatmap_gene_lab_non_normalised.pdf", width = 14, height = 10)
 
 pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 
