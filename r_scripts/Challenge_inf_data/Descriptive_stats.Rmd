@@ -177,19 +177,50 @@ CIMouse %>%
   group_by(infection) %>%
   dplyr:: summarize(total_mice = length(EH_ID),
             Mean_OOC = mean(na.omit(max_OOC)),
-            Median_OOC = median(na.omit(max_OOC)))
+            Median_OOC = median(na.omit(max_OOC)),
+            Min_OOC = min(na.omit(max_OOC)),
+            Max_OOC = max(na.omit(max_OOC)),
+            var_OOC = var(na.omit(max_OOC)),
+            sd_OOC = sd(na.omit(max_OOC)))
+
+```
+We here observe that the maximum oocyst shedding is higher during the challenge infection.
+
+Visualizing the primary infections
+```{r}
 
 CIMouse %>% 
   filter(infection == "primary") %>%
   ggplot(aes(max_OOC)) +
   geom_histogram()
 
+```
+A mess !
+
+and the quantiles?
+```{r}
+CIMouse %>%
+  filter(infection == "primary") %>%
+  summarize(quantiles_primary = quantile(na.omit(max_OOC)))
+```
+
+
+And the challenge infections
+```{r}
 CIMouse %>% 
   filter(infection == "challenge") %>%
   ggplot(aes(max_OOC)) +
   geom_histogram()
 ```
-We here observe that the maximum oocyst shedding is higher during the challenge infection.
+Appears to be right skewed. Since the plot is skewed in this way, the median seems to
+be a better measurement of center. 
+
+```{r}
+CIMouse %>%
+  filter(infection == "challenge") %>%
+  summarize(quantiles_primary = quantile(na.omit(max_OOC)))
+```
+
 
 #### 3.2 What is the avarege maximum oocysts output for each mouse strain in each infection?
 
@@ -202,9 +233,18 @@ CIMouse %>%
             Mean_OOC = mean(na.omit(max_OOC)),
             Median_OOC = median(na.omit(max_OOC)),
             Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC))
-            )
-  
+            Max_OOC = max(na.omit(max_OOC)),
+            var_OOC = var(na.omit(max_OOC)),
+            sd_OOC = sd(na.omit(max_OOC)))
+```
+
+
+```{r}
+CIMouse %>%
+  filter(infection == "primary") %>%
+  ggplot(aes(max_OOC)) +
+  geom_histogram() +
+  facet_wrap(~ hybrid_status)
 ```
 
 2. Challenge infections:
@@ -216,9 +256,17 @@ CIMouse %>%
             Mean_OOC = mean(na.omit(max_OOC)),
             Median_OOC = median(na.omit(max_OOC)),
             Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC))
-            )
-  
+            Max_OOC = max(na.omit(max_OOC)),
+            var_OOC = var(na.omit(max_OOC)),
+            sd_OOC = sd(na.omit(max_OOC)))
+
+```
+```{r}
+CIMouse %>%
+  filter(infection == "challenge") %>%
+  ggplot(aes(max_OOC)) +
+  geom_histogram() +
+  facet_wrap(~ hybrid_status)
 ```
 #### 3.3 What is the avarege maximum oocysts output for each parasite strain in each infection?
 1. Primary infections:
@@ -234,6 +282,13 @@ CIMouse %>%
             )
   
 ```
+```{r}
+CIMouse %>%
+  filter(infection == "primary") %>%
+  ggplot(aes(max_OOC)) +
+  geom_histogram() +
+  facet_wrap(~ Parasite_primary)
+```
 2. Challenge:
 ```{r, echo = FALSE}
 CIMouse %>% 
@@ -243,9 +298,17 @@ CIMouse %>%
             Mean_OOC = mean(na.omit(max_OOC)),
             Median_OOC = median(na.omit(max_OOC)),
             Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC))
-            )
+            Max_OOC = max(na.omit(max_OOC)),
+            var_OOC = var(na.omit(max_OOC)),
+            sd_OOC = sd(na.omit(max_OOC)))
   
+```
+```{r}
+CIMouse %>%
+  filter(infection == "challenge") %>%
+  ggplot(aes(max_OOC)) +
+  geom_histogram() +
+  facet_wrap(~ Parasite_challenge)
 ```
 What do I do wih the infected uninfected mice?
 
@@ -267,8 +330,9 @@ CIMouse %>%
             Mean_OOC = mean(na.omit(max_OOC)),
             Median_OOC = median(na.omit(max_OOC)),
             Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC))
-            )
+            Max_OOC = max(na.omit(max_OOC)),
+            var_OOC = var(na.omit(max_OOC)),
+            sd_OOC = sd(na.omit(max_OOC)))
   
 ```
 2. Challenge:
@@ -280,8 +344,9 @@ CIMouse %>%
             Mean_OOC = mean(na.omit(max_OOC)),
             Median_OOC = median(na.omit(max_OOC)),
             Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC))
-            )
+            Max_OOC = max(na.omit(max_OOC)),
+            var_OOC = var(na.omit(max_OOC)),
+            sd_OOC = sd(na.omit(max_OOC)))
   
 ```
 #### 3.4 What is the maximum weight loss for mice in each infection? 
@@ -303,6 +368,13 @@ CIMouse %>%
 We here observe a lower weight loss average in the challenge infections when
 compared to the primary infections
 
+```{r}
+CIMouse %>% 
+  ggplot(aes(max_WL)) +
+  geom_histogram() +
+  facet_wrap(~ infection)
+```
+
 #### 3.5 What is the average weight loss for mice in each infection for the different mice strains?
 1. Primary infections Weight loss:
 ```{r, echo = FALSE}
@@ -313,11 +385,18 @@ CIMouse %>%
             Mean_WL = mean(na.omit(max_WL)),
             Median_WL = median(na.omit(max_WL)),
             Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL))
-            )
+            max_WL = max(na.omit(max_WL)),
+            var_WL = var(na.omit(max_WL)),
+            sd_WL = sd(na.omit(max_WL)))
   
 ```
-
+```{r}
+CIMouse %>%
+  filter(infection == "primary") %>%
+  ggplot(aes(max_WL)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~ hybrid_status)
+```
 2. Challenge infections weight loss:
 ```{r, echo = FALSE}
 CIMouse %>%
@@ -327,11 +406,21 @@ CIMouse %>%
             Mean_WL = mean(na.omit(max_WL)),
             Median_WL = median(na.omit(max_WL)),
             Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL))
-            )
+            max_WL = max(na.omit(max_WL)),
+            var_OOC = var(na.omit(max_OOC)),
+            sd_OOC = sd(na.omit(max_OOC)),
+            var_WL = var(na.omit(max_WL)),
+            sd_WL = sd(na.omit(max_WL)))
   
 ```
 
+```{r}
+CIMouse %>%
+  filter(infection == "challenge") %>%
+  ggplot(aes(max_WL)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~ hybrid_status)
+```
 
 #### 3.6 What is the average weight loss for mice in each infection for the different parasite strains?
 1. Primary infections Weight loss:
@@ -343,9 +432,19 @@ CIMouse %>%
             Mean_WL = mean(na.omit(max_WL)),
             Median_WL = median(na.omit(max_WL)),
             Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL))
-            )
+            max_WL = max(na.omit(max_WL)),
+            var_WL = var(na.omit(max_WL)),
+            sd_WL = sd(na.omit(max_WL)))
   
+```
+
+
+```{r}
+CIMouse %>%
+  filter(infection == "primary") %>%
+  ggplot(aes(max_WL)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~ Parasite_primary)
 ```
 
 2. Challenge infections weight loss:
@@ -357,11 +456,18 @@ CIMouse %>%
             Mean_WL = mean(na.omit(max_WL)),
             Median_WL = median(na.omit(max_WL)),
             Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL))
-            )
+            max_WL = max(na.omit(max_WL)),
+            var_WL = var(na.omit(max_WL)),
+            sd_WL = sd(na.omit(max_WL)))
   
 ```
-
+```{r}
+CIMouse %>%
+  filter(infection == "challenge") %>%
+  ggplot(aes(max_WL)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~ Parasite_primary)
+```
 
 
 #### 3.7 What is the effect of each experiment on weight loss?
@@ -374,8 +480,9 @@ CIMouse %>%
             Mean_WL = mean(na.omit(max_WL)),
             Median_WL = median(na.omit(max_WL)),
             Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL))
-            )
+            max_WL = max(na.omit(max_WL)),
+            var_WL = var(na.omit(max_WL)),
+            sd_WL = sd(na.omit(max_WL)))
   
 ```
 
@@ -388,9 +495,15 @@ CIMouse %>%
             Mean_WL = mean(na.omit(max_WL)),
             Median_WL = median(na.omit(max_WL)),
             Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL))
-            )
+            max_WL = max(na.omit(max_WL)),
+            var_WL = var(na.omit(max_WL)),
+            sd_WL = sd(!is.finite(max_WL), na.rm = TRUE))
   
 ```
 
 
+```{r}
+CIMouse %>% filter(infection == "challenge", challenge_infection == "UNI")
+```
+
+Why do I get nas in my standard deviation or in variance , even after removing nas and infinite values.

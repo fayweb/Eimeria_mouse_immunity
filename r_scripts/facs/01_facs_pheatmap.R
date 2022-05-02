@@ -71,10 +71,12 @@ annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
 
 
 #plot the heatmap
-jpeg("output_data/facs/01_Pheatmap_facs_lab.jpg", width = 1400, height = 1000)
+
+
+pdf("output_data/facs/01_Pheatmap_facs_lab.pdf", width = 4, height = 4)
 heatmap_data %>% 
   pheatmap(annotation_col = annotation_df, scale = "row")
 #close the jpeg file
 dev.off()
 
-
+while (!is.null(dev.list()))  dev.off()
