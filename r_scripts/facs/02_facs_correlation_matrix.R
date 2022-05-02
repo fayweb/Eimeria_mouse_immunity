@@ -59,5 +59,29 @@ corrplot(facs_correlation,
 
 dev.off()
 
+pdf("output_data/facs/02_Corrplot_facs_lab.pdf", width = 14, height = 10)
+
+
+corrplot(facs_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust") #hclust reordering
+dev.off()
+
+
+pdf("output_data/facs/03_Corrplot_facs_lab_significant.pdf", width = 14, height = 10)
+
+
+corrplot(facs_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank") #Add significance level to the correlogram
+#remove the values that are insignificant
+
+dev.off()
+
 #switch off all dev devices
 while (!is.null(dev.list()))  dev.off()         

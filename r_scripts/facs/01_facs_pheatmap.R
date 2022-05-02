@@ -73,7 +73,7 @@ annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
 #plot the heatmap
 
 
-pdf("output_data/facs/01_Pheatmap_facs_lab.pdf", width = 4, height = 4)
+pdf("Eimeria_mouse_immunity/output_data/facs/01_Pheatmap_facs_labr.pdf", width = 14, height = 10)
 heatmap_data %>% 
   pheatmap(annotation_col = annotation_df, scale = "row")
 #close the jpeg file
