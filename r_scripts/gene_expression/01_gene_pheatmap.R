@@ -96,3 +96,4 @@ dev.off()
 #switch off all dev devices
 while (!is.null(dev.list()))  dev.off()
 
+?pheatmap
