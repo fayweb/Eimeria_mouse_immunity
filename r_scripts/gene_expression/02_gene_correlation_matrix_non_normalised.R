@@ -58,3 +58,16 @@ dev.off()
 
 #switch off all dev devices
 while (!is.null(dev.list()))  dev.off()         
+
+jpeg("output_data/gene_expression/03_Corrplot_gene_lab_non_normalised_numbers.jpg", width = 1400, height = 1000)
+
+
+corrplot(gene_correlation, 
+         method = "number",  #method of the plot, "color" would show colour gradien
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank") #Add significance level to the correlogram
+#remove the values that are insignificant
+
+dev.off()
