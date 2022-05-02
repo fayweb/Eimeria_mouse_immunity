@@ -47,7 +47,7 @@ jpeg("output_data/gene_expression/03_Corrplot_gene_lab_significant_non_normalise
 
 
 corrplot(gene_correlation, 
-         method = "circle",  #method of the plot, "color" would show colour gradient
+         method = "circle",  #method of the plot, "color" would show colour gradien
          tl.col = "black", tl.srt=45, #colour of labels and rotation
          col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
          order="hclust", #hclust reordering
