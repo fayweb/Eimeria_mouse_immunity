@@ -13,7 +13,7 @@ rm(annotation_df, basics_gene, gene, heatmap_data)
 while (!is.null(dev.list()))  dev.off() 
 
 
-png("output_data/gene_expression/04.01_weight_dpi_primary.jpg", res =  100)
+png("output_data/gene_expression/04.01_weight_dpi_primary.png", res =  100)
 
 # Primary: 
 Challenge %>% 
@@ -30,7 +30,7 @@ Challenge %>%
 dev.off()
 
 # Primary /mouse stains: 
-png("output_data/gene_expression/04.02_weight_dpi_primary_mouse_strain.jpg", width = 800, 
+png("output_data/gene_expression/04.02_weight_dpi_primary_mouse_strain.png", width = 800, 
      height = 600)
 
 Challenge %>% 
@@ -48,7 +48,7 @@ Challenge %>%
 dev.off()
 
 # Challenge:
-png("output_data/gene_expression/05.01_weight_dpi_challenge.jpg", width = 800, 
+png("output_data/gene_expression/05.01_weight_dpi_challenge.png", width = 800, 
      height = 600)
 
 Challenge %>% 
@@ -65,7 +65,7 @@ Challenge %>%
 dev.off()
 
 # Challenge /mouse_stains:
-png("output_data/gene_expression/05.02_weight_dpi_challenge_mouse_strains.jpg", width = 800, 
+png("output_data/gene_expression/05.02_weight_dpi_challenge_mouse_strains.png", width = 800, 
      height = 600)
 
 Challenge %>% 
@@ -85,7 +85,7 @@ dev.off()
 ## OPG against dpi 
 # Primary infections: 
 
-png("output_data/gene_expression/06.01_oocysts_primary_dpi.jpg", 
+png("output_data/gene_expression/06.01_oocysts_primary_dpi.png", 
      res =  100)
 
 Challenge %>% 
@@ -106,7 +106,7 @@ dev.off()
 ## OPG against dpi 
 # Primary infections: mouse_strain
 
-png("output_data/gene_expression/06.02_oocysts_primary_dpi.jpg", 
+png("output_data/gene_expression/06.02_oocysts_primary_dpi.png", 
      res =  100)
 
 Challenge %>% 
@@ -127,7 +127,7 @@ dev.off()
 
 # Challenge infections:
 
-png("output_data/gene_expression/07.01_oocysts_challenge_dpi.jpg", res =  100)
+png("output_data/gene_expression/07.01_oocysts_challenge_dpi.png", res =  100)
 
 Challenge %>% 
   drop_na(OOC) %>%
@@ -145,7 +145,7 @@ dev.off()
 
 # Challenge infections: mouse_strain
 
-png("output_data/gene_expression/07.01_oocysts_challenge_dpi_mouse_strain.jpg", res =  100)
+png("output_data/gene_expression/07.01_oocysts_challenge_dpi_mouse_strain.png", res =  100)
 
 Challenge %>% 
     drop_na(OOC) %>%
@@ -164,7 +164,7 @@ dev.off()
 
 ## Plot the weight loss against the infection intensity
 
-png("output_data/gene_expression/08.01_weight_intensity_primary.jpg", res =  100)
+png("output_data/gene_expression/08.01_weight_intensity_primary.png", res =  100)
 
 # primary 
 Challenge %>% 
@@ -182,7 +182,7 @@ dev.off()
 
 ## Plot the weight loss against the infection intensity_mouse strain
 
-png("output_data/gene_expression/08.02_weight_intensity_primary_mouse_strain.jpg", res =  100)
+png("output_data/gene_expression/08.02_weight_intensity_primary_mouse_strain.png", res =  100)
 
 # primary 
 Challenge %>% 
@@ -202,7 +202,7 @@ dev.off()
 
 
 # challenge 
-png("output_data/gene_expression/09.01_weight_intensity_challenge.jpg", res =  100)
+png("output_data/gene_expression/09.01_weight_intensity_challenge.png", res =  100)
 
 Challenge %>% 
   drop_na(delta, max_WL) %>%
@@ -219,7 +219,7 @@ Challenge %>%
 dev.off()
 
 # challenge: mouse_strain
-png("output_data/gene_expression/09.02_weight_intensity_challenge_mouse_strain.jpg", res =  100)
+png("output_data/gene_expression/09.02_weight_intensity_challenge_mouse_strain.png", res =  100)
 
 Challenge %>% 
     drop_na(delta, max_WL) %>%
@@ -245,7 +245,7 @@ gene_expr_delta <- gene_na_omit %>%
     group_by(EH_ID) %>%
   ggplot(aes(x = delta, y = gene_expression, color = challenge_infection)) 
 
-png("output_data/gene_expression/10.01_gene_expression_intensity.jpg", 
+png("output_data/gene_expression/10.01_gene_expression_intensity.png", 
      res =  100)
 
 gene_expr_delta +
@@ -271,7 +271,7 @@ gene_expr_delta +
 
 dev.off()
 
-png("output_data/gene_expression/11_gene_expression_eimeria_boxplot.jpg", 
+png("output_data/gene_expression/11_gene_expression_eimeria_boxplot.png", 
      res =  100)
 
 gene_na_omit %>%
