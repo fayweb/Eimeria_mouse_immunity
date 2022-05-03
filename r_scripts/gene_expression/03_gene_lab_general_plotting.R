@@ -15,11 +15,16 @@ while (!is.null(dev.list()))  dev.off()
 
 png("output_data/gene_expression/04.01_weight_dpi_primary.png", res =  100)
 
-# Primary: 
-Challenge %>% 
-  filter(infection == "primary", !dpi %in% "0", death == "primary") %>%
-  drop_na(weight_dpi0, relative_weight) %>%
-  group_by("EH_ID") %>%
+# Primary:
+Challenge$dpi <- as.double(Challenge$dpi)
+Challenge %>%
+    mutate(weight_dpi1 = case_when(
+        dpi == 1 ~ Challenge$weight,
+        TRUE ~ as.integer(NA)))
+
+typeof(Challenge$weight)
+    mutate(relative_weight = weight/weight)
+  
   ggplot(aes(x = dpi, y = relative_weight, color = primary_infection)) +
   geom_jitter() +
   stat_smooth() +
@@ -115,7 +120,6 @@ Challenge %>%
     filter(infection == "primary", death == "primary") %>%
     ggplot(aes(x = dpi, y = OOC, color = primary_infection)) +
     geom_point(position = position_jitterdodge()) +
-    stat_smooth() +
     scale_y_log10() +
     labs(x = "Days Post Infection", y = "Oocysts per gram",
          title = "Oocyst shedding in primary infections during the 
@@ -127,7 +131,7 @@ dev.off()
 
 # Challenge infections:
 
-png("output_data/gene_expression/07.01_oocysts_challenge_dpi.png", res =  100)
+png("output_data/gene_expression/07.01_oocysts_challenge_dpi.png", res = 50)
 
 Challenge %>% 
   drop_na(OOC) %>%
@@ -258,12 +262,12 @@ gene_expr_delta +
 
 dev.off()
 
-png("output_data/gene_expression/10.02_gene_expression_intensity_mouse_strains.jgp", 
+png("output_data/gene_expression/10.02_gene_expression_intensity_mouse_strains.png", 
      res =  100)
 
 gene_expr_delta +
     geom_jitter() +
-    facet_wrap(~ Gene + mouse_stain, scales = "free") +
+    facet_wrap(~ Gene + mouse_strain, scales = "free") +
     theme_light() +
     labs(x = "Delta Ct, Infection intensity", y = "Gene expression",
          title = "Gene expression in response to infection intensity") +
@@ -272,7 +276,7 @@ gene_expr_delta +
 dev.off()
 
 png("output_data/gene_expression/11_gene_expression_eimeria_boxplot.png", 
-     res =  100)
+     res =  50)
 
 gene_na_omit %>%
     group_by(EH_ID) %>%

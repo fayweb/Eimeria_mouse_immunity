@@ -79,7 +79,7 @@ CIMouse <- CIMouse %>%
   dplyr::mutate(Parasite_primary = case_when(
     primary_infection == "E64" ~ "Eimeria ferrisi",
     primary_infection == "E88" ~ "Eimeria falciformis",
-    primary_infection == "Eflab" ~ "E. falciformis BayerHaberkorn1970",
+    primary_infection == "Eflab" ~ "Eimeria falciformis",
     primary_infection == "E139" ~ "Eimeria ferrisi",
     primary_infection == "UNI" ~ "uninfected",
     TRUE ~ ""))
@@ -89,7 +89,7 @@ CIMouse <- CIMouse %>%
   dplyr::mutate(Parasite_challenge = case_when(    
     challenge_infection == "E64" ~ "Eimeria ferrisi",
     challenge_infection == "E88" ~ "Eimeria falciformis",
-    challenge_infection == "Eflab" ~ "E. falciformis BayerHaberkorn1970",
+    challenge_infection == "Eflab" ~ "E. falciformis",
     challenge_infection == "E139" ~ "Eimeria ferrisi",
     challenge_infection == "UNI" ~ "uninfected",
     TRUE ~ ""))
