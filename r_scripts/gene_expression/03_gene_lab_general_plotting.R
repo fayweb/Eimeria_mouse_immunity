@@ -121,6 +121,7 @@ Challenge %>%
     ggplot(aes(x = dpi, y = OOC, color = primary_infection)) +
     geom_point(position = position_jitterdodge()) +
     scale_y_log10() +
+    
     labs(x = "Days Post Infection", y = "Oocysts per gram",
          title = "Oocyst shedding in primary infections during the 
        course of infection") +

@@ -58,8 +58,8 @@ tibble::as_tibble(CI)
 #### 2.1 Summarizing data by each mouse
 
 ```{r}
-CIMouse <- as_tibble(CI) %>%
-  dplyr::group_by(EH_ID, infection) %>%
+CIMouse <- as_tibble(CI)  %>%
+  dplyr::group_by(EH_ID, infection) %>%  
   dplyr::summarize(max_OOC = max(OOC),
             max_WL = min(relative_weight),
             experiment = unique(experiment),
@@ -71,9 +71,30 @@ CIMouse <- as_tibble(CI) %>%
             experiment=unique(experiment),
             hybrid_status = unique(hybrid_status),
             death = unique(death))
+
+
 ```
 Let's add a column with the parasite names 
-
+```{r, echo = FALSE}
+CI <- CI %>%
+  dplyr::mutate(Parasite_primary = case_when(
+    primary_infection == "E64" ~ "Eimeria ferrisi",
+    primary_infection == "E88" ~ "Eimeria falciformis",
+    primary_infection == "Eflab" ~ "Eimeria falciformis",
+    primary_infection == "E139" ~ "Eimeria ferrisi",
+    primary_infection == "UNI" ~ "uninfected",
+    TRUE ~ ""))
+    
+    
+CI <- CI %>%
+  dplyr::mutate(Parasite_challenge = case_when(    
+    challenge_infection == "E64" ~ "Eimeria ferrisi",
+    challenge_infection == "E88" ~ "Eimeria falciformis",
+    challenge_infection == "Eflab" ~ "E. falciformis",
+    challenge_infection == "E139" ~ "Eimeria ferrisi",
+    challenge_infection == "UNI" ~ "uninfected",
+    TRUE ~ ""))
+```
 ```{r, echo = FALSE}
 CIMouse <- CIMouse %>%
   dplyr::mutate(Parasite_primary = case_when(
@@ -142,8 +163,11 @@ CIMouse %>%
   dplyr::summarise(total_mice = length(EH_ID)) 
 ```
 
-Further, for the challenge infections
-1. Primary:
+2. Further, for the challenge infections
+```{r}
+
+```
+
 ```{r, echo = FALSE}
 CIMouse %>% 
   filter(infection == "challenge") %>%
@@ -507,3 +531,117 @@ CIMouse %>% filter(infection == "challenge", challenge_infection == "UNI")
 ```
 
 Why do I get nas in my standard deviation or in variance , even after removing nas and infinite values.
+
+
+```{r}
+
+png("output_data/gene_expression/06.01_oocysts_primary_dpi.png", 
+     res =  100)
+
+CI %>% 
+  drop_na(OOC) %>%
+  group_by("EH_ID") %>%
+  filter(infection == "primary", !Parasite_primary == "uninfected", !dpi == 0) %>%
+  ggplot(aes(x = dpi, y = OOC, color = Parasite_primary)) +
+  geom_point(position = position_jitterdodge()) +
+    scale_y_log10() +
+  labs(x = "Days Post Infection", y = "Oocysts per gram",
+       title = "Oocyst shedding in primary infections during the 
+       course of infection") +
+    theme_bw()
+
+dev.off()
+```
+```{r}
+
+png("output_data/gene_expression/06.01_oocysts_challenge_dpi.png", 
+     res =  100)
+
+CI %>% 
+  drop_na(OOC) %>%
+  group_by("EH_ID") %>%
+  filter(infection == "challenge") %>%
+  ggplot(aes(x = dpi, y = OOC, color = Parasite_challenge)) +
+  geom_point(position = position_jitterdodge()) +
+    scale_y_log10() +
+  labs(x = "Days Post Infection", y = "Oocysts per gram",
+       title = "Oocyst shedding in challenge infections during the 
+       course of infection") +
+    theme_bw()
+
+dev.off()
+```
+```{r}
+## Plot the weight loss against the infection intensity
+
+png("output_data/gene_expression/08.01_weight_intensity_primary.png", res =  100)
+
+# primary 
+CI %>% 
+  drop_na(delta, max_WL) %>%
+  group_by("EH_ID") %>%
+  filter(infection == "primary", Eim_MC == "TRUE") %>%
+  ggplot(aes(x = delta, y = max_WL, color = Parasite_primary)) +
+  geom_jitter() +
+    stat_smooth() +
+  labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
+       title = "Maximum Weight loss for each mouse and infection intensity, 
+       primary infections") +
+    theme_bw()
+
+dev.off()
+```
+```{r}
+## Plot the weight loss against the infection intensity
+
+png("output_data/gene_expression/08.01_weight_intensity_challenge.png", res =  100)
+
+# challenge 
+CI %>% 
+  drop_na(delta, max_WL) %>%
+  group_by("EH_ID") %>%
+  filter(infection == "challenge", Eim_MC == "TRUE") %>%
+  ggplot(aes(x = delta, y = max_WL, color = Parasite_challenge)) +
+  geom_jitter() +
+    stat_smooth() +
+  labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
+       title = "Maximum Weight loss for each mouse and infection intensity, 
+       challenge infections") +
+    theme_bw()
+
+dev.off()
+```
+```{r}
+
+
+png("output_data/gene_expression/04.01_weight_dpi_primary.png", res =  100)
+
+# Primary:
+  
+CI %>% 
+    group_by(EH_ID) %>%
+  ggplot(aes(x = dpi, y = relative_weight, color = Parasite_primary)) +
+  geom_jitter() +
+  stat_smooth() +
+    scale_y_log10() +
+  labs(x = "Days Post Infection", y = "Relative weight to dpi 0",
+       title = "Weight changes during the course of the primary infections") +
+    theme_bw()
+
+dev.off()
+
+# challenge:
+  
+CI %>% 
+    group_by(EH_ID) %>%
+  ggplot(aes(x = dpi, y = relative_weight, color = Parasite_challenge)) +
+  geom_jitter() +
+  stat_smooth() +
+    scale_y_log10() +
+  labs(x = "Days Post Infection", y = "Relative weight to dpi 0",
+       title = "Weight changes during the course of the challenge infections") +
+    theme_bw()
+
+dev.off()
+```
+
