@@ -541,14 +541,13 @@ png("output_data/gene_expression/06.01_oocysts_primary_dpi.png",
 CI %>% 
   drop_na(OOC) %>%
   group_by("EH_ID") %>%
-  filter(infection == "primary", !Parasite_primary == "uninfected", !dpi == 0) %>%
+  filter(infection == "primary",!Parasite_primary == "uninfected",  !dpi == 0,  experiment == "E57") %>%
   ggplot(aes(x = dpi, y = OOC, color = Parasite_primary)) +
   geom_point(position = position_jitterdodge()) +
-    scale_y_log10() +
   labs(x = "Days Post Infection", y = "Oocysts per gram",
        title = "Oocyst shedding in primary infections during the 
        course of infection") +
-    theme_bw()
+    theme_bw() 
 
 dev.off()
 ```
@@ -567,7 +566,7 @@ CI %>%
   labs(x = "Days Post Infection", y = "Oocysts per gram",
        title = "Oocyst shedding in challenge infections during the 
        course of infection") +
-    theme_bw()
+    theme_bw()  
 
 dev.off()
 ```
