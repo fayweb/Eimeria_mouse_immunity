@@ -53,27 +53,6 @@ CI <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data
 tibble::as_tibble(CI)
 ```
 
-### 2 Summary statistics on experimental design
-
-#### 2.1 Summarizing data by each mouse
-
-```{r}
-CIMouse <- as_tibble(CI)  %>%
-  dplyr::group_by(EH_ID, infection) %>%  
-  dplyr::summarize(max_OOC = max(OOC),
-            max_WL = min(relative_weight),
-            experiment = unique(experiment),
-            mouse_strain = unique(mouse_strain),
-            primary_infection = unique(primary_infection),
-            challenge_infection =unique(challenge_infection),
-            infection_history=unique(infection_history),
-            infection = unique(infection),
-            experiment=unique(experiment),
-            hybrid_status = unique(hybrid_status),
-            death = unique(death))
-
-
-```
 Let's add a column with the parasite names 
 ```{r, echo = FALSE}
 CI <- CI %>%
@@ -95,25 +74,26 @@ CI <- CI %>%
     challenge_infection == "UNI" ~ "uninfected",
     TRUE ~ ""))
 ```
-```{r, echo = FALSE}
-CIMouse <- CIMouse %>%
-  dplyr::mutate(Parasite_primary = case_when(
-    primary_infection == "E64" ~ "Eimeria ferrisi",
-    primary_infection == "E88" ~ "Eimeria falciformis",
-    primary_infection == "Eflab" ~ "Eimeria falciformis",
-    primary_infection == "E139" ~ "Eimeria ferrisi",
-    primary_infection == "UNI" ~ "uninfected",
-    TRUE ~ ""))
-    
-    
-CIMouse <- CIMouse %>%
-  dplyr::mutate(Parasite_challenge = case_when(    
-    challenge_infection == "E64" ~ "Eimeria ferrisi",
-    challenge_infection == "E88" ~ "Eimeria falciformis",
-    challenge_infection == "Eflab" ~ "E. falciformis",
-    challenge_infection == "E139" ~ "Eimeria ferrisi",
-    challenge_infection == "UNI" ~ "uninfected",
-    TRUE ~ ""))
+### 2 Summary statistics on experimental design
+
+#### 2.1 Summarizing data by each mouse
+
+```{r}
+CIMouse <- as_tibble(CI)  %>%
+  dplyr::group_by(EH_ID, infection) %>%  
+  dplyr::summarize(max_OOC = max(OOC),
+            max_WL = min(relative_weight),
+            experiment = unique(experiment),
+            mouse_strain = unique(mouse_strain),
+            primary_infection = unique(primary_infection),
+            challenge_infection =unique(challenge_infection),
+            infection_history=unique(infection_history),
+            infection = unique(infection),
+            experiment=unique(experiment),
+            hybrid_status = unique(hybrid_status),
+            death = unique(death),
+            Parasite_primary = unique(Parasite_primary),
+            Parasite_challenge = unique(Parasite_challenge))
 ```
 #### 2.2 How many mice do we have in each infection ? (primary or challenge infection)
 ```{r, echo = FALSE}
@@ -164,9 +144,6 @@ CIMouse %>%
 ```
 
 2. Further, for the challenge infections
-```{r}
-
-```
 
 ```{r, echo = FALSE}
 CIMouse %>% 
@@ -643,4 +620,36 @@ CI %>%
 
 dev.off()
 ```
+```{r}
 
+
+png("output_data/gene_expression/04.01_weight_dpi_primary.png", res =  100)
+
+# Primary:
+  
+CI %>% 
+    group_by(EH_ID) %>%
+  ggplot(aes(x = dpi, y = relative_weight, color = Parasite_primary)) +
+  geom_jitter() +
+  stat_smooth() +
+    scale_y_log10() +
+  labs(x = "Days Post Infection", y = "Relative weight to dpi 0",
+       title = "Weight changes during the course of the primary infections") +
+    theme_bw()
+
+dev.off()
+
+# challenge:
+  
+CI %>% 
+    group_by(EH_ID) %>%
+  ggplot(aes(x = dpi, y = relative_weight, color = Parasite_challenge)) +
+  geom_jitter() +
+  stat_smooth() +
+    scale_y_log10() +
+  labs(x = "Days Post Infection", y = "Relative weight to dpi 0",
+       title = "Weight changes during the course of the challenge infections") +
+    theme_bw()
+
+dev.off()
+```
