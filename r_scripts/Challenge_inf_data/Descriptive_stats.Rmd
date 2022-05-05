@@ -1,8 +1,9 @@
 ---
 title: "Challenge infections - Descreptive statistics"
 output:
-  pdf_document: default
+  word_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -30,10 +31,6 @@ CI <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data
 ```{r, echo = FALSE}
 tibble::as_tibble(CI)
 ```
-<<<<<<< HEAD
-=======
-
->>>>>>> 3240b6fa4e56cefb4dec4e7ad822af6756896e71
 Let's add a column with the parasite names 
 ```{r, echo = FALSE}
 CI <- CI %>%
@@ -55,7 +52,6 @@ CI <- CI %>%
     challenge_infection == "UNI" ~ "uninfected",
     TRUE ~ ""))
 ```
-<<<<<<< HEAD
 
 
 ### Summary statistics on experimental design
@@ -67,17 +63,6 @@ CIMouse <- CI  %>%
   dplyr::group_by(EH_ID, infection) %>%  
   summarise(max_OOC = max(OOC, na.rm = TRUE),
             max_WL = min(relative_weight, na.rm = TRUE),
-=======
-### 2 Summary statistics on experimental design
-
-#### 2.1 Summarizing data by each mouse
-
-```{r}
-CIMouse <- as_tibble(CI)  %>%
-  dplyr::group_by(EH_ID, infection) %>%  
-  dplyr::summarize(max_OOC = max(OOC),
-            max_WL = min(relative_weight),
->>>>>>> 3240b6fa4e56cefb4dec4e7ad822af6756896e71
             experiment = unique(experiment),
             mouse_strain = unique(mouse_strain),
             primary_infection = unique(primary_infection),
@@ -89,11 +74,8 @@ CIMouse <- as_tibble(CI)  %>%
             death = unique(death),
             Parasite_primary = unique(Parasite_primary),
             Parasite_challenge = unique(Parasite_challenge))
-<<<<<<< HEAD
 
 
-=======
->>>>>>> 3240b6fa4e56cefb4dec4e7ad822af6756896e71
 ```
 
 #### How many mice do we have in each infection ? (primary or challenge infection)
@@ -548,36 +530,4 @@ CI  %>%
        challenge infections") +
     theme_bw()
 ```
-```{r}
 
-
-png("output_data/gene_expression/04.01_weight_dpi_primary.png", res =  100)
-
-# Primary:
-  
-CI %>% 
-    group_by(EH_ID) %>%
-  ggplot(aes(x = dpi, y = relative_weight, color = Parasite_primary)) +
-  geom_jitter() +
-  stat_smooth() +
-    scale_y_log10() +
-  labs(x = "Days Post Infection", y = "Relative weight to dpi 0",
-       title = "Weight changes during the course of the primary infections") +
-    theme_bw()
-
-dev.off()
-
-# challenge:
-  
-CI %>% 
-    group_by(EH_ID) %>%
-  ggplot(aes(x = dpi, y = relative_weight, color = Parasite_challenge)) +
-  geom_jitter() +
-  stat_smooth() +
-    scale_y_log10() +
-  labs(x = "Days Post Infection", y = "Relative weight to dpi 0",
-       title = "Weight changes during the course of the challenge infections") +
-    theme_bw()
-
-dev.off()
-```
