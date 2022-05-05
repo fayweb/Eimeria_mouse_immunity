@@ -1,6 +1,8 @@
 ---
 title: "Challenge infections - Descreptive statistics"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -59,7 +61,7 @@ CI <- CI %>%
 CIMouse <- CI  %>%
   dplyr::group_by(EH_ID, infection) %>%  
   summarise(max_OOC = max(OOC, na.rm = TRUE),
-            max_OOC = min(relative_weight, na.rm = TRUE),
+            max_WL = min(relative_weight, na.rm = TRUE),
             experiment = unique(experiment),
             mouse_strain = unique(mouse_strain),
             primary_infection = unique(primary_infection),
@@ -241,7 +243,7 @@ CIMouse  %>%
 ```{r, echo = FALSE}
 CIMouse  %>%
     filter(infection == "challenge")  %>%
-  ggplot(aes(x = Parasite_challenge, y = max_OOC, fill = Parasite_challenge)) +
+  ggplot(aes(y = max_OOC, fill = Parasite_challenge)) +
   geom_boxplot() +
     theme_bw() + 
     facet_wrap(~ hybrid_status)
@@ -252,7 +254,7 @@ Effect of experiments on oocyst shedding?
 ```{r, echo = FALSE}
 CIMouse  %>%
     filter(infection == "primary")  %>%
-  ggplot(aes(x = Parasite_primary, y = max_OOC, fill = Parasite_primary)) +
+  ggplot(aes(y = max_OOC, fill = Parasite_primary)) +
   geom_boxplot() +
     theme_bw() + 
     facet_wrap(~ experiment)
@@ -262,7 +264,7 @@ CIMouse  %>%
 ```{r, echo = FALSE}
 CIMouse  %>%
     filter(infection == "challenge")  %>%
-  ggplot(aes(x = Parasite_challenge, y = max_OOC, fill = Parasite_challenge)) +
+  ggplot(aes(y = max_OOC, fill = Parasite_challenge)) +
   geom_boxplot() +
     theme_bw() + 
     facet_wrap(~ experiment)
@@ -336,6 +338,7 @@ CI %>%
 
 
 
+
 ##########################################################################
 #### What is the average max weight loss output for each mouse in the primary and challenge infections?
 
@@ -344,7 +347,7 @@ CI %>%
 ```{r}
 CIMouse %>%
     dplyr::filter(infection == "primary") %>%
-  ggplot(aes({{max_WL}}, color = Parasite_primary, fill = Parasite_primary)) +
+  ggplot(aes(max_WL, color = Parasite_primary, fill = Parasite_primary)) +
   geom_histogram(bins = 30, alpha = 0.5)  +
     theme_bw()
 
@@ -396,7 +399,7 @@ CIMouse  %>%
 ```{r, echo = FALSE}
 CIMouse  %>%
     filter(infection == "primary")  %>%
-  ggplot(aes(x = Parasite_primary, y = max_WL, fill = Parasite_primary)) +
+  ggplot(aes(y = max_WL, fill = Parasite_primary)) +
   geom_boxplot() +
     theme_bw() + 
     facet_wrap(~ hybrid_status)
@@ -406,7 +409,7 @@ CIMouse  %>%
 ```{r, echo = FALSE}
 CIMouse  %>%
     filter(infection == "challenge")  %>%
-  ggplot(aes(x = Parasite_challenge, y = max_WL, fill = Parasite_challenge)) +
+  ggplot(aes(, y = max_WL, fill = Parasite_challenge)) +
   geom_boxplot() +
     theme_bw() + 
     facet_wrap(~ hybrid_status)
@@ -417,10 +420,113 @@ Effect of experiments on weight loss?
 ```{r, echo = FALSE}
 CIMouse  %>%
     filter(infection == "primary")  %>%
-  ggplot(aes(x = Parasite_primary, y = max_WL, fill = Parasite_primary)) +
+  ggplot(aes(y = max_WL, fill = Parasite_primary)) +
   geom_boxplot() +
     theme_bw() + 
     facet_wrap(~ experiment)
 ```
+Weight changes during the course of infection
+1. Primary
+```{r}
+CI %>% 
+    filter(infection == "primary") %>%
+    drop_na(weight_dpi0, relative_weight) %>%
+    group_by("EH_ID") %>%
+    ggplot(aes(x = dpi, y = relative_weight, color = Parasite_primary)) +
+    geom_jitter() +
+    stat_smooth() +
+    labs(x = "Days Post Infection", y = "Relative weight to first day",
+         title = "Weight changes during the course of the primary infection") +
+    theme_bw()
 
+CI %>% 
+    filter(infection == "primary") %>%
+    drop_na(weight_dpi0, relative_weight) %>%
+    group_by("EH_ID") %>%
+    ggplot(aes(x = dpi, y = relative_weight, color = Parasite_primary)) +
+    geom_jitter() +
+    stat_smooth() +
+    facet_wrap(~ mouse_strain) +
+    labs(x = "Days Post Infection", y = "Relative weight to first day",
+         title = "Weight changes during the course of the primary infection") +
+    theme_bw()
+
+CI %>% 
+    filter(infection == "primary") %>%
+    drop_na(weight_dpi0, relative_weight) %>%
+    group_by("EH_ID") %>%
+    ggplot(aes(x = dpi, y = relative_weight, color = Parasite_primary)) +
+    geom_jitter() +
+    stat_smooth() +
+    facet_wrap(~ experiment) +
+    labs(x = "Days Post Infection", y = "Relative weight to first day",
+         title = "Weight changes during the course of the primary infection") +
+    theme_bw()
+
+```
+Weight changes during the course of infection
+1. challenge
+```{r}
+CI %>% 
+    filter(infection == "challenge") %>%
+    drop_na(weight_dpi0, relative_weight) %>%
+    group_by("EH_ID") %>%
+    ggplot(aes(x = dpi, y = relative_weight, color = Parasite_challenge)) +
+    geom_jitter() +
+    stat_smooth() +
+    labs(x = "Days Post Infection", y = "Relative weight to first day",
+         title = "Weight changes during the course of the challenge infection") +
+    theme_bw()
+
+CI %>% 
+    filter(infection == "challenge") %>%
+    drop_na(weight_dpi0, relative_weight) %>%
+    group_by("EH_ID") %>%
+    ggplot(aes(x = dpi, y = relative_weight, color = Parasite_challenge)) +
+    geom_jitter() +
+    stat_smooth() +
+    facet_wrap(~ mouse_strain) +
+    labs(x = "Days Post Infection", y = "Relative weight to first day",
+         title = "Weight changes during the course of the challenge infection") +
+    theme_bw()
+
+CI %>% 
+    filter(infection == "challenge") %>%
+    drop_na(weight_dpi0, relative_weight) %>%
+    group_by("EH_ID") %>%
+    ggplot(aes(x = dpi, y = relative_weight, color = Parasite_challenge)) +
+    geom_jitter() +
+    stat_smooth() +
+    facet_wrap(~ experiment) +
+    labs(x = "Days Post Infection", y = "Relative weight to first day",
+         title = "Weight changes during the course of the challenge infection") +
+    theme_bw()
+
+```
+
+Tissue infection intensity vs max weight loss - primary
+```{r}
+CI  %>%
+  group_by("EH_ID") %>%
+  filter(infection == "primary", Eim_MC == "TRUE") %>%
+  ggplot(aes(x = delta, y = max_WL, color = Parasite_primary)) +
+  geom_jitter() +
+  labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
+       title = "Maximum Weight loss for each mouse and infection intensity, 
+       primary infections") +
+    theme_bw()
+```
+
+Tissue infection intensity vs max weight loss - challenge
+```{r}
+CI  %>%
+  group_by("EH_ID") %>%
+  filter(infection == "challenge", Eim_MC == "TRUE") %>%
+  ggplot(aes(x = delta, y = max_WL, color = Parasite_challenge)) +
+  geom_jitter() +
+  labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
+       title = "Maximum Weight loss for each mouse and infection intensity, 
+       challenge infections") +
+    theme_bw()
+```
 
