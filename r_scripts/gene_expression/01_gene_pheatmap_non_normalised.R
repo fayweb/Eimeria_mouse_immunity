@@ -20,6 +20,25 @@ basics_gene <- as_tibble(Challenge) %>%
   dplyr::select(c("EH_ID", "primary_infection", "challenge_infection", "infection_history",
            "mouse_strain", "max_WL", Genes, "delta"))
 
+Challenge <- Challenge %>%
+    dplyr::mutate(Parasite_primary = case_when(
+        primary_infection == "E64" ~ "Eimeria ferrisi",
+        primary_infection == "E88" ~ "Eimeria falciformis",
+        primary_infection == "Eflab" ~ "Eimeria falciformis",
+        primary_infection == "E139" ~ "Eimeria ferrisi",
+        primary_infection == "UNI" ~ "uninfected",
+        TRUE ~ ""))
+
+
+Challenge <- Challenge %>%
+    dplyr::mutate(Parasite_challenge = case_when(    
+        challenge_infection == "E64" ~ "Eimeria ferrisi",
+        challenge_infection == "E88" ~ "Eimeria falciformis",
+        challenge_infection == "Eflab" ~ "E. falciformis",
+        challenge_infection == "E139" ~ "Eimeria ferrisi",
+        challenge_infection == "UNI" ~ "uninfected",
+        TRUE ~ ""))
+
 # remove duplicated and change the format to data frame 
 basics_gene <- unique(basics_gene) %>% as.data.frame(basics_gene) %>% select(-infection)
  
@@ -73,10 +92,17 @@ gene <- basics_gene %>% dplyr::select(c(EH_ID, Genes))
      inner_join((t(heatmap_data) %>% as.data.frame() %>% tibble::rownames_to_column("EH_ID")), 
                 by = "EH_ID")
  
+ gene_na_omit <- gene_na_omit %>%
+     dplyr::mutate(Parasite_challenge = case_when(    
+         challenge_infection == "E64" ~ "Eimeria ferrisi",
+         challenge_infection == "E88" ~ "Eimeria falciformis",
+         challenge_infection == "Eflab" ~ "E. falciformis",
+         challenge_infection == "E139" ~ "Eimeria ferrisi",
+         challenge_infection == "UNI" ~ "uninfected",
+         TRUE ~ ""))
  
 annotation_df <- gene_na_omit %>%
-  select(c("EH_ID", "primary_infection", "challenge_infection", "infection_history",
-           "mouse_strain", "max_WL"))
+  select(c("EH_ID", "Parasite_challenge", "infection_history", "max_WL"))
 
 
 annotation_df <- as.data.frame(annotation_df)

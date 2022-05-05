@@ -9,30 +9,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #### Challenge infections with *Eimeria*. Here I am presenting some summary statistics on the laboratory infection of mice with different *Eimeria* strains.
 
-##### Outlook:
-- 1. Merged data frame consinsting of all experimental data on mice, performed in
-the lab of Prof. Emanuel Heitlinger
-- 2. Summary statistics on experimental design 
-  - 2.1 Summarizing data per mouse
-  - 2.2 How many mice do we have in each infection ? (primary or challenge infection)
-  - 2.3 How many experiments do we have? How many mice are in each experiment?
-  - 2.4 How many mouse strains do we have? 
-  - 2.5 Which Eimeria strains were used?
-  - 2.6 How many mice died in each infection?
-    - 2.6.1 From the mice that died in the primary infection, what was the infection status?
-- 3 Summary statistics - Resistance/ Tolerance proxies 
-  - 3.1 What is the avarege maximum oocysts output for each mouse in each infection?
-  - 3.2 What is the avarege maximum oocysts output for each Eimeria strain in each infection?
-  - 3.3 What is the avarege maximum oocysts output for each parasite strain in each infection?
-    - 3.3.1 What about the effect of the different experiments on weight loss?
-  - 3.4 What is the maximum weight loss for each mouse in each infection? 
-  - 3.5 What is the average weight loss for mice in each infection for the different mice strains?
-  - 3.6 What is the average weight loss for mice in each infection for the different parasite strains?
-  - 3.7 What is the effect of each experiment on weight loss?
-  
-  
-  
-  
 
 ```{r, include=FALSE}
 ## Load the required libraries
@@ -48,31 +24,9 @@ with *Eimeria*.
 CI <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
 ```
 
-### 1 Wrangling
+###  Wrangling
 ```{r, echo = FALSE}
 tibble::as_tibble(CI)
-```
-
-### 2 Summary statistics on experimental design
-
-#### 2.1 Summarizing data by each mouse
-
-```{r}
-CIMouse <- as_tibble(CI)  %>%
-  dplyr::group_by(EH_ID, infection) %>%  
-  dplyr::summarize(max_OOC = max(OOC),
-            max_WL = min(relative_weight),
-            experiment = unique(experiment),
-            mouse_strain = unique(mouse_strain),
-            primary_infection = unique(primary_infection),
-            challenge_infection =unique(challenge_infection),
-            infection_history=unique(infection_history),
-            infection = unique(infection),
-            experiment=unique(experiment),
-            hybrid_status = unique(hybrid_status),
-            death = unique(death))
-
-
 ```
 Let's add a column with the parasite names 
 ```{r, echo = FALSE}
@@ -95,39 +49,45 @@ CI <- CI %>%
     challenge_infection == "UNI" ~ "uninfected",
     TRUE ~ ""))
 ```
+
+
+### Summary statistics on experimental design
+
+#### Summarizing data by each mouse
+
 ```{r, echo = FALSE}
-CIMouse <- CIMouse %>%
-  dplyr::mutate(Parasite_primary = case_when(
-    primary_infection == "E64" ~ "Eimeria ferrisi",
-    primary_infection == "E88" ~ "Eimeria falciformis",
-    primary_infection == "Eflab" ~ "Eimeria falciformis",
-    primary_infection == "E139" ~ "Eimeria ferrisi",
-    primary_infection == "UNI" ~ "uninfected",
-    TRUE ~ ""))
-    
-    
-CIMouse <- CIMouse %>%
-  dplyr::mutate(Parasite_challenge = case_when(    
-    challenge_infection == "E64" ~ "Eimeria ferrisi",
-    challenge_infection == "E88" ~ "Eimeria falciformis",
-    challenge_infection == "Eflab" ~ "E. falciformis",
-    challenge_infection == "E139" ~ "Eimeria ferrisi",
-    challenge_infection == "UNI" ~ "uninfected",
-    TRUE ~ ""))
+CIMouse <- CI  %>%
+  dplyr::group_by(EH_ID, infection) %>%  
+  summarise(max_OOC = max(OOC, na.rm = TRUE),
+            max_OOC = min(relative_weight, na.rm = TRUE),
+            experiment = unique(experiment),
+            mouse_strain = unique(mouse_strain),
+            primary_infection = unique(primary_infection),
+            challenge_infection =unique(challenge_infection),
+            infection_history=unique(infection_history),
+            infection = unique(infection),
+            experiment=unique(experiment),
+            hybrid_status = unique(hybrid_status),
+            death = unique(death),
+            Parasite_primary = unique(Parasite_primary),
+            Parasite_challenge = unique(Parasite_challenge))
+
+
 ```
-#### 2.2 How many mice do we have in each infection ? (primary or challenge infection)
+
+#### How many mice do we have in each infection ? (primary or challenge infection)
 ```{r, echo = FALSE}
 CIMouse %>% 
   group_by(infection) %>%
   dplyr::summarise(total_mice = length(EH_ID))
 ```
-####  2.3 How many experiments do we have? How many mice are in each experiment?
+####  How many experiments do we have? How many mice are in each experiment?
 ```{r, echo = FALSE}
 CIMouse %>% 
   group_by(experiment) %>%
   dplyr::summarise(total_mice = length(EH_ID))
 ```
-#### 2.4 How many mouse strains do we have? 
+#### How many mouse strains do we have? 
 
 We here use four wild-derived inbred mouse strains. from these mouse strains F1 
 hybrids were generated. 
@@ -150,7 +110,7 @@ CIMouse %>%
   dplyr::summarise(total_mice = length(EH_ID))
   
 ```
-#### 2.5 Which Eimeria strains were used?
+####  Which Eimeria strains were used?
 The three parasite isolates used in this study were isolated from feces of three different M. m. domesticus/M. m. musculus hybrid mice captured in Brandenburg, Germany, in 2016 (capture permit No. 2347/35/2014). The parasite isolates belong to both the most prevalent Eimeria species in this area, namely E. ferrisi (isolate Brandenburg64) and E. falciformis (isolate Brandenburg88)(Jarquín-Díaz et al., 2019). Isolate Brandenburg64 was isolated in a 92% M. m. domesticus individual (hybrid index (HI) = 0.08: Proportion of M. m. musculus alleles in a set of 14 diagnostic markers, see Balard et al. (2020)) and isolate Brandenburg88 in a 80% M. m. domesticus (HI = 0.2).
 
 Prepatency and the peak day of parasite shedding for these isolates were estimated during infection in NMRI laboratory mice (Al-khlifeh et al., 2019) which were also used for serial passaging of the isolates. Previous to the experiment, the isolates had been passaged, respectively, 3 and 4 times in NMRI laboratory mice. Parasite infective forms (oocysts) were recovered by flotation in saturated NaCl solution followed by washing and observation under light microscope (following the protocol described in Clerc et al. (2019)) and stored at room temperature in 1 ml of 2% potassium dichromate for a maximum of 2 months before infection of the wild-derived mice. Oocysts were allowed to sporulate 10 days before infection in a water bath at 30°C
@@ -161,12 +121,10 @@ CIMouse %>%
   filter(infection == "primary") %>%
   group_by(Parasite_primary)  %>%
   dplyr::summarise(total_mice = length(EH_ID)) 
+
 ```
 
 2. Further, for the challenge infections
-```{r}
-
-```
 
 ```{r, echo = FALSE}
 CIMouse %>% 
@@ -194,453 +152,275 @@ Most of the mice dying in the first infections are infected with Eimeria falcifo
 ### 3 Summary statistics - Resistance/ Tolerance proxies
   
 #### 3.1 What is the avarege maximum oocysts output for each mouse in the primary and challenge infections?
-  As resistance is the capacity of a host to reduce its parasite burden, it is usually estimated by the inverse of infection intensity (Råberg et al., 2009). Prepatency (the time to shedding of infectious stages, so-called oocysts) is longer for E. falciformis (7 days) than for E. ferrisi (5 days) (Al-khlifeh et al., 2019). Therefore, as a proxy of (inverse of) resistance, we used the number of oocysts per gram of feces (OPG) at the day of maximal shedding. 
 
+1. Visualizing the primary infections
+`
+```{r}
+CIMouse %>%
+    filter(infection == "primary")  %>%
+  ggplot(aes(max_OOC, color = Parasite_primary, fill = Parasite_primary)) +
+  geom_histogram(bins = 30, alpha = 0.5) +
+  labs(x = "Oocysts at day of maximal shedding", y = "Number of mice",
+       title = "Maximum oocyst shedding per mouse, primary infections") +
+    theme_bw()
+
+CIMouse  %>%
+    filter(infection == "primary")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_OOC, fill = Parasite_primary)) +
+  geom_boxplot() +
+    theme_bw()
+
+CIMouse  %>%
+    filter(infection == "primary")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_OOC, fill = Parasite_primary)) +
+  geom_violin() +
+    theme_bw() 
+
+CIMouse  %>%
+    filter(infection == "primary", !Parasite_primary == "uninfected")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_OOC, fill = Parasite_primary)) +
+  geom_violin(alpha = 0.5) +
+    geom_line() +
+     stat_summary(fun.y = "median", geom = "point", size = 3) +
+    theme_bw() 
+
+CIMouse  %>%
+    filter(infection == "primary", !Parasite_primary == "uninfected")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_OOC, fill = Parasite_primary)) +
+  geom_violin(alpha = 0.5) +
+    geom_line() +
+     stat_summary(fun.y = "median", geom = "point", size = 3) +
+    theme_bw() 
+```
+
+2. And the challenge infections
+```{r}
+CIMouse %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(max_OOC, color = Parasite_challenge, fill = Parasite_challenge)) +
+  geom_histogram(bins = 30, alpha = 0.5) +
+  labs(x = "Oocysts at day of maximal shedding", y = "Number of mice",
+       title = "Maximum oocyst shedding per mouse, challenge infections") +
+    theme_bw()
+
+CIMouse  %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(x = Parasite_challenge, y = max_OOC, fill = Parasite_challenge)) +
+  geom_boxplot() +
+    theme_bw()
+
+CIMouse  %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(x = Parasite_challenge, y = max_OOC, fill = Parasite_challenge)) +
+  geom_violin() +
+    theme_bw() 
+
+CIMouse  %>%
+    filter(infection == "challenge", !Parasite_challenge == "uninfected")  %>%
+  ggplot(aes(x = Parasite_challenge, y = max_OOC, fill = Parasite_challenge)) +
+  geom_violin(alpha = 0.5) +
+    geom_line() +
+     stat_summary(fun.y = "median", geom = "point", size = 3) +
+    theme_bw() 
+```
+
+
+#### maximum oocysts output for each mouse strain in each infection?
+
+1. primary infections:
 ```{r, echo = FALSE}
-CIMouse %>% 
-  group_by(infection) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_OOC = mean(na.omit(max_OOC)),
-            Median_OOC = median(na.omit(max_OOC)),
-            Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC)),
-            var_OOC = var(na.omit(max_OOC)),
-            sd_OOC = sd(na.omit(max_OOC)))
-
-```
-We here observe that the maximum oocyst shedding is higher during the challenge infection.
-
-Visualizing the primary infections
-```{r}
-
-CIMouse %>% 
-  filter(infection == "primary") %>%
-  ggplot(aes(max_OOC)) +
-  geom_histogram()
-
-```
-A mess !
-
-and the quantiles?
-```{r}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  summarize(quantiles_primary = quantile(na.omit(max_OOC)))
-```
-
-
-And the challenge infections
-```{r}
-CIMouse %>% 
-  filter(infection == "challenge") %>%
-  ggplot(aes(max_OOC)) +
-  geom_histogram()
-```
-Appears to be right skewed. Since the plot is skewed in this way, the median seems to
-be a better measurement of center. 
-
-```{r}
-CIMouse %>%
-  filter(infection == "challenge") %>%
-  summarize(quantiles_primary = quantile(na.omit(max_OOC)))
-```
-
-
-#### 3.2 What is the avarege maximum oocysts output for each mouse strain in each infection?
-
-1. Primary infections:
-```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  group_by(hybrid_status) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_OOC = mean(na.omit(max_OOC)),
-            Median_OOC = median(na.omit(max_OOC)),
-            Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC)),
-            var_OOC = var(na.omit(max_OOC)),
-            sd_OOC = sd(na.omit(max_OOC)))
-```
-
-
-```{r}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  ggplot(aes(max_OOC)) +
-  geom_histogram() +
-  facet_wrap(~ hybrid_status)
+CIMouse  %>%
+    filter(infection == "primary")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_OOC, fill = Parasite_primary)) +
+  geom_boxplot() +
+    theme_bw() + 
+    facet_wrap(~ hybrid_status)
 ```
 
 2. Challenge infections:
 ```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "challenge") %>%
-  group_by(hybrid_status) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_OOC = mean(na.omit(max_OOC)),
-            Median_OOC = median(na.omit(max_OOC)),
-            Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC)),
-            var_OOC = var(na.omit(max_OOC)),
-            sd_OOC = sd(na.omit(max_OOC)))
+CIMouse  %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(x = Parasite_challenge, y = max_OOC, fill = Parasite_challenge)) +
+  geom_boxplot() +
+    theme_bw() + 
+    facet_wrap(~ hybrid_status)
+```
+Effect of experiments on oocyst shedding?
 
-```
-```{r}
-CIMouse %>%
-  filter(infection == "challenge") %>%
-  ggplot(aes(max_OOC)) +
-  geom_histogram() +
-  facet_wrap(~ hybrid_status)
-```
-#### 3.3 What is the avarege maximum oocysts output for each parasite strain in each infection?
-1. Primary infections:
+1. primary infections:
 ```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  group_by(Parasite_primary) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_OOC = mean(na.omit(max_OOC)),
-            Median_OOC = median(na.omit(max_OOC)),
-            Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC))
-            )
-  
+CIMouse  %>%
+    filter(infection == "primary")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_OOC, fill = Parasite_primary)) +
+  geom_boxplot() +
+    theme_bw() + 
+    facet_wrap(~ experiment)
 ```
-```{r}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  ggplot(aes(max_OOC)) +
-  geom_histogram() +
-  facet_wrap(~ Parasite_primary)
-```
-2. Challenge:
+
+2. Challenge infections:
 ```{r, echo = FALSE}
-CIMouse %>% 
-  filter(infection == "challenge") %>%
-  group_by(Parasite_challenge) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_OOC = mean(na.omit(max_OOC)),
-            Median_OOC = median(na.omit(max_OOC)),
-            Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC)),
-            var_OOC = var(na.omit(max_OOC)),
-            sd_OOC = sd(na.omit(max_OOC)))
-  
+CIMouse  %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(x = Parasite_challenge, y = max_OOC, fill = Parasite_challenge)) +
+  geom_boxplot() +
+    theme_bw() + 
+    facet_wrap(~ experiment)
 ```
-```{r}
-CIMouse %>%
-  filter(infection == "challenge") %>%
-  ggplot(aes(max_OOC)) +
-  geom_histogram() +
-  facet_wrap(~ Parasite_challenge)
-```
-What do I do wih the infected uninfected mice?
+Patency in primary infections
 
 ```{r}
-uni <- data.frame(CIMouse %>% filter(infection == "challenge", Parasite_challenge == "uninfected"))
-
-```
-We have two mice with oocysts output in this group
-
-In both cases E. falciformis (E88 shows the highest Oocyst shedding)
-
-#### 3.3.1 What about the effect of the different experiments on weight loss?
-1. Primary infections:
-```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  group_by(experiment) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_OOC = mean(na.omit(max_OOC)),
-            Median_OOC = median(na.omit(max_OOC)),
-            Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC)),
-            var_OOC = var(na.omit(max_OOC)),
-            sd_OOC = sd(na.omit(max_OOC)))
-  
-```
-2. Challenge:
-```{r, echo = FALSE}
-CIMouse %>% 
-  filter(infection == "challenge") %>%
-  group_by(experiment) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_OOC = mean(na.omit(max_OOC)),
-            Median_OOC = median(na.omit(max_OOC)),
-            Min_OOC = min(na.omit(max_OOC)),
-            Max_OOC = max(na.omit(max_OOC)),
-            var_OOC = var(na.omit(max_OOC)),
-            sd_OOC = sd(na.omit(max_OOC)))
-  
-```
-#### 3.4 What is the maximum weight loss for mice in each infection? 
-
-Both parasite species provoke inflammation, cellular infiltration, enteric lesions, diarrhea, and ultimately weight loss (Al-khlifeh et al., 2019; Ankrom et al., 1975; Ehret et al., 2017; Schito et al., 1996). Therefore, the impact of parasites on host health was measured as the maximum relative weight loss compared to day 0 (body weight measured at the start of the experimental infection). For mice sacrificed at humane end points before the end of the experiment, the last weight of the living animal was used. This weight (loss) can be expected to be a very conservative estimate for our analyses (rendering tolerance conservatively low for these animals, which might have lost more weight if not sacrificed).
-
-Tolerance is usually defined as a reaction norm, that is, the regression slope of host fitness (or health condition if that is the parameter of interest) on infection intensity per host genotype (Råberg et al., 2009; Simms, 2000). Thus, tolerance was assessed as the slope of maximum relative weight loss compared to day 0 on number of OPG at the day of maximal shedding, within each mouse group and for each parasite isolate. A steep slope indicates a low tolerance (high weight lost for a given parasite burden).
-```{r}
-
-# Summaries for weight loss
-
-CIMouse %>%
-  #group by infections (primary or challenge infections)
-  dplyr::group_by(infection) %>%
-  dplyr::summarize(total_mice = length(EH_ID),
-            Mean_weightchange = mean(na.omit(max_WL)))
-  
-```
-We here observe a lower weight loss average in the challenge infections when
-compared to the primary infections
-
-```{r}
-CIMouse %>% 
-  ggplot(aes(max_WL)) +
-  geom_histogram() +
-  facet_wrap(~ infection)
-```
-
-#### 3.5 What is the average weight loss for mice in each infection for the different mice strains?
-1. Primary infections Weight loss:
-```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  group_by(hybrid_status) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_WL = mean(na.omit(max_WL)),
-            Median_WL = median(na.omit(max_WL)),
-            Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL)),
-            var_WL = var(na.omit(max_WL)),
-            sd_WL = sd(na.omit(max_WL)))
-  
-```
-```{r}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  ggplot(aes(max_WL)) +
-  geom_histogram(bins = 30) +
-  facet_wrap(~ hybrid_status)
-```
-2. Challenge infections weight loss:
-```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "challenge") %>%
-  group_by(hybrid_status) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_WL = mean(na.omit(max_WL)),
-            Median_WL = median(na.omit(max_WL)),
-            Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL)),
-            var_OOC = var(na.omit(max_OOC)),
-            sd_OOC = sd(na.omit(max_OOC)),
-            var_WL = var(na.omit(max_WL)),
-            sd_WL = sd(na.omit(max_WL)))
-  
-```
-
-```{r}
-CIMouse %>%
-  filter(infection == "challenge") %>%
-  ggplot(aes(max_WL)) +
-  geom_histogram(bins = 30) +
-  facet_wrap(~ hybrid_status)
-```
-
-#### 3.6 What is the average weight loss for mice in each infection for the different parasite strains?
-1. Primary infections Weight loss:
-```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  group_by(Parasite_primary) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_WL = mean(na.omit(max_WL)),
-            Median_WL = median(na.omit(max_WL)),
-            Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL)),
-            var_WL = var(na.omit(max_WL)),
-            sd_WL = sd(na.omit(max_WL)))
-  
-```
-
-
-```{r}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  ggplot(aes(max_WL)) +
-  geom_histogram(bins = 30) +
-  facet_wrap(~ Parasite_primary)
-```
-
-2. Challenge infections weight loss:
-```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "challenge") %>%
-  group_by(Parasite_challenge) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_WL = mean(na.omit(max_WL)),
-            Median_WL = median(na.omit(max_WL)),
-            Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL)),
-            var_WL = var(na.omit(max_WL)),
-            sd_WL = sd(na.omit(max_WL)))
-  
-```
-```{r}
-CIMouse %>%
-  filter(infection == "challenge") %>%
-  ggplot(aes(max_WL)) +
-  geom_histogram(bins = 30) +
-  facet_wrap(~ Parasite_primary)
-```
-
-
-#### 3.7 What is the effect of each experiment on weight loss?
-1. Primary infections Weight loss:
-```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "primary") %>%
-  group_by(experiment) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_WL = mean(na.omit(max_WL)),
-            Median_WL = median(na.omit(max_WL)),
-            Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL)),
-            var_WL = var(na.omit(max_WL)),
-            sd_WL = sd(na.omit(max_WL)))
-  
-```
-
-2. Challenge infections weight loss:
-```{r, echo = FALSE}
-CIMouse %>%
-  filter(infection == "challenge") %>%
-  group_by(experiment) %>%
-  dplyr:: summarize(total_mice = length(EH_ID),
-            Mean_WL = mean(na.omit(max_WL)),
-            Median_WL = median(na.omit(max_WL)),
-            Min_WL = min(na.omit(max_WL)),
-            max_WL = max(na.omit(max_WL)),
-            var_WL = var(na.omit(max_WL)),
-            sd_WL = sd(!is.finite(max_WL), na.rm = TRUE))
-  
-```
-
-
-```{r}
-CIMouse %>% filter(infection == "challenge", challenge_infection == "UNI")
-```
-
-Why do I get nas in my standard deviation or in variance , even after removing nas and infinite values.
-
-
-```{r}
-
-png("output_data/gene_expression/06.01_oocysts_primary_dpi.png", 
-     res =  100)
-
-CI %>% 
-  drop_na(OOC) %>%
+CI %>%
   group_by("EH_ID") %>%
-  filter(infection == "primary",!Parasite_primary == "uninfected",  !dpi == 0,  experiment == "E57") %>%
+  filter(infection == "primary") %>%
   ggplot(aes(x = dpi, y = OOC, color = Parasite_primary)) +
   geom_point(position = position_jitterdodge()) +
   labs(x = "Days Post Infection", y = "Oocysts per gram",
        title = "Oocyst shedding in primary infections during the 
        course of infection") +
     theme_bw() 
-
-dev.off()
 ```
+
+Patency in primary infections - experiments
 ```{r}
-
-png("output_data/gene_expression/06.01_oocysts_challenge_dpi.png", 
-     res =  100)
-
-CI %>% 
-  drop_na(OOC) %>%
+CI %>%
+  group_by("EH_ID") %>%
+  filter(infection == "primary") %>%
+  ggplot(aes(x = dpi, y = OOC, color = Parasite_primary)) +
+  geom_point(position = position_jitterdodge()) +
+  labs(x = "Days Post Infection", y = "Oocysts per gram",
+       title = "Oocyst shedding in primary infections during the 
+       course of infection") +
+    theme_bw() +
+    facet_wrap(~ experiment)
+```
+Patency in primary infections - mouse strains
+```{r}
+CI %>%
+  group_by("EH_ID") %>%
+  filter(infection == "primary") %>%
+  ggplot(aes(x = dpi, y = OOC, color = Parasite_primary)) +
+  geom_point(position = position_jitterdodge()) +
+  labs(x = "Days Post Infection", y = "Oocysts per gram",
+       title = "Oocyst shedding in primary infections during the 
+       course of infection") +
+    theme_bw() +
+    facet_wrap(~ hybrid_status)
+```
+Patency in challenge infections - experiments
+```{r}
+CI %>%
   group_by("EH_ID") %>%
   filter(infection == "challenge") %>%
   ggplot(aes(x = dpi, y = OOC, color = Parasite_challenge)) +
   geom_point(position = position_jitterdodge()) +
-    scale_y_log10() +
   labs(x = "Days Post Infection", y = "Oocysts per gram",
        title = "Oocyst shedding in challenge infections during the 
        course of infection") +
-    theme_bw()  
-
-dev.off()
+    theme_bw() +
+    facet_wrap(~ experiment)
 ```
+Patency in challenge infections - mouse strains
 ```{r}
-## Plot the weight loss against the infection intensity
-
-png("output_data/gene_expression/08.01_weight_intensity_primary.png", res =  100)
-
-# primary 
-CI %>% 
-  drop_na(delta, max_WL) %>%
+CI %>%
   group_by("EH_ID") %>%
-  filter(infection == "primary", Eim_MC == "TRUE") %>%
-  ggplot(aes(x = delta, y = max_WL, color = Parasite_primary)) +
-  geom_jitter() +
-    stat_smooth() +
-  labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
-       title = "Maximum Weight loss for each mouse and infection intensity, 
-       primary infections") +
-    theme_bw()
-
-dev.off()
+  filter(infection == "challenge") %>%
+  ggplot(aes(x = dpi, y = OOC, color = Parasite_challenge)) +
+  geom_point(position = position_jitterdodge()) +
+  labs(x = "Days Post Infection", y = "Oocysts per gram",
+       title = "Oocyst shedding in challenge infections during the 
+       course of infection") +
+    theme_bw() +
+    facet_wrap(~ hybrid_status)
 ```
+
+
+
+##########################################################################
+#### What is the average max weight loss output for each mouse in the primary and challenge infections?
+
+1. Visualizing the primary infections
+`
 ```{r}
-## Plot the weight loss against the infection intensity
-
-png("output_data/gene_expression/08.01_weight_intensity_challenge.png", res =  100)
-
-# challenge 
-CI %>% 
-  drop_na(delta, max_WL) %>%
-  group_by("EH_ID") %>%
-  filter(infection == "challenge", Eim_MC == "TRUE") %>%
-  ggplot(aes(x = delta, y = max_WL, color = Parasite_challenge)) +
-  geom_jitter() +
-    stat_smooth() +
-  labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
-       title = "Maximum Weight loss for each mouse and infection intensity, 
-       challenge infections") +
+CIMouse %>%
+    dplyr::filter(infection == "primary") %>%
+  ggplot(aes({{max_WL}}, color = Parasite_primary, fill = Parasite_primary)) +
+  geom_histogram(bins = 30, alpha = 0.5)  +
     theme_bw()
 
-dev.off()
+CIMouse  %>%
+    filter(infection == "primary")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_WL, fill = Parasite_primary)) +
+  geom_boxplot() +
+    theme_bw()
+
+
+CIMouse  %>%
+    filter(infection == "primary")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_WL, fill = Parasite_primary)) +
+  geom_violin(alpha = 0.5) +
+    geom_line() +
+     stat_summary(fun.y = "median", geom = "point", size = 3) +
+    theme_bw() 
+
+
 ```
+
+2. And the challenge infections
 ```{r}
-
-
-png("output_data/gene_expression/04.01_weight_dpi_primary.png", res =  100)
-
-# Primary:
-  
-CI %>% 
-    group_by(EH_ID) %>%
-  ggplot(aes(x = dpi, y = relative_weight, color = Parasite_primary)) +
-  geom_jitter() +
-  stat_smooth() +
-    scale_y_log10() +
-  labs(x = "Days Post Infection", y = "Relative weight to dpi 0",
-       title = "Weight changes during the course of the primary infections") +
+CIMouse %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(max_WL, color = Parasite_challenge, fill = Parasite_challenge)) +
+  geom_histogram(bins = 30, alpha = 0.5) +
     theme_bw()
 
-dev.off()
-
-# challenge:
-  
-CI %>% 
-    group_by(EH_ID) %>%
-  ggplot(aes(x = dpi, y = relative_weight, color = Parasite_challenge)) +
-  geom_jitter() +
-  stat_smooth() +
-    scale_y_log10() +
-  labs(x = "Days Post Infection", y = "Relative weight to dpi 0",
-       title = "Weight changes during the course of the challenge infections") +
+CIMouse  %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(x = Parasite_challenge, y = max_WL, fill = Parasite_challenge)) +
+  geom_boxplot() +
     theme_bw()
 
-dev.off()
+CIMouse  %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(x = Parasite_challenge, y = max_WL, fill = Parasite_challenge)) +
+  geom_violin(alpha = 0.5) +
+    geom_line() +
+     stat_summary(fun.y = "median", geom = "point", size = 3) +
+    theme_bw() 
 ```
+
+
+#### maximum weight loss output for each mouse strain in each infection?
+
+1. primary infections:
+```{r, echo = FALSE}
+CIMouse  %>%
+    filter(infection == "primary")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_WL, fill = Parasite_primary)) +
+  geom_boxplot() +
+    theme_bw() + 
+    facet_wrap(~ hybrid_status)
+```
+
+2. Challenge infections:
+```{r, echo = FALSE}
+CIMouse  %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(x = Parasite_challenge, y = max_WL, fill = Parasite_challenge)) +
+  geom_boxplot() +
+    theme_bw() + 
+    facet_wrap(~ hybrid_status)
+```
+Effect of experiments on weight loss?
+
+1. primary infections:
+```{r, echo = FALSE}
+CIMouse  %>%
+    filter(infection == "primary")  %>%
+  ggplot(aes(x = Parasite_primary, y = max_WL, fill = Parasite_primary)) +
+  geom_boxplot() +
+    theme_bw() + 
+    facet_wrap(~ experiment)
+```
+
 

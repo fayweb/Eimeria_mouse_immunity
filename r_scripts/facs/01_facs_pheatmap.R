@@ -15,6 +15,25 @@ CellCount.cols <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1",
                     "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
                     "IL17A_CD4")  
 
+Challenge <- Challenge %>%
+    dplyr::mutate(Parasite_primary = case_when(
+        primary_infection == "E64" ~ "Eimeria ferrisi",
+        primary_infection == "E88" ~ "Eimeria falciformis",
+        primary_infection == "Eflab" ~ "Eimeria falciformis",
+        primary_infection == "E139" ~ "Eimeria ferrisi",
+        primary_infection == "UNI" ~ "uninfected",
+        TRUE ~ ""))
+
+
+Challenge <- Challenge %>%
+    dplyr::mutate(Parasite_challenge = case_when(    
+        challenge_infection == "E64" ~ "Eimeria ferrisi",
+        challenge_infection == "E88" ~ "Eimeria falciformis",
+        challenge_infection == "Eflab" ~ "E. falciformis",
+        challenge_infection == "E139" ~ "Eimeria ferrisi",
+        challenge_infection == "UNI" ~ "uninfected",
+        TRUE ~ ""))
+
 ### Select the necessary columns (as shown in the vectors above)
 #df_facs <- Challenge %>% select(basics, weight_loss, CellCount.cols)
 
@@ -32,8 +51,7 @@ FACS <- Challenge %>% drop_na("CD4")
 ### Prepare the annotation data frame for the heatmap
 annotation_df <- FACS %>% 
   filter(infection == "challenge") %>%
-  select(c("EH_ID", "primary_infection", "challenge_infection", "infection_history",
-           "mouse_strain", "max_WL"))
+  select(c("EH_ID", "Parasite_challenge", "infection_history"))
 
 ### Data tidying for the heatmap function
 FACS <- FACS  %>% 
