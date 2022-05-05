@@ -43,6 +43,7 @@ corrplot(facs_correlation,
          tl.col = "black", tl.srt=45, #colour of labels and rotation
          col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
          order="hclust") #hclust reordering
+
 dev.off()
 
 
@@ -54,7 +55,8 @@ corrplot(facs_correlation,
          tl.col = "black", tl.srt=45, #colour of labels and rotation
          col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
          order="hclust", #hclust reordering
-         p.mat = p.mat, sig.level = 0.01, insig = "blank") #Add significance level to the correlogram
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black') #Add significance level to the correlogram
 #remove the values that are insignificant
 
 dev.off()
