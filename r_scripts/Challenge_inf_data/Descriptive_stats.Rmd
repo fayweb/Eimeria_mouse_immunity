@@ -53,6 +53,27 @@ CI <- CI %>%
     TRUE ~ ""))
 ```
 
+# Let's add a column with the heterologous and homologous infections 
+```{r}
+CI <- CI %>%
+  dplyr::mutate(infection_type = case_when(
+    infection_history == "E88_E64" ~ "heterologous_ferrisi",
+    infection_history == "E88_UNI" ~ "falciformis_UNI",
+    infection_history == "E64_E64" ~ "homologous_ferrisi",
+    infection_history == "E64_UNI" ~ "ferrisi_UNI",
+    infection_history == "Eflab_E88" ~ "homologous_falciformis",
+    infection_history == "Eflab_E64" ~ "heterologous_ferrisi",
+    infection_history == "Eflab_UNI" ~ "falciformis_UNI",
+    infection_history == "E64_E88" ~ "heterologous_falciformis",
+    infection_history == "E139_E88" ~ "homologous_falciformis",
+    infection_history == "E139_E64" ~ "heterolous_ferrisi",
+    infection_history == "E139_UNI" ~ "falciformis_UNI",
+    infection_history == "UNI_E88" ~ "UNI_falciformis",
+    infection_history == "UNI_E64" ~ "UNI_ferrisi",
+    infection_history == "UNI_UNI" ~ "UNI",
+    infection_history == "E88_E88" ~ "homologous_falciformis",
+    TRUE ~ ""))
+```
 
 ### Summary statistics on experimental design
 
@@ -73,7 +94,8 @@ CIMouse <- CI  %>%
             hybrid_status = unique(hybrid_status),
             death = unique(death),
             Parasite_primary = unique(Parasite_primary),
-            Parasite_challenge = unique(Parasite_challenge))
+            Parasite_challenge = unique(Parasite_challenge),
+            infection_type = unique(infection_type))
 
 
 ```
@@ -556,5 +578,15 @@ CI  %>%
     geom_smooth(method = "lm") +
     theme_bw()  +
     facet_wrap(~experiment)
+```
+```{r}
+CIMouse  %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(y = max_WL, fill = infection_type)) +
+  geom_boxplot() +
+    theme_bw() +
+    labs(x = "Infection type", y = "Maximum weight loss of each mouse",
+       title = "Do heterologous infections induce protective immunity?")
+```
 ```
 
