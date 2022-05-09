@@ -1,8 +1,8 @@
 ---
 title: "Challenge infections - Descreptive statistics"
 output:
-  word_document: default
   html_document: default
+  word_document: default
   pdf_document: default
 ---
 
@@ -58,7 +58,7 @@ CI <- CI %>%
 
 #### Summarizing data by each mouse
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, warning=FALSE, message=FALSE, error=FALSE}
 CIMouse <- CI  %>%
   dplyr::group_by(EH_ID, infection) %>%  
   summarise(max_OOC = max(OOC, na.rm = TRUE),
@@ -295,6 +295,7 @@ CI %>%
        title = "Oocyst shedding in primary infections during the 
        course of infection") +
     theme_bw() +
+    stat_smooth() +
     facet_wrap(~ experiment)
 ```
 Patency in primary infections - mouse strains
@@ -515,7 +516,20 @@ CI  %>%
   labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
        title = "Maximum Weight loss for each mouse and infection intensity, 
        primary infections") +
+    geom_smooth(method = "lm") +
     theme_bw()
+
+CI  %>%
+  group_by("EH_ID") %>%
+  filter(infection == "primary", Eim_MC == "TRUE") %>%
+  ggplot(aes(x = delta, y = max_WL, color = Parasite_primary)) +
+  geom_jitter() +
+  labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
+       title = "Maximum Weight loss for each mouse and infection intensity, 
+       primary infections") +
+    geom_smooth(method = "lm") +
+    theme_bw() +
+    facet_wrap(~experiment)
 ```
 
 Tissue infection intensity vs max weight loss - challenge
@@ -528,6 +542,19 @@ CI  %>%
   labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
        title = "Maximum Weight loss for each mouse and infection intensity, 
        challenge infections") +
+    geom_smooth(method = "lm") +
     theme_bw()
+
+CI  %>%
+  group_by("EH_ID") %>%
+  filter(infection == "challenge", Eim_MC == "TRUE") %>%
+  ggplot(aes(x = delta, y = max_WL, color = Parasite_challenge)) +
+  geom_jitter() +
+  labs(x = "Delta Ct, Infection intensity", y = "Maximum weight loss of each mouse",
+       title = "Maximum Weight loss for each mouse and infection intensity, 
+       challenge infections") +
+    geom_smooth(method = "lm") +
+    theme_bw()  +
+    facet_wrap(~experiment)
 ```
 
