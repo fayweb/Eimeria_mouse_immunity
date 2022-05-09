@@ -244,19 +244,32 @@ dev.off()
 
 # Now plot the gene expression agains infection intensity
 # Use the data frame that has been already cleaned for nas 
-gene_expr_delta <- gene_na_omit %>%
-  pivot_longer(cols = 8:28, names_to = "Gene", values_to = "gene_expression") %>%
-  na.omit(expression) %>%
+gene_na_omit %>%
+  pivot_longer(cols = 8:28, names_to = "Gene", values_to = "gene_expression")  %>%
+    na.omit(delta) %>%
     group_by(EH_ID) %>%
-  ggplot(aes(x = delta, y = gene_expression, color = challenge_infection)) 
+  ggplot(aes(x = delta, y = gene_expression, color = challenge_infection)) -> gene_expr_delta
 
 png("output_data/gene_expression/10.01_gene_expression_intensity.png", 
      res =  100)
 
-gene_expr_delta +
-  geom_jitter() +
-  facet_wrap(~ Gene, scales = "free") +
-  theme_light() +
+gene_na_omit %>%
+    pivot_longer(cols = 8:28, names_to = "Gene", values_to = "gene_expression") %>%
+    na.omit(delta) -> gene_expr_delta
+
+
+%>%
+    ggplot(aes(x = delta, y = gene_expression, color = challenge_infection)) 
+
+glimpse(gene_expr_delta)
+
+gene_na_omit %>%
+    pivot_longer(cols = 8:28, names_to = "Gene", values_to = "gene_expression") %>%
+    na.omit(delta) %>%
+    ggplot(aes(x = delta, y = gene_expression, color = challenge_infection)) +
+    geom_jitter() +
+    facet_wrap(~ Gene, scales = "free") +
+    theme_light() +
     labs(x = "Delta Ct, Infection intensity", y = "Gene expression",
          title = "Gene expression in response to infection intensity") +
     theme_bw()
