@@ -18,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyverse)
 library(tibble)
+library(pastecs)
 ```
 
 Here is a data frame containing all information derived from the experimental infections
@@ -66,7 +67,7 @@ CI <- CI %>%
     infection_history == "Eflab_UNI" ~ "falciformis_UNI",
     infection_history == "E64_E88" ~ "heterologous_falciformis",
     infection_history == "E139_E88" ~ "homologous_falciformis",
-    infection_history == "E139_E64" ~ "heterolous_ferrisi",
+    infection_history == "E139_E64" ~ "heterologous_ferrisi",
     infection_history == "E139_UNI" ~ "falciformis_UNI",
     infection_history == "UNI_E88" ~ "UNI_falciformis",
     infection_history == "UNI_E64" ~ "UNI_ferrisi",
@@ -221,7 +222,7 @@ CIMouse  %>%
 2. And the challenge infections
 ```{r}
 CIMouse %>%
-    filter(infection == "challenge")  %>%
+  filter(infection == "challenge")  %>%
   ggplot(aes(max_OOC, color = Parasite_challenge, fill = Parasite_challenge)) +
   geom_histogram(bins = 30, alpha = 0.5) +
   labs(x = "Oocysts at day of maximal shedding", y = "Number of mice",
@@ -432,7 +433,7 @@ CIMouse  %>%
 2. Challenge infections:
 ```{r, echo = FALSE}
 CIMouse  %>%
-    filter(infection == "challenge")  %>%
+  filter(infection == "challenge")  %>%
   ggplot(aes(, y = max_WL, fill = Parasite_challenge)) +
   geom_boxplot() +
     theme_bw() + 
@@ -588,5 +589,99 @@ CIMouse  %>%
     labs(x = "Infection type", y = "Maximum weight loss of each mouse",
        title = "Do heterologous infections induce protective immunity?")
 ```
+```{r}
+#remove outliers in
+CIMouse  %>%
+    filter(infection == "challenge")  %>%
+  ggplot(aes(x = infection_type, y = max_WL, color = infection_type)) +
+  geom_boxplot(outlier.alpha = 0) +
+   geom_jitter(width = 0.2) +
+    theme_bw() +
+    labs(x = "Infection type", y = "Maximum weight loss of each mouse",
+       title = "Do heterologous infections induce protective immunity?")
+```
+How is our max weight loss data distributed?
+
+```{r}
+CIMouse %>% filter(infection == "challenge", !max_WL == "Inf") -> Challenge
+
+hist(Challenge$max_WL)
+```
+Data appear to be left-skewed (negative skewed)
+
+The histograms show that the two
+distributions have a similar pattern, they
+are both negatively skewed, so the
+medians can be used to summarise the
+differences
+
+```{r}
+
+summary(Challenge$max_WL)
+pastecs::stat.desc(Challenge$max_WL)
+```
+Results are not following a normal distribution, therefore I will continue with a non-
+parametrical statistical test. 
+
+The Kruskal–Wallis test by ranks, Kruskal–Wallis H test[1] (named after William Kruskal and W. Allen Wallis), or one-way ANOVA on ranks[1] is a non-parametric method for testing whether samples originate from the same distribution
+
+t is used to test the null hypothesis which states that ‘k’ number of samples has been drawn from the same population or the identical population with the same or identical median
+
+A significant Kruskal–Wallis test indicates that at least one sample stochastically dominates one other sample
+
+```{r}
+IT <- Challenge %>% 
+  select(c(infection_type, max_WL)) 
+
+IT <- as.data.frame(IT) %>% 
+  pivot_wider(names_from = "infection_type", values_from = "max_WL") %>%
+  select(-EH_ID)
+
+#The Shapiro–Wilk test is a test of normality in frequentist statistics
+# The null-hypothesis of this test is that the population is normally distributed. Thus, if the p value is less than the chosen alpha level, then the null hypothesis is rejected and there is evidence that the data tested are not normally distributed. On the other hand, if the p value is greater than the chosen alpha level, then the null hypothesis (that the data came from a normally distributed population) can not be rejected (e.g., for an alpha level of .05, a data set with a p value of less than .05 rejects the null hypothesis that the data are from a normally distributed population).[4]
+
+#In statistics, the Mann–Whitney U test (also called the Mann–Whitney–Wilcoxon (MWW/MWU), Wilcoxon rank-sum test, or Wilcoxon–Mann–Whitney test) is a nonparametric test of the null hypothesis that, for randomly selected values X and Y from two populations, the probability of X being greater than Y is equal to the probability of Y being greater than X.
+
+shapiro.test(IT$heterologous_ferrisi) #normal distr
+shapiro.test(IT$falciformis_UNI) #normal distr
+shapiro.test(IT$homologous_ferrisi) #normal distr
+shapiro.test(IT$ferrisi_UNI) #Not normal distr
+shapiro.test(IT$homologous_falciformis) #normal distr
+shapiro.test(IT$heterologous_falciformis) #normal distr
+shapiro.test(IT$UNI_falciformis) #normal distr
+shapiro.test(IT$UNI_ferrisi)  #normal distr
+shapiro.test(IT$UNI) #normal distr
+
+kwTest <- kruskal.test(IT)
+print(kwTest)
+
+```
+We have 8 df (degrees of freedom), beacause there are 8 groups (n - 1). We have a 
+tiny teeny p value, which means we have a significant difference in at least one of the group.
+
+Let's compare the weight loss between previously uninfected mice and infections with either falciformis or ferrisi. 
+```{r}
+wilcox.test(IT$ferrisi_UNI, IT$UNI)
+```
+Heterologous infection with current falciformis - homologous falciformis
+
+```{r}
+wilcox.test(IT$heterologous_falciformis, IT$homologous_falciformis)
+```
+Ferrisi is not protective against falciformis. 
+
+
+Heterologous infection with current ferrisi - homologous ferrisi
+
+```{r}
+wilcox.test(IT$heterologous_ferrisi, IT$homologous_ferrisi)
+```
+Heterologous falc - heterologous ferri
+
+```{r}
+wilcox.test(IT$heterologous_falciformis, IT$heterologous_ferrisi)
 ```
 
+```{r}
+wilcox.test(IT$UNI_falciformis, IT$UNI_ferrisi)
+```
