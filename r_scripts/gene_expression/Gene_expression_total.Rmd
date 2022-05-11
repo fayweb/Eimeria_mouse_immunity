@@ -20,6 +20,7 @@ library(janitor)
 library(tibble)
 library(corrplot)
 library(RColorBrewer)
+library(ggplot2)
 
 ```
 
@@ -225,7 +226,7 @@ gene_na_omit %>%
 ```{r, echo = FALSE}
 gene_na_omit %>%
     group_by(EH_ID) %>%
-  pivot_longer(cols = 8:28, names_to = "Gene", values_to = "gene_expression") %>%
+  pivot_longer(cols = 8:26, names_to = "Gene", values_to = "gene_expression") %>%
   na.omit(expression) %>%
   ggplot(aes(x = challenge_infection, y = gene_expression, color = challenge_infection)) + 
   geom_boxplot() +
@@ -235,5 +236,46 @@ gene_na_omit %>%
     labs(x = "Infection groups, E64 = E. ferrisi, E88 = E.falciformis, 
          UNI = Uninfected", y = "Gene expression",
          title = "Gene expression in response to infection group") 
+```
+```{r}
+gene_na_omit %>%
+    group_by(EH_ID) %>%
+  pivot_longer(cols = 8:26, names_to = "Gene", values_to = "gene_expression") %>%
+  ggplot(aes(x = gene_expression, color = challenge_infection)) + 
+  geom_histogram()
+
+gene_na_omit %>%
+    group_by(EH_ID) %>%
+  filter(!challenge_infection == "UNI") %>%
+  pivot_longer(cols = 8:26, names_to = "Gene", values_to = "gene_expression") %>%
+  ggplot(aes(x = gene_expression, color = challenge_infection)) + 
+  geom_histogram()
+```
+```{r}
+summary(gene_na_omit)
+```
+```{r}
+
+g <- gene_na_omit %>% select(c("CXCR3_bio", "IL.6",
+  "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", "CASP1", "CXCL9", 
+  "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
+  "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")) %>%
+  na.omit()
+
+g2 <- gene_na_omit %>% select(-c(max_WL, delta)) %>% na.omit()
+
+PR <- prcomp(g, scale = TRUE)
+plot(PR, type = "l")
+biplot(PR, scale = 0)
+
+str(PR)
+PR$x
+gene_pca <- cbind(g2, PR$x[,1:18])
+
+gene_pca %>%
+  ggplot(aes(PC1, PC2, col = parasite_challenge, fill = Parasite_challenge)) +
+  stat_ellipse(geom = "polygon", col = "black", alpha = 0.5) +
+  geom_point(shape = 21, col = "black")
+
 ```
 
