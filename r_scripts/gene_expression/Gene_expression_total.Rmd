@@ -21,6 +21,7 @@ library(tibble)
 library(corrplot)
 library(RColorBrewer)
 library(ggplot2)
+library(dplyr)
 
 ```
 
@@ -60,7 +61,9 @@ Challenge <- Challenge %>%
         TRUE ~ ""))
 
 # remove duplicated and change the format to data frame 
-basics_gene <- unique(basics_gene) %>% as.data.frame(basics_gene) %>% select(-infection)
+basics_gene <- unique(basics_gene) %>%
+  as.data.frame(basics_gene) %>%
+  dplyr::select(-infection)
  
 gene <- basics_gene %>% dplyr::select(c(EH_ID, Genes))
 
@@ -107,9 +110,11 @@ gene <- basics_gene %>% dplyr::select(c(EH_ID, Genes))
  #now we have different row names in the two data frames because I removed the Nas
  #join the heatmap data to the basic data frame and get only the common columns
  gene_na_omit <- basics_gene %>% 
-   select(c(EH_ID, primary_infection, challenge_infection, infection_history, mouse_strain, 
+   dplyr::select(c(EH_ID, primary_infection, challenge_infection, infection_history, mouse_strain, 
             max_WL, delta)) %>%
-     inner_join((t(heatmap_data) %>% as.data.frame() %>% tibble::rownames_to_column("EH_ID")), 
+     inner_join((t(heatmap_data) %>% 
+                   as.data.frame() 
+                 %>% tibble::rownames_to_column("EH_ID")), 
                 by = "EH_ID")
  
  gene_na_omit <- gene_na_omit %>%
@@ -122,7 +127,7 @@ gene <- basics_gene %>% dplyr::select(c(EH_ID, Genes))
          TRUE ~ ""))
  
 annotation_df <- gene_na_omit %>%
-  select(c("EH_ID", "Parasite_challenge", "infection_history", "max_WL"))
+  dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history", "max_WL"))
 
 
 annotation_df <- as.data.frame(annotation_df)
@@ -136,7 +141,7 @@ rownames(annotation_df) <- annotation_df$EH_ID
 rownames(annotation_df) <- colnames(heatmap_data)
 
 #remove the unecessary column
-annotation_df <- annotation_df %>% select(-EH_ID, )
+annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
 ```
 Heatmap on gene expression data: 
 ```{r, echo = FALSE}
@@ -148,7 +153,7 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 ## Gene correlation
 ```{r, echo = FALSE}
 # draw correlation between the genes
-gene_correlation <- as.matrix(cor(Challenge %>% select(Genes), use="pairwise.complete.obs"))
+gene_correlation <- as.matrix(cor(Challenge %>% dplyr::select(Genes), use="pairwise.complete.obs"))
 
 
 ##Combining correlogram with the significance test
@@ -274,7 +279,7 @@ library(FactoMineR)
 g <- gene_na_omit
 ```
 
-```{r}
+```{r, echo = FALSE}
 #Make a scatter plot matrix showing the correlation coefficients between variables and the significance levels : the package PerformanceAnalytics is required.
 library(PerformanceAnalytics)
 chart.Correlation(g[8:26], histogram=TRUE, pch=19)
@@ -320,7 +325,7 @@ nb <- estim_ncpPCA(g[8:26], scale = TRUE)
 
 ## 2. Imputation of the missing values using the function impute PCA
 comp <- imputePCA(g[8:26], ncp = 5, scale = TRUE) #impute the table
-comp$completeObs # resulting imputed data table
+head(comp$completeObs) # resulting imputed data table
 # this estimate should be better than simply using the mean, beacause we've taken into account
 # the links between variables and similarities between individuals in its calculation
 
@@ -330,7 +335,7 @@ options(ggrepel.max.overlaps = Inf) # solution to the error:
 
 # we can now run a normal pca on the complete data set
 res.pca <- PCA(comp$completeObs)
-summary(res.pca, nbelements = Inf) #including all the elements
+head(summary(res.pca, nbelements = Inf)) #including all the elements
 ```
 ```{r}
 #Description of the dimensions
@@ -425,5 +430,98 @@ g %>%
 #It’s possible to use the function corrplot() [corrplot package] to highlight the most contributing variables for each dimension:
 var.contrib <- res.pca$var$contrib
 corrplot(var.contrib, is.corr=FALSE) 
+```
+
+The function fviz_contrib() [factoextra package] can be used to draw a bar plot of variable contributions. If your data contains many variables, you can decide to show only the top contributing variables. The R code below shows the top 10 variables contributing to the principal components:
+```{r}
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
+```
+The total contribution to PC1 and PC2 is obtained with the following R code:
+```{r}
+fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 18)
+```
+The red dashed line on the graph above indicates the expected average contribution. If the contribution of the variables were uniform, the expected value would be 1/length(variables) = 1/10 = 10%. For a given component, a variable with a contribution larger than this cutoff could be considered as important in contributing to the component.
+
+Note that, the total contribution of a given variable, on explaining the variations retained by two principal components, say PC1 and PC2, is calculated as contrib = [(C1 * Eig1) + (C2 * Eig2)]/(Eig1 + Eig2), where
+
+C1 and C2 are the contributions of the variable on PC1 and PC2, respectively
+Eig1 and Eig2 are the eigenvalues of PC1 and PC2, respectively. Recall that eigenvalues measure the amount of variation retained by each PC.
+In this case, the expected average contribution (cutoff) is calculated as follow: As mentioned above, if the contributions of the 10 variables were uniform, the expected average contribution on a given PC would be 1/10 = 10%. The expected average contribution of a variable for PC1 and PC2 is : [(10* Eig1) + (10 * Eig2)]/(Eig1 + Eig2)
+
+
+```{r}
+#The most important (or, contributing) variables can be highlighted on the correlation plot as follow:
+fviz_pca_var(res.pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+             )
+```
+To visualize the contribution of individuals to the first two principal components, type this:
+
+```{r}
+# Total contribution on PC1 and PC2
+fviz_contrib(res.pca, choice = "ind", axes = 1:2)
+```
+```{r}
+fviz_pca_ind(res.pca,
+             geom.ind = "point", # show points only (nbut not "text")
+             col.ind = g$challenge_infection, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, # Concentration ellipses
+             legend.title = "Groups"
+             )
+
+# Add confidence ellipses
+fviz_pca_ind(res.pca, geom.ind = "point", col.ind = g$challenge_infection, 
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, ellipse.type = "confidence",
+             legend.title = "Groups"
+             )
+```
+
+PCA + Biplot combination
+```{r}
+fviz_pca_biplot(res.pca, 
+                col.ind = g$challenge_infection, palette = "jco", 
+                addEllipses = TRUE, label = "var",
+                col.var = "black", repel = TRUE,
+                legend.title = "Parasite in the challenge infection") 
+```
+ In the following example, we want to color both individuals and variables by groups. The trick is to use pointshape = 21 for individual points. This particular point shape can be filled by a color using the argument fill.ind. The border line color of individual points is set to “black” using col.ind. To color variable by groups, the argument col.var will be used.
+
+To customize individuals and variable colors, we use the helper functions fill_palette() and color_palette() [in ggpubr package].
+
+```{r}
+fviz_pca_biplot(res.pca, 
+                # Fill individuals by groups
+                geom.ind = "point",
+                pointshape = 21,
+                pointsize = 2.5,
+                fill.ind = g$challenge_infection,
+                col.ind = "black",
+                # Color variable by groups,
+                legend.title = list(fill = "Parasite in challenge infections", color = "Clusters"),
+                repel = TRUE        # Avoid label overplotting
+             )+
+  ggpubr::fill_palette("jco")+      # Indiviual fill color
+  ggpubr::color_palette("npg")      # Variable colors
+```
+```{r}
+library(RColorBrewer)
+fviz_pca_biplot(res.pca, 
+                # Individuals
+                geom.ind = "point",
+                fill.ind = g$challenge_infection, col.ind = "black",
+                pointshape = 21, pointsize = 2,
+                palette = "jco",
+                addEllipses = TRUE,
+                # Variables
+                alpha.var ="contrib", col.var = "contrib",
+                gradient.cols = "RdB",
+                legend.title = list(fill = "Parasite in challenge infection", color = "Contrib",
+                                    alpha = "Contrib")
+                )
 ```
 
