@@ -259,7 +259,7 @@ summary(gene_na_omit)
 g <- gene_na_omit %>% select(c("CXCR3_bio", "IL.6",
   "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", "CASP1", "CXCL9", 
   "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
-  "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")) 
+  "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")) %>% na.omit()
 
 g2 <- gene_na_omit %>% select(-c(max_WL, delta))
 
@@ -281,10 +281,13 @@ gene_pca %>%
 library(missMDA)
 library(FactoMineR)
 
+
 #creating the data file for a pca (genes)
 g3 <- gene_na_omit %>%
     select(-c(EH_ID, primary_infection, challenge_infection, infection_history,
               mouse_strain, max_WL, delta, Parasite_challenge))
+
+res <- PCA(g3)
 
 #number of pca dimensions, to use when imputing mising 
 nb <- estim_ncpPCA(g3, scale = TRUE) #estimate the number of dimensions
