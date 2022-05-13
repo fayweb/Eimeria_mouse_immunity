@@ -278,12 +278,47 @@ gene_pca %>%
 
 ```
 
-it is possible to compute a pca with missing data using the package missMDA. 
+It is possible to compute a pca with missing data using the package missMDA. 
 The missMDA package is dedicated to missing values in exploratory  multivariate data analysis: single imputation/multiple imputation, etc. 
+
+Following the tutorial of the package author: Francois Husson: https://www.youtube.com/watch?v=OOM8_FH6_8o
 
 #### Handling missing data in a pca:
 Bad methods: removing individuals with missing data or replacing missing data with the mean (default setting in many packages).
 
+```{r}
+library(missMDA) 
+library(FactoMineR)
+
+# creating the data file for a pca (genes)
+
+## Our data set:
+# first we need to select the gene expression columns only 
+g3 <- gene_na_omit %>% 
+    select(-c(EH_ID, primary_infection, challenge_infection, infection_history,
+              mouse_strain, max_WL, delta, Parasite_challenge)) 
+```
+
+```{r}
+#Make a scatter plot matrix showing the correlation coefficients between variables and the significance levels : the package PerformanceAnalytics is required.
+library(PerformanceAnalytics)
+chart.Correlation(g3, histogram=TRUE, pch=19)
+```
+
+
+```{r}
+## let's try a pca without imputing the missing values , 
+# the function imputes the missing values by the mean of the variable to which 
+# they belong
+res.pca <- PCA(g3)
+```
+```{r}
+#let's do a pca while removing ALL NA values
+res.NA.remove <- PCA(g3 %>% na.omit())
+
+# These are rather unsophisticated ways to solve the problem
+
+```
 
 We will now continue by using an iterative pca to impute missing data 
  A. Initialization: impute using the mean
@@ -301,30 +336,6 @@ The algorithm estimates the missing data values with values that have no influen
 on the PCA results, i.e., no influence on the coordinates of the individals or variables. 
 
 ```{r}
-library(missMDA) 
-library(FactoMineR)
-
-# creating the data file for a pca (genes)
-
-## Our data set:
-# first we need to select the gene expression columns only 
-g3 <- gene_na_omit %>% 
-    select(-c(EH_ID, primary_infection, challenge_infection, infection_history,
-              mouse_strain, max_WL, delta, Parasite_challenge)) 
-
-g3 %>%
-  pivot_longer(names_to = "genes", values_to = "expression", cols = everything()) %>%
-  ggplot(aes(x = expression, y = expression, color = genes)) +
-  geom_point(position=position_jitterdodge(dodge.width=0.9))
-
-## let's try a pca without imputing the missing values , 
-# the function imputes the missing values by the mean of the variable to which 
-# they belong
-res.pca <- PCA(g3)
-
-# this is a rather unsophisticated way to solve the problem
-
-
 ## 1. Estimate the number of dimensions necessary to impute the dataset 
 # with the estim_ncpPCA
 nb <- estim_ncpPCA(g3, scale = TRUE) 
@@ -344,10 +355,21 @@ options(ggrepel.max.overlaps = Inf) # solution to the error:
 
 # we can now run a normal pca on the complete data set
 res.pca <- PCA(comp$completeObs)
+```
+Caution: When imputing data, the percentages of inertia associated with the first dimensions will be overestimated.
 
-gc()
-mi <- MIPCA(g3, scale = TRUE, ncp = 2)
+Another problem: the imputed data are, when the pca is performed considered like real observations.
+But they are estimations!! 
+
+Visualizing uncertainty due to issing data:
+
+--> mulrimple imputation: generate several plausible values for each missing data point
+
+
+```{r}
+#Visualizing uncertainty due to missing data:
+
+mi <- MIPCA(g3, scale = TRUE, ncp = 5)
 plot(mi)
 ```
-
 
