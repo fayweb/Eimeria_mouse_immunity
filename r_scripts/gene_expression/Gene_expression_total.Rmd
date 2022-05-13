@@ -259,9 +259,9 @@ summary(gene_na_omit)
 g <- gene_na_omit %>% select(c("CXCR3_bio", "IL.6",
   "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", "CASP1", "CXCL9", 
   "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
-  "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")) %>% na.omit()
+  "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")) 
 
-g2 <- gene_na_omit %>% select(-c(max_WL, delta))
+g2 <- gene_na_omit %>% select(-c(max_WL, delta)) %>% na.omit()
 
 PR <- prcomp(g, scale = TRUE, na.action = na.omit)
 plot(PR, type = "l")
@@ -277,25 +277,77 @@ gene_pca %>%
   geom_point(shape = 21, col = "black")
 
 ```
+
+it is possible to compute a pca with missing data using the package missMDA. 
+The missMDA package is dedicated to missing values in exploratory  multivariate data analysis: single imputation/multiple imputation, etc. 
+
+#### Handling missing data in a pca:
+Bad methods: removing individuals with missing data or replacing missing data with the mean (default setting in many packages).
+
+
+We will now continue by using an iterative pca to impute missing data 
+ A. Initialization: impute using the mean
+ B. Step lampda:
+  # a. do pca on imputed data table S dimensions retained
+  # b. missing data imputed using pca
+  # c. means (and standard deviations) updated
+ C. Iterate the estimation and imputation steps (until convergence)
+(convergence: the act of converging and especially moving toward union or uniformity)
+
+Overfitting is a common problem due to believing too much in links between variables. 
+--> regularized iterative PCA (This version is what is being implented in missMDA)
+This is a way of taking less risk when imputing the missing data. 
+The algorithm estimates the missing data values with values that have no influence
+on the PCA results, i.e., no influence on the coordinates of the individals or variables. 
+
 ```{r}
-library(missMDA)
+library(missMDA) 
 library(FactoMineR)
 
+# creating the data file for a pca (genes)
 
-#creating the data file for a pca (genes)
-g3 <- gene_na_omit %>%
+## Our data set:
+# first we need to select the gene expression columns only 
+g3 <- gene_na_omit %>% 
     select(-c(EH_ID, primary_infection, challenge_infection, infection_history,
-              mouse_strain, max_WL, delta, Parasite_challenge))
+              mouse_strain, max_WL, delta, Parasite_challenge)) 
 
-res <- PCA(g3)
+g3 %>%
+  pivot_longer(names_to = "genes", values_to = "expression", cols = everything()) %>%
+  ggplot(aes(x = expression, y = expression, color = genes)) +
+  geom_point(position=position_jitterdodge(dodge.width=0.9))
 
-#number of pca dimensions, to use when imputing mising 
-nb <- estim_ncpPCA(g3, scale = TRUE) #estimate the number of dimensions
-comp <- imputePCA(g3, ncp = 2) #impute the table
+## let's try a pca without imputing the missing values , 
+# the function imputes the missing values by the mean of the variable to which 
+# they belong
+res.pca <- PCA(g3)
+
+# this is a rather unsophisticated way to solve the problem
+
+
+## 1. Estimate the number of dimensions necessary to impute the dataset 
+# with the estim_ncpPCA
+nb <- estim_ncpPCA(g3, scale = TRUE) 
+# Each observed value is removed, then imputed using ncp components
+# The difference between the ovserved value and the imputed value is calculated 
+# ncp = 5
+
+## 2. Imputation of the missing values using the function impute PCA
+comp <- imputePCA(g3, ncp = 5, scale = TRUE) #impute the table
+comp$completeObs # resulting imputed data table
+# this estimate should be better than simply using the mean, beacause we've taken into account
+# the links between variables and similarities between individuals in its calculation
+
+options(ggrepel.max.overlaps = Inf) # solution to the error: 
+# ggrepel: 3 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
+# for the next function
+
+# we can now run a normal pca on the complete data set
 res.pca <- PCA(comp$completeObs)
 
 gc()
 mi <- MIPCA(g3, scale = TRUE, ncp = 2)
 plot(mi)
 ```
+
 
