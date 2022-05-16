@@ -857,14 +857,10 @@ str(res.pca)
 ```
 
 ```{r}
-library(factoextra)
-library(MASS)
-library(reshape2)
-library(cowplot)
 # extract pc scores for first two component and add to dat dataframe
-g$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+f[12:26]$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 
-g$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+f[12:26]$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
 
 #We also need to extract the data for the variable contributions to each of the pc axes.
 pca.vars <- res.pca$var$coord %>% data.frame
@@ -872,21 +868,12 @@ pca.vars$vars <- rownames(pca.vars)
 pca.vars.m <- melt(pca.vars, id.vars = "vars")
 
 
-#By convention, the variable contribution plot has a circle around the variables that has a radius of 1. Here’s some code to make one.
-circleFun <- function(center = c(0,0),diameter = 1, npoints = 100){
-  r = diameter / 2
-  tt <- seq(0,2*pi,length.out = npoints)
-  xx <- center[1] + r * cos(tt)
-  yy <- center[2] + r * sin(tt)
-  return(data.frame(x = xx, y = yy))
-}
-
 circ <- circleFun(c(0,0),2,npoints = 500)
 
 #Now we can make our initial plot of the PCA.
-g %>% 
-  pivot_longer(cols = 8:26, names_to = "Gene", values_to = "gene_expression")  %>%
-  ggplot(aes(x = pc1, y = pc2, color = challenge_infection, shape = challenge_infection)) +
+f %>% 
+  pivot_longer(cols = 12:26, names_to = "Cell", values_to = "Proportion") %>%
+  ggplot(aes(x = pc1, y = pc2, color = Parasite_challenge, shape = Parasite_challenge)) +
   geom_hline(yintercept = 0, lty = 2) +
   geom_vline(xintercept = 0, lty = 2) +
   geom_point(alpha = 0.8) +
