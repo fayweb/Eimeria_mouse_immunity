@@ -2,7 +2,9 @@
 title: "Gene_expression"
 author: "Fay"
 date: "09/05/2022"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -269,7 +271,7 @@ Following the tutorial of the package author: Francois Husson: https://www.youtu
 #### Handling missing data in a pca:
 Bad methods: removing individuals with missing data or replacing missing data with the mean (default setting in many packages).
 
-```{r}
+```{r, echo = FALSE, include = FALSE}
 library(missMDA) 
 library(FactoMineR)
 
@@ -283,7 +285,7 @@ chart.Correlation(g[8:26], histogram=TRUE, pch=19)
 ```
 
 
-```{r}
+```{r, echo = FALSE}
 ## let's try a pca without imputing the missing values , 
 # the function imputes the missing values by the mean of the variable to which 
 # they belong
@@ -312,7 +314,7 @@ This is a way of taking less risk when imputing the missing data.
 The algorithm estimates the missing data values with values that have no influence
 on the PCA results, i.e., no influence on the coordinates of the individals or variables. 
 
-```{r}
+```{r, echo = FALSE}
 ## 1. Estimate the number of dimensions necessary to impute the dataset 
 # with the estim_ncpPCA
 nb <- estim_ncpPCA(g[8:26], scale = TRUE) 
@@ -334,7 +336,7 @@ options(ggrepel.max.overlaps = Inf) # solution to the error:
 res.pca <- PCA(comp$completeObs)
 head(summary(res.pca, nbelements = Inf)) #including all the elements
 ```
-```{r}
+```{r, echo = FALSE}
 #Description of the dimensions
 # We get a correlation between each variable and the first dimension
 dimdesc(res.pca)
@@ -351,7 +353,7 @@ Visualizing uncertainty due to issing data:
 --> mulrimple imputation: generate several plausible values for each missing data point
 
 We here visualize the variability, that is uncertainty on the plane defined by two pca axes. 
-```{r}
+```{r, echo = FALSE}
 #Visualizing uncertainty due to missing data:
 
 mi <- MIPCA(g[8:26], scale = TRUE, ncp = 5)
@@ -383,7 +385,7 @@ this means that the axes are stable with respect to the set of imputed tables --
 str(res.pca)
 ```
 
-```{r}
+```{r, echo = FALSE}
 library(factoextra)
 library(MASS)
 library(reshape2)
@@ -423,21 +425,21 @@ g %>%
   theme(panel.grid = element_blank(), panel.border = element_rect(fill= "transparent"))
 
 ```
-```{r}
+```{r, echo = FALSE}
 #It’s possible to use the function corrplot() [corrplot package] to highlight the most contributing variables for each dimension:
 var.contrib <- res.pca$var$contrib
 corrplot(var.contrib, is.corr=FALSE) 
 ```
 
 The function fviz_contrib() [factoextra package] can be used to draw a bar plot of variable contributions. If your data contains many variables, you can decide to show only the top contributing variables. The R code below shows the top 10 variables contributing to the principal components:
-```{r}
+```{r, echo = FALSE}
 # Contributions of variables to PC1
 fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
 # Contributions of variables to PC2
 fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
 ```
 The total contribution to PC1 and PC2 is obtained with the following R code:
-```{r}
+```{r, echo = FALSE}
 fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 18)
 ```
 The red dashed line on the graph above indicates the expected average contribution. If the contribution of the variables were uniform, the expected value would be 1/length(variables) = 1/10 = 10%. For a given component, a variable with a contribution larger than this cutoff could be considered as important in contributing to the component.
@@ -449,7 +451,7 @@ Eig1 and Eig2 are the eigenvalues of PC1 and PC2, respectively. Recall that eige
 In this case, the expected average contribution (cutoff) is calculated as follow: As mentioned above, if the contributions of the 10 variables were uniform, the expected average contribution on a given PC would be 1/10 = 10%. The expected average contribution of a variable for PC1 and PC2 is : [(10* Eig1) + (10 * Eig2)]/(Eig1 + Eig2)
 
 
-```{r}
+```{r, echo = FALSE}
 #The most important (or, contributing) variables can be highlighted on the correlation plot as follow:
 fviz_pca_var(res.pca, col.var = "contrib",
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
@@ -457,11 +459,11 @@ fviz_pca_var(res.pca, col.var = "contrib",
 ```
 To visualize the contribution of individuals to the first two principal components, type this:
 
-```{r}
+```{r, echo = FALSE}
 # Total contribution on PC1 and PC2
 fviz_contrib(res.pca, choice = "ind", axes = 1:2)
 ```
-```{r}
+```{r, echo = FALSE}
 fviz_pca_ind(res.pca,
              geom.ind = "point", # show points only (nbut not "text")
              col.ind = g$challenge_infection, # color by groups
@@ -479,7 +481,7 @@ fviz_pca_ind(res.pca, geom.ind = "point", col.ind = g$challenge_infection,
 ```
 
 PCA + Biplot combination
-```{r}
+```{r, echo = FALSE}
 fviz_pca_biplot(res.pca, 
                 col.ind = g$challenge_infection, palette = "jco", 
                 addEllipses = TRUE, label = "var",
@@ -490,7 +492,7 @@ fviz_pca_biplot(res.pca,
 
 To customize individuals and variable colors, we use the helper functions fill_palette() and color_palette() [in ggpubr package].
 
-```{r}
+```{r, echo = FALSE}
 fviz_pca_biplot(res.pca, 
                 # Fill individuals by groups
                 geom.ind = "point",
@@ -505,7 +507,7 @@ fviz_pca_biplot(res.pca,
   ggpubr::fill_palette("jco")+      # Indiviual fill color
   ggpubr::color_palette("npg")      # Variable colors
 ```
-```{r}
+```{r, echo = FALSE}
 library(RColorBrewer)
 fviz_pca_biplot(res.pca, 
                 # Individuals
@@ -524,7 +526,7 @@ fviz_pca_biplot(res.pca,
 
 
 
-```{r}
+```{r, echo = FALSE}
 weight_lm <- lm(max_WL ~ pc1 + pc2 + challenge_infection, data = g)
 
 summary(weight_lm)
@@ -545,17 +547,13 @@ AIC(weight_lm, weight_lm_exp_only)
 rm(basics_gene, circ, comp, g, gene_correlation, gene_expr, mi, nb, 
    pca.vars, pca.vars.m, res.NA.remove, res.pca, var.contrib)
 ```
-```{r}
+```{r, echo = FALSE}
 
 ## vectors for selecting columns
 CellCount.cols <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
                     "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
                     "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
                     "IL17A_CD4")  
-
-
-### Select the necessary columns (as shown in the vectors above)
-#df_facs <- Challenge %>% select(basics, weight_loss, CellCount.cols)
 
 
 ### Select the measurements from the mesenterial lymphnodes
@@ -605,8 +603,8 @@ annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
 
 
 facs_data <- Challenge_facs %>% 
-   dplyr::select(c(EH_ID, primary_infection, challenge_infection, infection_history, mouse_strain, 
-            max_WL, delta)) %>%
+   dplyr::select(c(EH_ID, primary_infection, challenge_infection, 
+                   infection_history, mouse_strain, max_WL, delta)) %>%
      inner_join((t(heatmap_data) %>% 
                    as.data.frame() 
                  %>% tibble::rownames_to_column("EH_ID")), 
@@ -627,7 +625,7 @@ heatmap_data %>%
 
 
 ```
-```{r}
+```{r, echo = FALSE}
 # draw correlation between the genes
 facs_correlation <-  as.matrix(cor(Challenge %>% 
                                      dplyr::select(CellCount.cols) %>% 
@@ -645,7 +643,7 @@ corrplot(facs_correlation,
          order="hclust") #hclust reordering
 
 ```
-```{r}
+```{r, echo = FALSE}
 
 corrplot(facs_correlation, 
          method = "circle",  #method of the plot, "color" would show colour gradient
@@ -658,7 +656,7 @@ corrplot(facs_correlation,
 
 
 ```
-```{r}
+```{r, echo = FALSE}
 corrplot(facs_correlation, 
          method = "circle",  #method of the plot, "color" would show colour gradient
          tl.col = "black", tl.srt=45, #colour of labels and rotation
@@ -668,7 +666,7 @@ corrplot(facs_correlation,
 ```
 
 
-```{r}
+```{r, echo = FALSE}
 corrplot(facs_correlation, 
          method = "circle",  #method of the plot, "color" would show colour gradient
          tl.col = "black", tl.srt=45, #colour of labels and rotation
@@ -697,8 +695,11 @@ basics_facs <- as_tibble(Challenge) %>%
 # remove duplicated and change the format to data frame 
 basics_facs <- unique(basics_facs) %>%
   as.data.frame(basics_facs) %>%
-  dplyr::select(-infection)
+  dplyr::select(-infection) %>%
+  filter(Position == "mLN") %>%
+  drop_na("CD4")
 
+basics_facs <- unique(basics_facs)
 
 basics_facs %>%
     pivot_longer(cols = 12:26, names_to = "Cell", values_to = "Proportion") %>%
@@ -726,8 +727,10 @@ basics_facs %>%
   theme_bw() +
     labs(x = "Parasite strain",
          title = "FACS data in response to parasite strain") 
+
+basics_facs <- unique(basics_facs)
 ```
-```{r}
+```{r, echo = FALSE}
 basics_facs %>%
     group_by(EH_ID) %>%
   pivot_longer(cols = 12:26, names_to = "Cell", values_to = "Proportion") %>%
@@ -741,7 +744,7 @@ basics_facs %>%
   ggplot(aes(x = Proportion, color = challenge_infection)) + 
   geom_histogram()
 ```
-```{r}
+```{r, echo = FALSE}
 summary(basics_facs)
 f <- basics_facs
 
@@ -755,14 +758,14 @@ chart.Correlation(f[12:26], histogram=TRUE, pch=19)
 ```
 
 
-```{r}
+```{r, echo = FALSE}
 ## let's try a pca without imputing the missing values , 
 # the function imputes the missing values by the mean of the variable to which 
 # they belong
-glimpse(f)
+
 res.pca <- PCA(f[12:26])
 ```
-```{r}
+```{r, echo = FALSE}
 #let's do a pca while removing ALL NA values
 res.NA.remove <- PCA(f[12:26] %>% na.omit())
 
@@ -785,7 +788,7 @@ This is a way of taking less risk when imputing the missing data.
 The algorithm estimates the missing data values with values that have no influence
 on the PCA results, i.e., no influence on the coordinates of the individals or variables. 
 
-```{r}
+```{r, echo = FALSE}
 ## 1. Estimate the number of dimensions necessary to impute the dataset 
 # with the estim_ncpPCA
 nb <- estim_ncpPCA(f[12:26], scale = TRUE) 
@@ -794,12 +797,12 @@ nb <- estim_ncpPCA(f[12:26], scale = TRUE)
 # ncp = 5
 
 ## 2. Imputation of the missing values using the function impute PCA
-comp <- imputePCA(f[12:26], ncp = 5, scale = TRUE) #impute the table
+comp <- imputePCA(f[12:26], ncp = 2, scale = TRUE) #impute the table
 head(comp$completeObs) # resulting imputed data table
 # this estimate should be better than simply using the mean, beacause we've taken into account
 # the links between variables and similarities between individuals in its calculation
 
-options(ggrepel.max.overlaps = Inf) # solution to the error: 
+##options(ggrepel.max.overlaps = Inf) # solution to the error: 
 # ggrepel: 3 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
 # for the next function
 
@@ -807,7 +810,7 @@ options(ggrepel.max.overlaps = Inf) # solution to the error:
 res.pca <- PCA(comp$completeObs)
 head(summary(res.pca, nbelements = Inf)) #including all the elements
 ```
-```{r}
+```{r, echo = FALSE}
 #Description of the dimensions
 # We get a correlation between each variable and the first dimension
 dimdesc(res.pca)
@@ -824,10 +827,10 @@ Visualizing uncertainty due to issing data:
 --> mulrimple imputation: generate several plausible values for each missing data point
 
 We here visualize the variability, that is uncertainty on the plane defined by two pca axes. 
-```{r}
+```{r, echo = FALSE}
 #Visualizing uncertainty due to missing data:
 
-mi <- MIPCA(f[12:26], scale = TRUE, ncp = 5)
+mi <- MIPCA(f[12:26], scale = TRUE, ncp = 2)
 plot(mi)
 ```
 Individuals lying on the axis have no missing data, but individuals that far away have many missing data. 
@@ -856,11 +859,11 @@ this means that the axes are stable with respect to the set of imputed tables --
 str(res.pca)
 ```
 
-```{r}
+```{r, echo = FALSE}
 # extract pc scores for first two component and add to dat dataframe
-f[12:26]$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+f$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 
-f[12:26]$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+f$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
 
 #We also need to extract the data for the variable contributions to each of the pc axes.
 pca.vars <- res.pca$var$coord %>% data.frame
@@ -883,21 +886,21 @@ f %>%
   theme(panel.grid = element_blank(), panel.border = element_rect(fill= "transparent"))
 
 ```
-```{r}
+```{r, echo = FALSE}
 #It’s possible to use the function corrplot() [corrplot package] to highlight the most contributing variables for each dimension:
 var.contrib <- res.pca$var$contrib
 corrplot(var.contrib, is.corr=FALSE) 
 ```
 
 The function fviz_contrib() [factoextra package] can be used to draw a bar plot of variable contributions. If your data contains many variables, you can decide to show only the top contributing variables. The R code below shows the top 10 variables contributing to the principal components:
-```{r}
+```{r, echo = FALSE}
 # Contributions of variables to PC1
 fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
 # Contributions of variables to PC2
 fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
 ```
 The total contribution to PC1 and PC2 is obtained with the following R code:
-```{r}
+```{r, echo = FALSE}
 fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 18)
 ```
 The red dashed line on the graph above indicates the expected average contribution. If the contribution of the variables were uniform, the expected value would be 1/length(variables) = 1/10 = 10%. For a given component, a variable with a contribution larger than this cutoff could be considered as important in contributing to the component.
@@ -909,7 +912,7 @@ Eig1 and Eig2 are the eigenvalues of PC1 and PC2, respectively. Recall that eige
 In this case, the expected average contribution (cutoff) is calculated as follow: As mentioned above, if the contributions of the 10 variables were uniform, the expected average contribution on a given PC would be 1/10 = 10%. The expected average contribution of a variable for PC1 and PC2 is : [(10* Eig1) + (10 * Eig2)]/(Eig1 + Eig2)
 
 
-```{r}
+```{r, echo = FALSE}
 #The most important (or, contributing) variables can be highlighted on the correlation plot as follow:
 fviz_pca_var(res.pca, col.var = "contrib",
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
@@ -917,21 +920,21 @@ fviz_pca_var(res.pca, col.var = "contrib",
 ```
 To visualize the contribution of individuals to the first two principal components, type this:
 
-```{r}
+```{r, echo = FALSE}
 # Total contribution on PC1 and PC2
 fviz_contrib(res.pca, choice = "ind", axes = 1:2)
 ```
-```{r}
+```{r, echo = FALSE}
 fviz_pca_ind(res.pca,
              geom.ind = "point", # show points only (nbut not "text")
-             col.ind = g$challenge_infection, # color by groups
+             col.ind = f$Parasite_challenge, # color by groups
              palette = c("#00AFBB", "#E7B800", "#FC4E07"),
              addEllipses = TRUE, # Concentration ellipses
              legend.title = "Groups"
              )
 
 # Add confidence ellipses
-fviz_pca_ind(res.pca, geom.ind = "point", col.ind = g$challenge_infection, 
+fviz_pca_ind(res.pca, geom.ind = "point", col.ind = f$Parasite_challenge, 
              palette = c("#00AFBB", "#E7B800", "#FC4E07"),
              addEllipses = TRUE, ellipse.type = "confidence",
              legend.title = "Groups"
@@ -939,9 +942,9 @@ fviz_pca_ind(res.pca, geom.ind = "point", col.ind = g$challenge_infection,
 ```
 
 PCA + Biplot combination
-```{r}
+```{r, echo = FALSE}
 fviz_pca_biplot(res.pca, 
-                col.ind = g$challenge_infection, palette = "jco", 
+                col.ind = f$Parasite_challenge, palette = "jco", 
                 addEllipses = TRUE, label = "var",
                 col.var = "black", repel = TRUE,
                 legend.title = "Parasite in the challenge infection") 
@@ -950,13 +953,13 @@ fviz_pca_biplot(res.pca,
 
 To customize individuals and variable colors, we use the helper functions fill_palette() and color_palette() [in ggpubr package].
 
-```{r}
+```{r, echo = FALSE}
 fviz_pca_biplot(res.pca, 
                 # Fill individuals by groups
                 geom.ind = "point",
                 pointshape = 21,
                 pointsize = 2.5,
-                fill.ind = g$challenge_infection,
+                fill.ind = f$Parasite_challenge,
                 col.ind = "black",
                 # Color variable by groups,
                 legend.title = list(fill = "Parasite in challenge infections", color = "Clusters"),
@@ -965,12 +968,12 @@ fviz_pca_biplot(res.pca,
   ggpubr::fill_palette("jco")+      # Indiviual fill color
   ggpubr::color_palette("npg")      # Variable colors
 ```
-```{r}
+```{r, echo = FALSE}
 library(RColorBrewer)
 fviz_pca_biplot(res.pca, 
                 # Individuals
                 geom.ind = "point",
-                fill.ind = g$challenge_infection, col.ind = "black",
+                fill.ind = f$Parasite_challenge, col.ind = "black",
                 pointshape = 21, pointsize = 2,
                 palette = "jco",
                 addEllipses = TRUE,
@@ -984,14 +987,14 @@ fviz_pca_biplot(res.pca,
 
 
 
-```{r}
-weight_lm <- lm(max_WL ~ pc1 + pc2 + challenge_infection, data = g)
+```{r, echo = FALSE}
+weight_lm <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge, data = f)
 
 summary(weight_lm)
 
 AIC(weight_lm)
 
-weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = g)
+weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = f)
 summary(weight_lm_exp_only)
 
 AIC(weight_lm, weight_lm_exp_only)
