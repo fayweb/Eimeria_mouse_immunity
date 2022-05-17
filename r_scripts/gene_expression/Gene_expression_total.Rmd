@@ -144,9 +144,6 @@ Heatmap on gene expression data:
 ```{r, echo = FALSE}
 pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 ```
-```{r, echo=FALSE, include=FALSE}
-rm(heatmap_data, gene, annotation_df)
-```
 
 ## Gene correlation
 ```{r, echo = FALSE}
@@ -324,7 +321,10 @@ nb <- estim_ncpPCA(g[8:26], scale = TRUE)
 
 ## 2. Imputation of the missing values using the function impute PCA
 comp <- imputePCA(g[8:26], ncp = 5, scale = TRUE) #impute the table
-head(comp$completeObs) # resulting imputed data table
+#head(comp$completeObs) # resulting imputed data table
+
+# save the imputed file 
+imputed_gene <- as.data.frame(comp$completeObs)
 # this estimate should be better than simply using the mean, beacause we've taken into account
 # the links between variables and similarities between individuals in its calculation
 
@@ -334,7 +334,7 @@ options(ggrepel.max.overlaps = Inf) # solution to the error:
 
 # we can now run a normal pca on the complete data set
 res.pca <- PCA(comp$completeObs)
-head(summary(res.pca, nbelements = Inf)) #including all the elements
+#head(summary(res.pca, nbelements = Inf)) #including all the elements
 ```
 ```{r, echo = FALSE}
 #Description of the dimensions
@@ -394,6 +394,9 @@ library(cowplot)
 g$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 
 g$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+
+imputed_gene$pc1 <- res.pca$ind$coord[, 1]
+imputed_gene$pc2 <- res.pca$ind$coord[, 2] 
 
 #We also need to extract the data for the variable contributions to each of the pc axes.
 pca.vars <- res.pca$var$coord %>% data.frame
@@ -539,6 +542,59 @@ summary(weight_lm_exp_only)
 AIC(weight_lm, weight_lm_exp_only)
 ```
 
+### repeating the heatmap on the now imputed data
+```{r}
+
+### Prepare the annotation data frame for the heatmap
+annotation_df <- gene_expr %>%
+  dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history"))
+
+### Data tidying for the heatmap function
+gene_imp <- gene_expr %>% left_join(imputed_gene, by = c("pc1", "pc2"))
+
+#remove all columns of the non-imputed data
+gene_imp = gene_imp[,!grepl(".x$",names(gene_imp))]
+
+#remove the suffix y
+gene_imp <- gene_imp %>% rename_with(~str_remove(., '.y'))
+
+gene <- gene_imp[11:29]
+ 
+ # turn the data frame into a matrix and transpose it. We want to have each cell 
+ # type as a row name 
+ gene <- t(as.matrix(gene))
+ 
+ #switch the matrix back to a data frame format
+ gene <- as.data.frame(gene)
+ 
+ # turn the first row into column names
+ gene %>%
+     row_to_names(row_number = 1) -> gene
+ 
+ # Now further prepare the data frame for plotting by removing the first row
+ ## and convert the column to row names with the cells 
+ gene[-1, ] -> heatmap_data
+ 
+ 
+ table(rowSums(is.na(heatmap_data)) == nrow(heatmap_data))
+
+ 
+ # turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != nrow(heatmap_data)]
+
+
+```
+Heatmap on gene expression data: 
+```{r, echo = FALSE}
+pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+```
+```
 
 
 ################################### FACS #######################################
@@ -1111,6 +1167,7 @@ comp <- imputePCA(immune, ncp = 2, scale = TRUE) #impute the table
 head(comp$completeObs) # resulting imputed data table
 # this estimate should be better than simply using the mean, beacause we've taken into account
 # the links between variables and similarities between individuals in its calculation
+imputed <- as.data.frame(comp$completeObs)
 
 options(ggrepel.max.overlaps = Inf) # solution to the error: 
 # ggrepel: 3 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
@@ -1171,35 +1228,28 @@ str(res.pca)
 ```
 
 ```{r, echo = FALSE}
-library(factoextra)
-library(MASS)
-library(reshape2)
-library(cowplot)
 # extract pc scores for first two component and add to dat dataframe
-g$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+immune_data$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 
-g$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+immune_data$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
 
+imputed$pc1 <- res.pca$ind$coord[, 1]
+imputed$pc2 <- res.pca$ind$coord[, 2] 
 #We also need to extract the data for the variable contributions to each of the pc axes.
 pca.vars <- res.pca$var$coord %>% data.frame
 pca.vars$vars <- rownames(pca.vars)
 pca.vars.m <- melt(pca.vars, id.vars = "vars")
 
 
-#By convention, the variable contribution plot has a circle around the variables that has a radius of 1. Here’s some code to make one.
-circleFun <- function(center = c(0,0),diameter = 1, npoints = 100){
-  r = diameter / 2
-  tt <- seq(0,2*pi,length.out = npoints)
-  xx <- center[1] + r * cos(tt)
-  yy <- center[2] + r * sin(tt)
-  return(data.frame(x = xx, y = yy))
-}
-
 circ <- circleFun(c(0,0),2,npoints = 500)
 
 #Now we can make our initial plot of the PCA.
-g %>% 
-  pivot_longer(cols = 8:26, names_to = "Gene", values_to = "gene_expression")  %>%
+i <- immune_data %>%
+  dplyr::select(-c(Parasite_challenge, F_delta)) 
+
+
+i %>%
+  pivot_longer(cols = 8:41, names_to = "Immune_parameter", values_to = "measurement")  %>%
   ggplot(aes(x = pc1, y = pc2, color = challenge_infection, shape = challenge_infection)) +
   geom_hline(yintercept = 0, lty = 2) +
   geom_vline(xintercept = 0, lty = 2) +
@@ -1210,7 +1260,29 @@ g %>%
   theme(panel.grid = element_blank(), panel.border = element_rect(fill= "transparent"))
 
 ```
+```{r, echo = FALSE}
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
+```
+The total contribution to PC1 and PC2 is obtained with the following R code:
+```{r, echo = FALSE}
+fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 18)
+```
 
+```{r, echo = FALSE}
+weight_lm <- lm(max_WL ~ pc1 + pc2 + challenge_infection, data = i)
+
+summary(weight_lm)
+
+AIC(weight_lm)
+
+weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = i)
+summary(weight_lm_exp_only)
+
+AIC(weight_lm, weight_lm_exp_only)
+```
 
 ######  heatmap?
 ```{r, echo = FALSE}
@@ -1219,24 +1291,29 @@ annotation_df <- immune_data %>%
   dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history"))
 
 ### Data tidying for the heatmap function
-immune <- immune_data  %>% 
-  dplyr::select(-c(primary_infection, challenge_infection, infection_history, 
-                   mouse_strain, max_WL, delta, Parasite_challenge, F_Treg_prop, F_IL17A_CD4, F_delta))
+immune <- immune_data %>% left_join(imputed, by = c("pc1", "pc2"))
 
+#remove all columns of the non-imputed data
+immune = immune[,!grepl(".x$",names(immune))]
+
+#remove the suffix y
+immune <- immune %>% rename_with(~str_remove(., '.y'))
+
+i <- immune[14:45]
 # turn the data frame into a matrix and transpose it. We want to have each cell 
 # type as a row name 
-immune <- t(as.matrix(immune))
+i <- t(as.matrix(i))
 
 #switch the matrix back to a data frame format
-immune <- as.data.frame(immune)
+i <- as.data.frame(i)
 
 # turn the first row into column names
-immune %>%
-  row_to_names(row_number = 1) -> immune
+i %>%
+  row_to_names(row_number = 1) -> i
 
 # Now further prepare the data frame for plotting by removing the first row
 ## and convert the column to row names with the cells 
-immune[-1, ] -> heatmap_data
+i[-1, ] -> heatmap_data
 
 # turn the columns to numeric other wise the heatmap function will not work
 heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
@@ -1245,7 +1322,7 @@ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
 rownames(annotation_df) <- annotation_df$EH_ID
 
 # Match the row names to the heatmap data frame
-rownames(annotation_df) <- colnames(immune)
+rownames(annotation_df) <- colnames(i)
 
 #remove the unecessary column
 annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
@@ -1258,4 +1335,3 @@ heatmap_data %>%
 
 
 ```
-
