@@ -1,0 +1,557 @@
+---
+title: "Gene_expression_analysis"
+author: "Fay"
+date: '2022-05-18'
+output:
+  pdf_document: 
+    fig_width: 12
+    fig_height: 8
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## 1.  Gene expression in the laboratory infections - Heatmap
+
+```{r, echo=FALSE, include = FALSE}
+library(pheatmap)
+library(tidyverse)
+library(matrixStats)
+library(tidyr)
+library(janitor)
+library(tibble)
+library(corrplot)
+library(RColorBrewer)
+library(ggplot2)
+library(dplyr)
+library(missMDA) 
+library(FactoMineR)
+library(PerformanceAnalytics)
+library(factoextra)
+library(MASS)
+library(reshape2)
+library(cowplot)
+```
+
+```{r Data_preparation_heatmap, echo=FALSE, iclude = FALSE, message=FALSE}
+### Import the data
+Challenge <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
+
+Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
+           "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
+           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+
+Challenge <- Challenge %>%
+    dplyr::mutate(Parasite_primary = case_when(
+        primary_infection == "E64" ~ "E_ferrisi",
+        primary_infection == "E88" ~ "E_falciformis",
+        primary_infection == "Eflab" ~ "E_falciformis",
+        primary_infection == "E139" ~ "E_ferrisi",
+        primary_infection == "UNI" ~ "uninfected",
+        TRUE ~ ""))
+
+Challenge <- Challenge %>%
+    dplyr::mutate(Parasite_challenge = case_when(    
+        challenge_infection == "E64" ~ "E_ferrisi",
+        challenge_infection == "E88" ~ "E_falciformis",
+        challenge_infection == "Eflab" ~ "E_falciformis",
+        challenge_infection == "E139" ~ "E_ferrisi",
+        challenge_infection == "UNI" ~ "uninfected",
+        TRUE ~ ""))
+
+Challenge <- Challenge %>%
+  dplyr::mutate(infection_history = case_when(
+    Parasite_primary == "uninfected" & Parasite_challenge == "uninfected" ~ "uninfected",
+    Parasite_primary == "uninfected" & Parasite_challenge == "E_ferrisi" ~ "uninfected_ferrisi",
+    Parasite_primary == "uninfected" & Parasite_challenge == "E_falciformis" ~ "uninfected_falciformis",
+    Parasite_primary == "E_falciformis" & Parasite_challenge == "E_falciformis" ~ "falciformis_falciformis",
+    Parasite_primary == "E_falciformis" & Parasite_challenge == "E_ferrisi" ~ "falciformis_ferrisi",
+    Parasite_primary == "E_falciformis" & Parasite_challenge == "uninfected" ~ "falciformis_uninfected",
+    Parasite_primary == "E_ferrisi" & Parasite_challenge == "E_falciformis" ~ "ferrisi_falciformis",
+    Parasite_primary == "E_ferrisi" & Parasite_challenge == "E_ferrisi" ~ "ferrisi_ferrisi",
+    Parasite_primary == "E_ferrisi" & Parasite_challenge == "uninfected" ~ "ferrisi_uninfected",
+        TRUE ~ ""))
+
+basics_gene <- as_tibble(Challenge) %>%
+  dplyr::filter(infection == "challenge", dpi == "8") %>%
+  dplyr::group_by(EH_ID) %>%
+  dplyr::select(c("EH_ID", "primary_infection", "challenge_infection", 
+                  "Parasite_challenge", "infection_history","mouse_strain", 
+                  "max_WL", "delta", "hybrid_status", all_of(Genes)))
+
+# remove duplicated and change the format to data frame 
+basics_gene <- unique(basics_gene) %>%
+  as.data.frame(basics_gene) 
+ 
+gene <- basics_gene %>% dplyr::select(c(EH_ID, Genes))
+ 
+ # turn the data frame into a matrix and transpose it. We want to have each cell 
+ # type as a row name 
+ gene <- t(as.matrix(gene))
+ 
+ #switch the matrix back to a data frame format
+ gene <- as.data.frame(gene)
+ 
+ # turn the first row into column names
+ gene %>%
+     row_to_names(row_number = 1) -> heatmap_data
+ 
+ table(rowSums(is.na(heatmap_data)) == nrow(heatmap_data))
+
+ # turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != nrow(heatmap_data)]
+
+ 
+### Prepare the annotation data frame for the heatmap
+ 
+## First select the common mice between your two data frames
+ #now we have different row names in the two data frames because I removed the Nas
+ #join the heatmap data to the basic data frame and get only the common columns
+ gene_expr <- basics_gene %>% 
+   dplyr::select(c(EH_ID, primary_infection, challenge_infection, Parasite_challenge,
+                   infection_history, mouse_strain, max_WL, delta, hybrid_status)) %>%
+     inner_join((t(heatmap_data) %>% 
+                   as.data.frame() 
+                 %>% tibble::rownames_to_column("EH_ID")), 
+                by = "EH_ID")
+ 
+annotation_df <- gene_expr %>%
+  dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history",  
+                  "hybrid_status", "max_WL"))
+
+annotation_df <- as.data.frame(annotation_df)
+
+### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$EH_ID
+
+
+# Match the row names to the heatmap data frame
+rownames(annotation_df) <- colnames(heatmap_data)
+
+#remove the unecessary column
+annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
+```
+
+
+Heatmap on gene expression data: 
+
+```{r pheatmap_genes, echo = FALSE}
+
+pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+
+```
+
+## 2. Correlations between the genes 
+
+
+```{r gene_correlations, echo = FALSE}
+
+# draw correlation between the genes
+gene_correlation <- as.matrix(cor(Challenge %>% dplyr::select(Genes), use="pairwise.complete.obs"))
+
+# load the function to calculate the p value for correlations
+source("r_scripts/functions/p_value_for_correlations.R")
+
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(gene_correlation)
+```
+
+
+## Corrplot of correlations 
+
+Here is a corrplot of the correlations between the genes.
+I am using the non-normalized genes
+
+```{r corrplot_correlations_genes, echo = FALSE}
+
+corrplot(gene_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black',
+         number.cex=0.5) #Add significance level to the correlogram
+#remove the values that are insignificant
+```
+
+```{r gene_expression_intensity, echo = FALSE, message = FALSE}
+gene_expr_s <- gene_expr %>%
+    pivot_longer(cols = 10:29, names_to = "Gene", values_to = "gene_expression")
+
+gene_expr_s %>%
+    na.omit(delta) %>%
+    ggplot(aes(x = delta, y = gene_expression, color = Parasite_challenge)) +
+    geom_jitter() +
+    facet_wrap(~ Gene, scales = "free") +
+    theme_light() +
+    labs(x = "Delta Ct, Infection intensity", y = "Gene expression",
+         title = "Gene expression in response to infection intensity") +
+    theme_bw()
+
+```
+
+
+
+
+
+
+
+
+
+```{r gene_expression_box, echo = FALSE, message = FALSE}
+gene_expr_s %>%
+  na.omit(expression) %>%
+  ggplot(aes(x = challenge_infection, y = gene_expression, color = challenge_infection)) + 
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~ Gene) +
+  theme_bw() +
+    labs(x = "Infection groups, E64 = E. ferrisi, E88 = E.falciformis, 
+         UNI = Uninfected", y = "Gene expression",
+         title = "Gene expression in response to infection group") 
+```
+
+```{r histogram_genes, echo = FALSE, message=FALSE}
+gene_expr_s  %>%
+  ggplot(aes(x = gene_expression, color = challenge_infection)) + 
+  geom_histogram(echo = FALSE)
+```
+
+```{r histo_genes_parasites, echo = FALSE, message =FALSE}
+gene_expr %>%
+    group_by(EH_ID) %>%
+  filter(!challenge_infection == "UNI") %>%
+  pivot_longer(cols = 10:29, names_to = "Gene", values_to = "gene_expression") %>%
+  ggplot(aes(x = gene_expression, color = challenge_infection)) + 
+  geom_histogram()
+```
+
+
+
+```{r, include=FALSE, echo = FALSE}
+g <- gene_expr
+g1 <- gene_expr[10:29]
+```
+
+It is possible to compute a pca with missing data using the package missMDA. 
+The missMDA package is dedicated to missing values in exploratory  multivariate data analysis: single imputation/multiple imputation, etc. 
+
+Following the tutorial of the package author: Francois Husson: https://www.youtube.com/watch?v=OOM8_FH6_8o
+
+## 3. PCA
+#### Handling missing data in a pca:
+Bad methods: removing individuals with missing data or replacing missing data with the mean (default setting in many packages).
+
+
+```{r, echo = FALSE, echo = FALSE, warning=FALSE}
+#Make a scatter plot matrix showing the correlation coefficients between variables and the significance levels : the package PerformanceAnalytics is required.
+
+chart.Correlation(g1, histogram=TRUE, pch=19)
+```
+
+We will now continue by using an iterative pca to impute missing data 
+ A. Initialization: impute using the mean
+ B. Step lampda:
+  # a. do pca on imputed data table S dimensions retained
+  # b. missing data imputed using pca
+  # c. means (and standard deviations) updated
+ C. Iterate the estimation and imputation steps (until convergence)
+(convergence: the act of converging and especially moving toward union or uniformity)
+
+Overfitting is a common problem due to believing too much in links between variables. 
+--> regularized iterative PCA (This version is what is being implented in missMDA)
+This is a way of taking less risk when imputing the missing data. 
+The algorithm estimates the missing data values with values that have no influence
+on the PCA results, i.e., no influence on the coordinates of the individals or variables. 
+
+
+```{r pca_gene, echo = FALSE}
+
+## 1. Estimate the number of dimensions necessary to impute the dataset 
+# with the estim_ncpPCA
+nb <- estim_ncpPCA(g1, scale = TRUE) 
+# Each observed value is removed, then imputed using ncp components
+# The difference between the ovserved value and the imputed value is calculated 
+# ncp = 5
+
+## 2. Imputation of the missing values using the function impute PCA
+comp <- imputePCA(g1, ncp = 5, scale = TRUE) #impute the table
+#head(comp$completeObs) # resulting imputed data table
+
+# save the imputed file 
+imputed_gene <- as.data.frame(comp$completeObs)
+# this estimate should be better than simply using the mean, beacause we've taken into account
+# the links between variables and similarities between individuals in its calculation
+
+options(ggrepel.max.overlaps = Inf) # solution to the error: 
+# ggrepel: 3 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
+# for the next function
+
+# we can now run a normal pca on the complete data set
+res.pca <- PCA(comp$completeObs)
+#head(summary(res.pca, nbelements = Inf)) #including all the elements
+```
+```{r dimensions, include = FALSE, echo = FALSE, warnings = FALSE}
+#Description of the dimensions
+# We get a correlation between each variable and the first dimension
+dimdesc(res.pca)
+```
+
+Caution: When imputing data, the percentages of inertia associated with the first dimensions will be overestimated.
+
+Another problem: the imputed data are, when the pca is performed considered like real observations.
+But they are estimations!! 
+
+Visualizing uncertainty due to issing data:
+
+--> mulrimple imputation: generate several plausible values for each missing data point
+
+We here visualize the variability, that is uncertainty on the plane defined by two pca axes. 
+
+
+```{r error_visualization_pca_gene, echo = FALSE, out.width="50%"}
+#Visualizing uncertainty due to missing data:
+
+mi <- MIPCA(g1, scale = TRUE, ncp = 5)
+plot(mi)
+
+?plot
+```
+Individuals lying on the axis have no missing data, but individuals that far away have many missing data. 
+big ellipse = big uncertainty
+tight elipse (line) = low uncertainty
+
+Variable representation: 
+Poins tight together )look like one) - have no missing variables --> low uncertainty
+Points spread -- > higher variability -- > higher uncertainty
+
+
+High uncertainty--> we should interpret the result with care
+
+The individuals with many missing data values make the axes move, 
+and thus the positions of all individuals
+
+Therefore in the last plots every individual is getting an eclipse as they are as well influenced by the missing data of the others. 
+
+
+THe plot with the dimensions shows the projections of the pca dimensions of each imputed table on the pca plane obtained using the original imputed data table
+
+As all of the arrows are close to either the first or second axes, 
+this means that the axes are stable with respect to the set of imputed tables --> we don't have evidence of instability here.
+
+
+```{r, echo = FALSE, include = FALSE}
+str(res.pca)
+```
+
+
+
+```{r, echo = FALSE}
+
+# extract pc scores for first two component and add to dat dataframe
+g$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+
+g$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+
+imputed_gene$pc1 <- res.pca$ind$coord[, 1]
+imputed_gene$pc2 <- res.pca$ind$coord[, 2] 
+
+### join the pc1 and pc2 to the imputed data
+imputed_expr <- g %>% left_join(imputed_gene, by = c("pc1", "pc2"), 
+                                suffix = c("_x", "_y"))
+
+#remove all columns of the non-imputed data
+imputed_expr = imputed_expr[,!grepl("_x$",names(imputed_expr))]
+
+#remove the suffix y
+colnames(imputed_expr) = gsub("_y", "", colnames(imputed_expr))
+
+#We also need to extract the data for the variable contributions to each of the pc axes.
+pca.vars <- res.pca$var$coord %>% data.frame
+pca.vars$vars <- rownames(pca.vars)
+pca.vars.m <- melt(pca.vars, id.vars = "vars")
+
+source("r_scripts/functions/circle_fun.R")
+
+circ <- circleFun(c(0,0),2,npoints = 500)
+
+```
+
+
+Biplot of the imputed gene pca
+
+
+```{r biplot_pca_genes}
+
+#Now we can make our initial plot of the PCA.
+imputed_expr %>% 
+  pivot_longer(cols = 12:31, names_to = "Gene", values_to = "gene_expression")  %>%
+  ggplot(aes(x = pc1, y = pc2, color = Parasite_challenge, shape = Parasite_challenge)) +
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_vline(xintercept = 0, lty = 2) +
+  geom_point(alpha = 0.8) +
+  stat_ellipse(geom="polygon", aes(fill = challenge_infection), alpha = 0.2, show.legend = FALSE,
+               level = 0.95) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(), panel.border = element_rect(fill= "transparent")) 
+  
+```
+
+
+```{r correlations_genes_dimensions, echo = FALSE}
+#It’s possible to use the function corrplot() [corrplot package] to highlight the most contributing variables for each dimension:
+var.contrib <- res.pca$var$contrib
+corrplot(var.contrib, is.corr=FALSE) 
+```
+
+The function fviz_contrib() [factoextra package] can be used to draw a bar plot of variable contributions. If your data contains many variables, you can decide to show only the top contributing variables. The R code below shows the top 10 variables contributing to the principal components:
+
+
+```{r contr_var_pc_genes, echo = FALSE}
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
+
+```
+
+
+```{r}
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
+```
+
+
+```{r contr_var_pc1_2_genes, echo = FALSE}
+fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 18)
+```
+The red dashed line on the graph above indicates the expected average contribution. If the contribution of the variables were uniform, the expected value would be 1/length(variables) = 1/10 = 10%. For a given component, a variable with a contribution larger than this cutoff could be considered as important in contributing to the component.
+
+Note that, the total contribution of a given variable, on explaining the variations retained by two principal components, say PC1 and PC2, is calculated as contrib = [(C1 * Eig1) + (C2 * Eig2)]/(Eig1 + Eig2), where
+
+C1 and C2 are the contributions of the variable on PC1 and PC2, respectively
+Eig1 and Eig2 are the eigenvalues of PC1 and PC2, respectively. Recall that eigenvalues measure the amount of variation retained by each PC.
+In this case, the expected average contribution (cutoff) is calculated as follow: As mentioned above, if the contributions of the 10 variables were uniform, the expected average contribution on a given PC would be 1/10 = 10%. The expected average contribution of a variable for PC1 and PC2 is : [(10* Eig1) + (10 * Eig2)]/(Eig1 + Eig2)
+
+
+
+```{r pca_contribution_genes, echo = FALSE}
+
+#The most important (or, contributing) variables can be highlighted on the correlation plot as follow:
+fviz_pca_var(res.pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+             )
+```
+
+
+
+To visualize the contribution of individuals to the first two principal components:
+
+```{r contr_individuals_genes, echo = FALSE}
+# Total contribution on PC1 and PC2
+fviz_contrib(res.pca, choice = "ind", axes = 1:2)
+```
+
+PCA + Biplot combination
+
+```{r pca_biplot_genes, echo = FALSE}
+
+fviz_pca_biplot(res.pca, 
+                col.ind = imputed_expr$Parasite_challenge, palette = "jco", 
+                addEllipses = TRUE, label = "var",
+                col.var = "black", repel = TRUE,
+                legend.title = "Parasite in the challenge infection") 
+```
+ In the following example, we want to color both individuals and variables by groups. The trick is to use pointshape = 21 for individual points. This particular point shape can be filled by a color using the argument fill.ind. The border line color of individual points is set to “black” using col.ind. To color variable by groups, the argument col.var will be used.
+
+
+
+################## Linear models: 
+
+```{r lm_weight_pc, echo = FALSE}
+weight_lm <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge, data = imputed_expr)
+summary(weight_lm)
+AIC(weight_lm)
+```
+
+
+
+
+```{r lm_pc_parasite_hybrid, echo = FALSE}
+
+weight_lm2 <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge + hybrid_status, data = imputed_expr)
+summary(weight_lm2)
+AIC(weight_lm2)
+```
+
+
+
+```{r lm_pc_hybrid, echo = FALSE}
+weight_lm3 <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = imputed_expr)
+summary(weight_lm3)
+AIC(weight_lm3)
+```
+
+
+
+```{r lm_inf_histoy, echo=FALSE}
+weight_lm4 <- lm(max_WL ~ pc1 + pc2 + infection_history, data = imputed_expr)
+summary(weight_lm4)
+AIC(weight_lm4)
+
+```
+
+
+```{r lm_pc, echo = FALSE}
+weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = g)
+summary(weight_lm_exp_only)
+AIC(weight_lm, weight_lm_exp_only)
+```
+
+### repeating the heatmap on the now imputed data
+```{r}
+
+gene <- imputed_expr %>% dplyr::select(c(EH_ID, all_of(Genes)))
+ 
+ # turn the data frame into a matrix and transpose it. We want to have each cell 
+ # type as a row name 
+ gene <- t(as.matrix(gene))
+ 
+ #switch the matrix back to a data frame format
+ gene <- as.data.frame(gene)
+ 
+ # turn the first row into column names
+ gene %>%
+     row_to_names(row_number = 1) -> heatmap_data
+ 
+ 
+ table(rowSums(is.na(heatmap_data)) == nrow(heatmap_data))
+
+ 
+ # turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != nrow(heatmap_data)]
+
+rownames(annotation_df) <- colnames(heatmap_data)
+```
+
+
+Heatmap on gene expression data: 
+
+
+```{r, echo = FALSE}
+pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+```
