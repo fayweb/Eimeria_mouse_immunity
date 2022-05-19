@@ -1,0 +1,531 @@
+---
+title: "FACS_analysis"
+author: "Fay"
+date: '2022-05-19'
+output: html_document
+  pdf_document: 
+    fig_width: 12
+    fig_height: 8
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## 1.  facs expression in the laboratory infections - Heatmap
+
+```{r, echo=FALSE, include = FALSE}
+library(pheatmap)
+library(tidyverse)
+library(matrixStats)
+library(tidyr)
+library(janitor)
+library(tibble)
+library(corrplot)
+library(RColorBrewer)
+library(ggplot2)
+library(dplyr)
+library(missMDA) 
+library(FactoMineR)
+library(PerformanceAnalytics)
+library(factoextra)
+library(MASS)
+library(reshape2)
+library(cowplot)
+```
+
+
+################################### FACS #######################################
+
+```{r data_prep_facs_heatmap, echo = FALSE, message=FALSE}
+### Import the data
+Challenge <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
+
+## vectors for selecting columns
+CellCount.cols <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
+                    "IL17A_CD4")  
+
+Challenge <- Challenge %>%
+    dplyr::mutate(Parasite_primary = case_when(
+        primary_infection == "E64" ~ "E_ferrisi",
+        primary_infection == "E88" ~ "E_falciformis",
+        primary_infection == "Eflab" ~ "E_falciformis",
+        primary_infection == "E139" ~ "E_ferrisi",
+        primary_infection == "UNI" ~ "uninfected",
+        TRUE ~ ""))
+
+Challenge <- Challenge %>%
+    dplyr::mutate(Parasite_challenge = case_when(    
+        challenge_infection == "E64" ~ "E_ferrisi",
+        challenge_infection == "E88" ~ "E_falciformis",
+        challenge_infection == "Eflab" ~ "E_falciformis",
+        challenge_infection == "E139" ~ "E_ferrisi",
+        challenge_infection == "UNI" ~ "uninfected",
+        TRUE ~ ""))
+
+Challenge <- Challenge %>%
+  dplyr::mutate(infection_history = case_when(
+    Parasite_primary == "uninfected" & Parasite_challenge == "uninfected" ~ "uninfected",
+    Parasite_primary == "uninfected" & Parasite_challenge == "E_ferrisi" ~ "uninfected_ferrisi",
+    Parasite_primary == "uninfected" & Parasite_challenge == "E_falciformis" ~ "uninfected_falciformis",
+    Parasite_primary == "E_falciformis" & Parasite_challenge == "E_falciformis" ~ "falciformis_falciformis",
+    Parasite_primary == "E_falciformis" & Parasite_challenge == "E_ferrisi" ~ "falciformis_ferrisi",
+    Parasite_primary == "E_falciformis" & Parasite_challenge == "uninfected" ~ "falciformis_uninfected",
+    Parasite_primary == "E_ferrisi" & Parasite_challenge == "E_falciformis" ~ "ferrisi_falciformis",
+    Parasite_primary == "E_ferrisi" & Parasite_challenge == "E_ferrisi" ~ "ferrisi_ferrisi",
+    Parasite_primary == "E_ferrisi" & Parasite_challenge == "uninfected" ~ "ferrisi_uninfected",
+        TRUE ~ ""))
+
+### Select the measurements from the mesenterial lymphnodes
+# The spleen measurements are not so plenty and not comparable to the mln 
+# measurements
+FACS_all  <- Challenge%>% 
+  filter(Position == "mLN") %>%
+  drop_na("CD4") ### Drop the columns that contain nas in the column CD4 of 
+#the facs columns
+
+### Prepare the annotation data frame for the heatmap
+annotation_df <- FACS_all %>% 
+  filter(infection == "challenge") %>%
+  dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history",  
+                  "hybrid_status", "max_WL"))
+
+### Data tidying for the heatmap function
+FACS <- FACS_all  %>% 
+  dplyr::select(c(EH_ID, all_of(CellCount.cols)))
+
+# turn the data frame into a matrix and transpose it. We want to have each cell 
+# type as a row name 
+FACS <- t(as.matrix(FACS))
+
+#switch the matrix back to a data frame format
+FACS <- as.data.frame(FACS)
+
+# turn the first row into column names
+FACS %>%
+  row_to_names(row_number = 1) -> FACS
+
+# Now further prepare the data frame for plotting by removing the first row
+## and convert the column to row names with the cells 
+FACS[-1, ] -> heatmap_data
+
+# turn the columns to numeric other wise the heatmap function will not work
+heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+
+### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$EH_ID
+
+# Match the row names to the heatmap data frame
+rownames(annotation_df) <- colnames(FACS)
+
+#remove the unecessary column
+annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
+
+#plot the heatmap
+
+```
+
+
+```{r heatmap_facs}
+heatmap_data %>% 
+  pheatmap(annotation_col = annotation_df, scale = "row")
+```
+
+
+## 2. Correlations between the cells 
+
+```{r facs_corr_matrix, echo = FALSE}
+
+# draw correlation between the facs
+facs_correlation <-  
+  as.matrix(cor(Challenge %>%
+                  dplyr::select(CellCount.cols) %>%
+                  dplyr::filter(Position == "mLN") %>%
+                  dplyr::select(-Position), use="pairwise.complete.obs"))
+
+
+# load the function to calculate the p value for correlations
+source("r_scripts/functions/p_value_for_correlations.R")
+
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(facs_correlation)
+
+```
+
+```{r corrplot_facs, echo = FALSE}
+
+corrplot(facs_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black',
+         number.cex=0.5) #Add significance level to the correlogram
+#remove the values that are insignificant
+
+
+```
+
+```{r facs_intensity, echo = FALSE, message = FALSE}
+FACS_all <- FACS_all %>% 
+  dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history",  
+                  "hybrid_status", "max_WL", "delta", all_of(CellCount.cols))) 
+
+FACS <- FACS_all %>%
+  pivot_longer(cols = 8:22, names_to = "Cells", values_to = "Percentage")
+
+FACS <- unique(FACS)
+
+FACS %>%
+    ggplot(aes(x = delta, y = Percentage, color = Parasite_challenge)) +
+    geom_jitter() +
+    facet_wrap(~ Cells, scales = "free") +
+    theme_light() +
+    labs(x = "Delta Ct, Infection intensity", y = "FACS",
+         title = "Cell  counts in response to infection intensity") +
+    theme_bw()
+```
+
+
+
+
+
+```{r FACS_box, echo = FALSE, message = FALSE}
+FACS %>%
+  na.omit(Percentage) %>%
+  ggplot(aes(x = Parasite_challenge, y = Percentage, color = Parasite_challenge)) + 
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~ Cells) +
+  theme_bw() +
+    labs(x = "Parasite strain",
+         title = "Cells in response to parasite strain") 
+```
+
+
+```{r histogram_FACS, echo = FALSE, message=FALSE}
+FACS  %>%
+  ggplot(aes(x = Percentage, color = Parasite_challenge)) + 
+  geom_histogram(echo = FALSE)
+```
+```{r, include=FALSE, echo = FALSE}
+f <- FACS_all 
+
+f1 <- FACS_all[8:22]
+```
+
+## 3. PCA
+#### Handling missing data in a pca:
+
+
+
+```{r facs_scatter_plot_matrix_correlation_coeff, echo = FALSE, message=FALSE}
+#Make a scatter plot matrix showing the correlation coefficients between variables and the significance levels : the package PerformanceAnalytics is required.
+chart.Correlation(f1, histogram=TRUE, pch=19)
+```
+
+
+We will now continue by using an iterative pca to impute missing data 
+ A. Initialization: impute using the mean
+ B. Step lampda:
+  # a. do pca on imputed data table S dimensions retained
+  # b. missing data imputed using pca
+  # c. means (and standard deviations) updated
+ C. Iterate the estimation and imputation steps (until convergence)
+(convergence: the act of converging and especially moving toward union or uniformity)
+
+Overfitting is a common problem due to believing too much in links between variables. 
+--> regularized iterative PCA (This version is what is being implented in missMDA)
+This is a way of taking less risk when imputing the missing data. 
+The algorithm estimates the missing data values with values that have no influence
+on the PCA results, i.e., no influence on the coordinates of the individals or variables. 
+
+```{r pca_facs, echo = FALSE}
+## 1. Estimate the number of dimensions necessary to impute the dataset 
+# with the estim_ncpPCA
+nb <- estim_ncpPCA(f1, scale = TRUE) 
+# Each observed value is removed, then imputed using ncp components
+# The difference between the ovserved value and the imputed value is calculated 
+# ncp = 5
+
+## 2. Imputation of the missing values using the function impute PCA
+comp <- imputePCA(f1, ncp = 1, scale = TRUE) #impute the table
+#head(comp$completeObs) # resulting imputed data table
+# this estimate should be better than simply using the mean, beacause we've taken into account
+# the links between variables and similarities between individuals in its calculation
+
+# save the imputed file 
+  
+imputed_facs <- as.data.frame(comp$completeObs)
+
+# this estimate should be better than simply using the mean, beacause we've taken into account
+# the links between variables and similarities between individuals in its calculation
+
+##options(ggrepel.max.overlaps = Inf) # solution to the error: 
+# ggrepel: 3 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
+# for the next function
+
+# we can now run a normal pca on the complete data set
+res.pca <- PCA(comp$completeObs)
+#head(summary(res.pca, nbelements = Inf)) #including all the elements
+```
+
+```{r dimenstions, nclude = FALSE, echo = FALSE, warnings = FALSE}
+#Description of the dimensions
+# We get a correlation between each variable and the first dimension
+dimdesc(res.pca)
+```
+
+
+Caution: When imputing data, the percentages of inertia associated with the first dimensions will be overestimated.
+
+Another problem: the imputed data are, when the pca is performed considered like real observations.
+But they are estimations!! 
+
+Visualizing uncertainty due to issing data:
+
+--> mulrimple imputation: facsrate several plausible values for each missing data point
+
+We here visualize the variability, that is uncertainty on the plane defined by two pca axes.
+
+
+```{r error_visualization_pca_facs, echo = FALSE, out.width="50%"}
+#Visualizing uncertainty due to missing data:
+
+mi <- MIPCA(f1, scale = TRUE, ncp = 1)
+plot(mi)
+```
+
+
+Individuals lying on the axis have no missing data, but individuals that far away have many missing data. 
+big ellipse = big uncertainty
+tight elipse (line) = low uncertainty
+
+Variable representation: 
+Poins tight together )look like one) - have no missing variables --> low uncertainty
+Points spread -- > higher variability -- > higher uncertainty
+
+
+High uncertainty--> we should interpret the result with care
+
+The individuals with many missing data values make the axes move, 
+and thus the positions of all individuals
+
+Therefore in the last plots every individual is getting an eclipse as they are as well influenced by the missing data of the others. 
+
+
+THe plot with the dimensions shows the projections of the pca dimensions of each imputed table on the pca plane obtained using the original imputed data table
+
+As all of the arrows are close to either the first or second axes, 
+this means that the axes are stable with respect to the set of imputed tables --> we don't have evidence of instability here.
+
+```{r, echo = FALSE, include = FALSE}
+str(res.pca)
+```
+
+
+```{r, echo = FALSE}
+# extract pc scores for first two component and add to dat dataframe
+f$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+
+f$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+
+
+imputed_facs$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+
+imputed_facs$pc2 <- res.pca$ind$coord[, 2] 
+
+### join the imputed data 
+imputed_facs <- f %>% left_join(imputed_facs, by = c("pc1", "pc2"), 
+                                suffix = c("_x", "_y"))
+
+#remove all columns of the non-imputed data
+imputed_facs = imputed_facs[,!grepl("_x$",names(imputed_facs))]
+
+#remove the suffix y
+colnames(imputed_facs) = gsub("_y", "", colnames(imputed_facs))
+
+#We also need to extract the data for the variable contributions to each of the pc axes.
+pca.vars <- res.pca$var$coord %>% data.frame
+pca.vars$vars <- rownames(pca.vars)
+pca.vars.m <- reshape2::melt(pca.vars, id.vars = "vars")
+
+source("r_scripts/functions/circle_fun.R")
+
+circ <- circleFun(c(0,0),2,npoints = 500)
+
+```
+
+
+```{r biplot_pca}
+#Now we can make our initial plot of the PCA.
+
+glimpse(imputed_facs)
+typeof(imputed_facs)
+
+imputed_facs %>%
+  pivot_longer(10:24, names_to = "Cells", values_to = "Proportion") %>%
+  ggplot(aes(x = pc1, y = pc2, color = Parasite_challenge, shape = Parasite_challenge)) +
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_vline(xintercept = 0, lty = 2) +
+  geom_point(alpha = 0.8) +
+  stat_ellipse(geom="polygon", aes(fill = Parasite_challenge), alpha = 0.2, show.legend = FALSE,
+               level = 0.95) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(), panel.border = element_rect(fill= "transparent"))
+
+```
+
+
+```{r correlations_facs_dimensions, echo = FALSE}
+#It’s possible to use the function corrplot() [corrplot package] to highlight the most contributing variables for each dimension:
+var.contrib <- res.pca$var$contrib
+corrplot(var.contrib, is.corr=FALSE) 
+```
+
+The function fviz_contrib() [factoextra package] can be used to draw a bar plot of variable contributions. If your data contains many variables, you can decide to show only the top contributing variables. The R code below shows the top 10 variables contributing to the principal components:
+
+
+```{r contr_var_pc1_facs, echo = FALSE}
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
+```
+
+
+```{r contr_var_pc_facs, echo = FALSE}
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
+```
+
+
+```{r contr_var_pc1_2_facs, echo = FALSE}
+fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 18)
+```
+
+The red dashed line on the graph above indicates the expected average contribution. If the contribution of the variables were uniform, the expected value would be 1/length(variables) = 1/10 = 10%. For a given component, a variable with a contribution larger than this cutoff could be considered as important in contributing to the component.
+
+Note that, the total contribution of a given variable, on explaining the variations retained by two principal components, say PC1 and PC2, is calculated as contrib = [(C1 * Eig1) + (C2 * Eig2)]/(Eig1 + Eig2), where
+
+C1 and C2 are the contributions of the variable on PC1 and PC2, respectively
+Eig1 and Eig2 are the eigenvalues of PC1 and PC2, respectively. Recall that eigenvalues measure the amount of variation retained by each PC.
+In this case, the expected average contribution (cutoff) is calculated as follow: As mentioned above, if the contributions of the 10 variables were uniform, the expected average contribution on a given PC would be 1/10 = 10%. The expected average contribution of a variable for PC1 and PC2 is : [(10* Eig1) + (10 * Eig2)]/(Eig1 + Eig2)
+
+
+
+```{r pca_contribution_facs, echo = FALSE}
+#The most important (or, contributing) variables can be highlighted on the correlation plot as follow:
+fviz_pca_var(res.pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+             )
+```
+
+
+
+To visualize the contribution of individuals to the first two principal components:
+
+```{r contr_individuals_facs, echo = FALSE}
+# Total contribution on PC1 and PC2
+fviz_contrib(res.pca, choice = "ind", axes = 1:2)
+```
+
+PCA + Biplot combination
+
+```{r pca_biplot_facs, echo = FALSE}
+fviz_pca_biplot(res.pca, 
+                col.ind = imputed_facs$Parasite_challenge, palette = "jco", 
+                addEllipses = TRUE, label = "var",
+                col.var = "black", repel = TRUE,
+                legend.title = "Parasite in the challenge infection") 
+```
+
+ 
+ 
+ 
+ In the following example, we want to color both individuals and variables by groups. The trick is to use pointshape = 21 for individual points. This particular point shape can be filled by a color using the argument fill.ind. The border line color of individual points is set to “black” using col.ind. To color variable by groups, the argument col.var will be used.
+
+
+
+################## Linear models: 
+
+```{r lm_weight_pc, echo = FALSE}
+weight_lm <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge, data = imputed_facs)
+summary(weight_lm)
+AIC(weight_lm)
+```
+
+
+
+
+```{r lm_pc_parasite_hybrid, echo = FALSE}
+weight_lm2 <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge + hybrid_status, data = imputed_facs)
+summary(weight_lm2)
+AIC(weight_lm2)
+```
+
+
+
+```{r lm_pc_hybrid, echo = FALSE}
+weight_lm3 <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = imputed_facs)
+summary(weight_lm3)
+AIC(weight_lm3)
+```
+
+
+
+```{r lm_inf_histoy, echo=FALSE}
+weight_lm4 <- lm(max_WL ~ pc1 + pc2 + infection_history, data = imputed_facs)
+summary(weight_lm4)
+AIC(weight_lm4)
+```
+
+
+```{r lm_pc, echo = FALSE}
+weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = g)
+summary(weight_lm_exp_only)
+AIC(weight_lm, weight_lm_exp_only)
+```
+
+
+### repeating the heatmap on the now imputed data
+
+```{r imputed_data_prep_facs}
+facs <- imputed_facs %>% 
+  dplyr::select(c(EH_ID, all_of(CellCount.cols))) %>%
+  dplyr::select(-Position)
+ 
+ # turn the data frame into a matrix and transpose it. We want to have each cell 
+ # type as a row name 
+ facs <- t(as.matrix(facs))
+ 
+ #switch the matrix back to a data frame format
+ facs <- as.data.frame(facs)
+ 
+ # turn the first row into column names
+ facs %>%
+     row_to_names(row_number = 1) -> heatmap_data
+ 
+ 
+ table(rowSums(is.na(heatmap_data)) == nrow(heatmap_data))
+ 
+ # turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != nrow(heatmap_data)]
+rownames(annotation_df) <- colnames(heatmap_data)
+```
+
+
+Heatmap on facs expression data: 
+
+
+```{r, echo = FALSE}
+pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+```
