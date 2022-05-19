@@ -1,8 +1,8 @@
 ---
 title: "FACS_analysis"
 author: "Fay"
-date: '2022-05-19'
-output: html_document
+date: '2022-05-18'
+output:
   pdf_document: 
     fig_width: 12
     fig_height: 8
@@ -11,7 +11,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 ```
 
 ## 1.  facs expression in the laboratory infections - Heatmap
@@ -141,8 +141,7 @@ heatmap_data %>%
 ```{r facs_corr_matrix, echo = FALSE}
 
 # draw correlation between the facs
-facs_correlation <-  
-  as.matrix(cor(Challenge %>%
+facs_correlation <-  as.matrix(cor(Challenge %>%
                   dplyr::select(CellCount.cols) %>%
                   dplyr::filter(Position == "mLN") %>%
                   dplyr::select(-Position), use="pairwise.complete.obs"))
@@ -224,10 +223,27 @@ f1 <- FACS_all[8:22]
 
 
 
-```{r facs_scatter_plot_matrix_correlation_coeff, echo = FALSE, message=FALSE}
+
+
+
+
+```{r facs_scatter_plot_matrix_correlation_coeff, echo = FALSE, message=FALSE, warnings=FALSE}
 #Make a scatter plot matrix showing the correlation coefficients between variables and the significance levels : the package PerformanceAnalytics is required.
 chart.Correlation(f1, histogram=TRUE, pch=19)
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 We will now continue by using an iterative pca to impute missing data 
@@ -275,7 +291,7 @@ res.pca <- PCA(comp$completeObs)
 #head(summary(res.pca, nbelements = Inf)) #including all the elements
 ```
 
-```{r dimenstions, nclude = FALSE, echo = FALSE, warnings = FALSE}
+```{r dimenstions, include = FALSE, echo = FALSE, warnings = FALSE}
 #Description of the dimensions
 # We get a correlation between each variable and the first dimension
 dimdesc(res.pca)
@@ -365,8 +381,6 @@ circ <- circleFun(c(0,0),2,npoints = 500)
 ```{r biplot_pca}
 #Now we can make our initial plot of the PCA.
 
-glimpse(imputed_facs)
-typeof(imputed_facs)
 
 imputed_facs %>%
   pivot_longer(10:24, names_to = "Cells", values_to = "Proportion") %>%
@@ -485,7 +499,7 @@ AIC(weight_lm4)
 
 
 ```{r lm_pc, echo = FALSE}
-weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = g)
+weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = imputed_facs)
 summary(weight_lm_exp_only)
 AIC(weight_lm, weight_lm_exp_only)
 ```
