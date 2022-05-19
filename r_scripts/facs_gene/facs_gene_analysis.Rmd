@@ -2,7 +2,6 @@
 title: "facs_gene_analysis"
 author: "Fay"
 date: '2022-05-19'
-output: html_document
 output:
   pdf_document: 
     fig_width: 12
@@ -101,19 +100,20 @@ immune_correlation <- as.matrix(immune_correlation)
 # load the function to calculate the p value for correlations
 source("r_scripts/functions/p_value_for_correlations.R")
 
+
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(immune_correlation)
 ```
 
 ```{r immune_correlation}
 corrplot(immune_correlation, 
          method = "circle",  #method of the plot, "color" would show colour gradient
-         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         tl.col = "black", tl.srt = 45, #colour of labels and rotation
          col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
          order="hclust", #hclust reordering
          p.mat = p.mat, sig.level = 0.01, insig = "blank",
-         addCoef.col = 'black',#Add significance level to the correlogram
-         number.cex=0.3) #coefficients size
-#remove the values that are insignificant
-
+         addCoef.col = 'black',
+         number.cex = 0.5)
 
 ```
 
@@ -178,13 +178,20 @@ Visualizing uncertainty due to issing data:
 
 --> mulrimple imputation: generate several plausible values for each missing data point
 
-We here visualize the variability, that is uncertainty on the plane defined by two pca axes. 
+We here visualize the variability, that is uncertainty on the plane defined by two pca axes.
+
+
+
 ```{r visu_uncertainty_immune, echo = FALSE}
 #Visualizing uncertainty due to missing data:
 
 mi <- MIPCA(immune, scale = TRUE, ncp = 5)
 plot(mi)
 ```
+
+
+
+
 Individuals lying on the axis have no missing data, but individuals that far away have many missing data. 
 big ellipse = big uncertainty
 tight elipse (line) = low uncertainty
@@ -210,6 +217,8 @@ this means that the axes are stable with respect to the set of imputed tables --
 ```{r structure_res.pca, echo = FALSE, include = FALSE}
 str(res.pca)
 ```
+
+
 
 ```{r merging_immune_data, echo = FALSE}
 # extract pc scores for first two component and add to dat dataframe
