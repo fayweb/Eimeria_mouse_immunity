@@ -1,67 +1,109 @@
 ---
-title: "Gene_expression"
+title: "facs_gene_analysis"
 author: "Fay"
-date: "09/05/2022"
+date: '2022-05-19'
+output: html_document
 output:
+  pdf_document: 
+    fig_width: 12
+    fig_height: 8
   html_document: default
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-################## FACS - Genes Imputation and pca ############################
+################## FACS - genes Imputation and pca ############################
+
+
+```{r, echo=FALSE, include = FALSE}
+library(pheatmap)
+library(tidyverse)
+library(matrixStats)
+library(tidyr)
+library(janitor)
+library(tibble)
+library(corrplot)
+library(RColorBrewer)
+library(ggplot2)
+library(dplyr)
+library(missMDA) 
+library(FactoMineR)
+library(PerformanceAnalytics)
+library(factoextra)
+library(MASS)
+library(reshape2)
+library(cowplot)
+```
+
+Load the data sets
+```{r loading_data_set}
+facs <- read.csv("output_data/facs/data_products/FACS_clean.csv")
+gene <- read.csv("output_data/gene_expression/data_products/clean_gene_expression.csv")
+```
 
 
 # 1. Start by combining the data sets 
-```{r}
+```{r merging_data}
 ## Adding prefixes to the columns of each data frame and joining
 
 #Adding the suffix G to the genes
-colnames(gene_expr) <- paste("G_", colnames(gene_expr), sep = "")
+colnames(gene) <- paste("G_", colnames(gene), sep = "")
 
-gene_expr <- gene_expr %>% rename(EH_ID = G_EH_ID,
+gene <- gene %>% rename(EH_ID = G_EH_ID,
                                   primary_infection = G_primary_infection,
                                   challenge_infection = G_challenge_infection,
                                   infection_history = G_infection_history,
                                   mouse_strain = G_mouse_strain,
                                   max_WL = G_max_WL,
                                   delta = G_delta, 
-                                  Parasite_challenge =  G_Parasite_challenge)
+                                  Parasite_challenge =  G_Parasite_challenge,
+                                  hybrid_status = G_hybrid_status)
 
 #Adding the suffix f to the facs data
-colnames(facs_data) <- paste("F_", colnames(facs_data), sep = "")
-facs_data <- facs_data %>% rename(EH_ID = F_EH_ID,
-                                  primary_infection = F_primary_infection,
-                                  challenge_infection = F_challenge_infection,
-                                  infection_history = F_infection_history,
-                                  mouse_strain = F_mouse_strain,
-                                  max_WL = F_max_WL,
-                                  Parasite_challenge =  F_Parasite_challenge)
+colnames(facs) <- paste("F_", colnames(facs), sep = "")
 
-immune_data <- gene_expr %>% full_join(facs_data, by = intersect(colnames(gene_expr), colnames(facs_data)))
+facs <- facs %>% rename(EH_ID = F_EH_ID,
+                        infection_history = F_infection_history,
+                        max_WL = F_max_WL,
+                        Parasite_challenge =  F_Parasite_challenge,
+                        hybrid_status = F_hybrid_status,
+                        delta = F_delta)
+
+immune_data <- gene %>% full_join(facs, by = intersect(colnames(gene), colnames(facs)))
 
 immune_data <- unique(immune_data)
 ```
 
-```{r, echo = FALSE}
+
+### Now we go on to see the correlations between our data 
+
+
+```{r correlations_immune_data_prep, echo = FALSE}
 # draw correlations
 immune <- immune_data  %>% 
   dplyr::select(-c(EH_ID, primary_infection, challenge_infection, infection_history, 
-                   mouse_strain, max_WL, delta, Parasite_challenge, F_Treg_prop, F_IL17A_CD4, F_delta))
-
+                   mouse_strain, max_WL, delta, Parasite_challenge, hybrid_status, 
+                   F_Position, F_Treg_prop, F_IL17A_CD4))
+                
 immune_correlation <-  as.data.frame(cor(immune, use="pairwise.complete.obs"))
 
 # matrix of the p-value of the correlatio
 p.mat <- cor.mtest(immune_correlation)
 
-#because of the amount of nas in some columns, no correlations can be calculated
-#therefore I will have to remove these two columns: Treg_prop, IL17A_CD4
 
 immune_correlation <- as.matrix(immune_correlation)
 
+# I am removing F_Treg_prop, F_IL17A_CD4 from the corrplot as it causes problems with plotting 
+# reason: too many nas in IL13 and F_Treg_prop, F_IL17A_CD4
 
+# load the function to calculate the p value for correlations
+source("r_scripts/functions/p_value_for_correlations.R")
+
+```
+
+```{r immune_correlation}
 corrplot(immune_correlation, 
          method = "circle",  #method of the plot, "color" would show colour gradient
          tl.col = "black", tl.srt=45, #colour of labels and rotation
@@ -77,23 +119,9 @@ corrplot(immune_correlation,
 
 
 
-```{r, echo = FALSE}
-## let's try a pca without imputing the missing values , 
-# the function imputes the missing values by the mean of the variable to which 
-# they belong
-immune <- immune_data  %>% 
-  dplyr::select(-c(EH_ID, primary_infection, challenge_infection, infection_history, 
-                   mouse_strain, max_WL, delta, Parasite_challenge, F_Treg_prop, F_IL17A_CD4, F_delta))
 
-res.pca <- PCA(immune)
-```
-```{r}
-#let's do a pca while removing ALL NA values
-res.NA.remove <- PCA(immune %>% na.omit())
 
-# These are rather unsophisticated ways to solve the problem
 
-```
 
 We will now continue by using an iterative pca to impute missing data 
  A. Initialization: impute using the mean
@@ -110,22 +138,22 @@ This is a way of taking less risk when imputing the missing data.
 The algorithm estimates the missing data values with values that have no influence
 on the PCA results, i.e., no influence on the coordinates of the individals or variables. 
 
-```{r, echo = FALSE}
+```{r pca_imputation_immune, echo = FALSE}
 ## 1. Estimate the number of dimensions necessary to impute the dataset 
 # with the estim_ncpPCA
 nb <- estim_ncpPCA(immune, scale = TRUE) 
 # Each observed value is removed, then imputed using ncp components
 # The difference between the ovserved value and the imputed value is calculated 
-# ncp = 5
+# ncp = 2
 
 ## 2. Imputation of the missing values using the function impute PCA
 comp <- imputePCA(immune, ncp = 2, scale = TRUE) #impute the table
-head(comp$completeObs) # resulting imputed data table
+#head(comp$completeObs) # resulting imputed data table
 # this estimate should be better than simply using the mean, beacause we've taken into account
 # the links between variables and similarities between individuals in its calculation
-imputed <- as.data.frame(comp$completeObs)
+imputed_immune <- as.data.frame(comp$completeObs)
 
-options(ggrepel.max.overlaps = Inf) # solution to the error: 
+#options(ggrepel.max.overlaps = Inf) # solution to the error: 
 # ggrepel: 3 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
 # for the next function
 
@@ -134,7 +162,7 @@ res.pca <- PCA(comp$completeObs)
 
 #head(summary(res.pca, nbelements = Inf)) #including all the elements
 ```
-```{r, echo = FALSE}
+```{r dimensions, echo = FALSE, include = FALSE, message=FALSE, warning = FALSE}
 #Description of the dimensions
 # We get a correlation between each variable and the first dimension
 dimdesc(res.pca)
@@ -151,7 +179,7 @@ Visualizing uncertainty due to issing data:
 --> mulrimple imputation: generate several plausible values for each missing data point
 
 We here visualize the variability, that is uncertainty on the plane defined by two pca axes. 
-```{r, echo = FALSE}
+```{r visu_uncertainty_immune, echo = FALSE}
 #Visualizing uncertainty due to missing data:
 
 mi <- MIPCA(immune, scale = TRUE, ncp = 5)
@@ -179,72 +207,133 @@ THe plot with the dimensions shows the projections of the pca dimensions of each
 As all of the arrows are close to either the first or second axes, 
 this means that the axes are stable with respect to the set of imputed tables --> we don't have evidence of instability here.
 
-```{r, echo = FALSE, include = FALSE}
+```{r structure_res.pca, echo = FALSE, include = FALSE}
 str(res.pca)
 ```
 
-```{r, echo = FALSE}
+```{r merging_immune_data, echo = FALSE}
 # extract pc scores for first two component and add to dat dataframe
 immune_data$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 
 immune_data$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
 
-imputed$pc1 <- res.pca$ind$coord[, 1]
-imputed$pc2 <- res.pca$ind$coord[, 2] 
+imputed_immune$pc1 <- res.pca$ind$coord[, 1]
+imputed_immune$pc2 <- res.pca$ind$coord[, 2] 
+
 #We also need to extract the data for the variable contributions to each of the pc axes.
 pca.vars <- res.pca$var$coord %>% data.frame
 pca.vars$vars <- rownames(pca.vars)
 pca.vars.m <- melt(pca.vars, id.vars = "vars")
 
+#source the function required
+source("r_scripts/functions/circle_fun.R")
 
 circ <- circleFun(c(0,0),2,npoints = 500)
 
-#Now we can make our initial plot of the PCA.
-i <- immune_data %>%
-  dplyr::select(-c(Parasite_challenge, F_delta)) 
+#Joining the imputed data to the information columns
 
+### join the imputed data 
+imputed_immune <- immune_data %>% left_join(imputed_immune, by = c("pc1", "pc2"), 
+                                suffix = c("_x", "_y"))
 
-i %>%
-  pivot_longer(cols = 8:41, names_to = "Immune_parameter", values_to = "measurement")  %>%
-  ggplot(aes(x = pc1, y = pc2, color = challenge_infection, shape = challenge_infection)) +
+#remove all columns of the non-imputed data
+imputed_immune = imputed_immune[,!grepl("_x$",names(imputed_immune))]
+
+#remove the suffix y
+colnames(imputed_immune) = gsub("_y", "", colnames(imputed_immune))
+
+```
+
+```{r biplot_pca_immune}
+
+imputed_immune %>%
+  pivot_longer(cols = 13:47, names_to = "Immune_parameter", values_to = "measurement")  %>%
+  ggplot(aes(x = pc1, y = pc2, color = Parasite_challenge, shape = Parasite_challenge)) +
   geom_hline(yintercept = 0, lty = 2) +
   geom_vline(xintercept = 0, lty = 2) +
   geom_point(alpha = 0.8) +
-  stat_ellipse(geom="polygon", aes(fill = challenge_infection), alpha = 0.2, show.legend = FALSE,
+  stat_ellipse(geom="polygon", aes(fill = Parasite_challenge), alpha = 0.2, show.legend = FALSE,
                level = 0.95) +
   theme_minimal() +
   theme(panel.grid = element_blank(), panel.border = element_rect(fill= "transparent"))
 
 ```
-```{r, echo = FALSE}
+
+
+```{r contr_pc1, echo = FALSE}
 # Contributions of variables to PC1
 fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
+
+```
+
+
+```{r contr_pc2}
 # Contributions of variables to PC2
 fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
 ```
+
+
+
 The total contribution to PC1 and PC2 is obtained with the following R code:
-```{r, echo = FALSE}
+```{r contr_pc1_pc2, echo = FALSE}
 fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 18)
 ```
 
-```{r, echo = FALSE}
-weight_lm <- lm(max_WL ~ pc1 + pc2 + challenge_infection, data = i)
 
+
+
+################## Linear models: 
+
+```{r lm_weight_pc, echo = FALSE}
+weight_lm <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge, data = imputed_immune)
 summary(weight_lm)
-
 AIC(weight_lm)
+```
 
-weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = i)
+
+
+
+```{r lm_pc_parasite_hybrid, echo = FALSE}
+weight_lm2 <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge + hybrid_status, data = imputed_immune)
+summary(weight_lm2)
+AIC(weight_lm2)
+```
+
+
+
+```{r lm_pc_hybrid, echo = FALSE}
+weight_lm3 <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = imputed_immune)
+summary(weight_lm3)
+AIC(weight_lm3)
+```
+
+
+
+```{r lm_inf_histoy, echo=FALSE}
+weight_lm4 <- lm(max_WL ~ pc1 + pc2 + infection_history, data = imputed_immune)
+summary(weight_lm4)
+AIC(weight_lm4)
+```
+
+
+```{r lm_pc, echo = FALSE}
+weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = imputed_immune)
 summary(weight_lm_exp_only)
-
 AIC(weight_lm, weight_lm_exp_only)
 ```
 
-######  heatmap?
+
+
+
+### repeating the heatmap on the now imputed data
+
+
+
 ```{r, echo = FALSE}
 
 
-g <- immune[14:45]
+i <- imputed_immune %>% dplyr::select(c(3, 13:47))
+
 # turn the data frame into a matrix and transpose it. We want to have each cell 
 # type as a row name 
 i <- t(as.matrix(i))
@@ -254,14 +343,15 @@ i <- as.data.frame(i)
 
 # turn the first row into column names
 i %>%
-  row_to_names(row_number = 1) -> i
+  row_to_names(row_number = 1) -> heatmap_data
 
-# Now further prepare the data frame for plotting by removing the first row
-## and convert the column to row names with the cells 
-i[-1, ] -> heatmap_data
 
 # turn the columns to numeric other wise the heatmap function will not work
 heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+
+annotation_df <- imputed_immune %>%
+  dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history",  
+                  "hybrid_status", "max_WL"))
 
 ### Prepare the annotation columns for the heatmap
 rownames(annotation_df) <- annotation_df$EH_ID
@@ -272,11 +362,17 @@ rownames(annotation_df) <- colnames(i)
 #remove the unecessary column
 annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
 
+```
 
+
+
+
+### Heatmap on imputed combined data:
+
+```{r heatmap_imputed_facs_genes}
 #plot the heatmap
 
 heatmap_data %>% 
   pheatmap(annotation_col = annotation_df, scale = "row")
-
-
 ```
+

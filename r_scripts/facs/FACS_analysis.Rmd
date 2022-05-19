@@ -543,3 +543,13 @@ Heatmap on facs expression data:
 ```{r, echo = FALSE}
 pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 ```
+
+
+```{r, echo = FALSE, message = FALSE}
+#write imputed data file
+
+write.csv(imputed_facs, "output_data/facs/data_products/imputed_facs_data.csv", row.names = FALSE)
+write.csv(FACS_all, "output_data/facs/data_products/FACS_clean.csv", row.names = FALSE)
+
+```
+
