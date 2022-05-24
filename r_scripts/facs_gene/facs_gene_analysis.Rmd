@@ -371,6 +371,15 @@ rownames(annotation_df) <- colnames(i)
 #remove the unecessary column
 annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
 
+# turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != nrow(heatmap_data)]
+rownames(annotation_df) <- colnames(heatmap_data)
+
 ```
 
 
@@ -380,6 +389,8 @@ annotation_df <- annotation_df %>% dplyr::select(-EH_ID, )
 
 ```{r heatmap_imputed_facs_genes}
 #plot the heatmap
+
+
 
 heatmap_data %>% 
   pheatmap(annotation_col = annotation_df, scale = "row")
