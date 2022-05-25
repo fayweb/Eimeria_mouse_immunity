@@ -44,7 +44,7 @@ library(cowplot)
 Challenge <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
 
 ## vectors for selecting columns
-CellCount.cols <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+CellCount.cols <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
                     "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
                     "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
                     "IL17A_CD4")  
@@ -81,21 +81,20 @@ Challenge <- Challenge %>%
         TRUE ~ ""))
 
 ### Select the measurements from the mesenterial lymphnodes
-# The spleen measurements are not so plenty and not comparable to the mln 
-# measurements
-FACS_all  <- Challenge%>% 
-  filter(Position == "mLN") %>%
-  drop_na("CD4") ### Drop the columns that contain nas in the column CD4 of 
-#the facs columns
 
 ### Prepare the annotation data frame for the heatmap
-annotation_df <- FACS_all %>% 
+annotation_df <- Challenge%>% 
+  filter(Position == "mLN") %>%
+  drop_na("CD4") %>%### Drop the columns that contain nas in the column CD4 of 
+#the facs columns
   filter(infection == "challenge") %>%
   dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history",  
                   "hybrid_status", "max_WL"))
 
 ### Data tidying for the heatmap function
-FACS <- FACS_all  %>% 
+FACS <- Challenge%>% 
+  filter(Position == "mLN") %>%
+  drop_na("CD4") %>%
   dplyr::select(c(EH_ID, all_of(CellCount.cols)))
 
 # turn the data frame into a matrix and transpose it. We want to have each cell 
@@ -171,16 +170,29 @@ corrplot(facs_correlation,
 ```
 
 ```{r facs_intensity, echo = FALSE, message = FALSE}
-FACS_all <- FACS_all %>% 
-  dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history",  
-                  "hybrid_status", "max_WL", "delta", all_of(CellCount.cols))) 
+F <- Challenge %>% 
+  filter(Position == "mLN") %>%
+  drop_na("CD4") %>%
+  dplyr::select(-Position) %>%
+  pivot_longer(cols = all_of(CellCount.cols), names_to = "Cells", values_to = "Percentage")
 
-FACS <- FACS_all %>%
-  pivot_longer(cols = 8:22, names_to = "Cells", values_to = "Percentage")
+F <- unique(F)
 
-FACS <- unique(FACS)
+F1 <- Challenge %>% 
+  filter(Position == "mLN") %>%
+  drop_na("CD4") %>%
+  dplyr::select(CellCount.cols) 
 
-FACS %>%
+F1 <- unique(F1)
+
+F2 <- Challenge %>% 
+  filter(Position == "mLN") %>%
+  drop_na("CD4") 
+
+F2 <- unique(F2)
+
+F %>%
+    filter(Eim_MC == "TRUE", !Parasite_challenge == "uninfected") %>%
     ggplot(aes(x = delta, y = Percentage, color = Parasite_challenge)) +
     geom_jitter() +
     facet_wrap(~ Cells, scales = "free") +
@@ -195,8 +207,7 @@ FACS %>%
 
 
 ```{r FACS_box, echo = FALSE, message = FALSE}
-FACS %>%
-  na.omit(Percentage) %>%
+F %>%
   ggplot(aes(x = Parasite_challenge, y = Percentage, color = Parasite_challenge)) + 
   geom_boxplot() +
   geom_jitter() +
@@ -208,15 +219,12 @@ FACS %>%
 
 
 ```{r histogram_FACS, echo = FALSE, message=FALSE}
-FACS  %>%
+F  %>%
   ggplot(aes(x = Percentage, color = Parasite_challenge)) + 
   geom_histogram(echo = FALSE)
 ```
-```{r, include=FALSE, echo = FALSE}
-f <- FACS_all 
 
-f1 <- FACS_all[8:22]
-```
+
 
 ## 3. PCA
 #### Handling missing data in a pca:
@@ -224,12 +232,9 @@ f1 <- FACS_all[8:22]
 
 
 
-
-
-
 ```{r facs_scatter_plot_matrix_correlation_coeff, echo = FALSE, message=FALSE, warnings=FALSE}
 #Make a scatter plot matrix showing the correlation coefficients between variables and the significance levels : the package PerformanceAnalytics is required.
-chart.Correlation(f1, histogram=TRUE, pch=19)
+chart.Correlation(F1, histogram=TRUE, pch=19)
 ```
 
 
@@ -264,13 +269,13 @@ on the PCA results, i.e., no influence on the coordinates of the individals or v
 ```{r pca_facs, echo = FALSE}
 ## 1. Estimate the number of dimensions necessary to impute the dataset 
 # with the estim_ncpPCA
-nb <- estim_ncpPCA(f1, scale = TRUE) 
+nb <- estim_ncpPCA(F1, scale = TRUE) 
 # Each observed value is removed, then imputed using ncp components
 # The difference between the ovserved value and the imputed value is calculated 
 # ncp = 5
 
 ## 2. Imputation of the missing values using the function impute PCA
-comp <- imputePCA(f1, ncp = 1, scale = TRUE) #impute the table
+comp <- imputePCA(F1, ncp = 1, scale = TRUE) #impute the table
 #head(comp$completeObs) # resulting imputed data table
 # this estimate should be better than simply using the mean, beacause we've taken into account
 # the links between variables and similarities between individuals in its calculation
@@ -313,7 +318,7 @@ We here visualize the variability, that is uncertainty on the plane defined by t
 ```{r error_visualization_pca_facs, echo = FALSE, out.width="50%"}
 #Visualizing uncertainty due to missing data:
 
-mi <- MIPCA(f1, scale = TRUE, ncp = 1)
+mi <- MIPCA(F1, scale = TRUE, ncp = 1)
 plot(mi)
 ```
 
@@ -347,9 +352,9 @@ str(res.pca)
 
 ```{r, echo = FALSE}
 # extract pc scores for first two component and add to dat dataframe
-f$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+F2$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 
-f$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+F2$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
 
 
 imputed_facs$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
@@ -357,7 +362,7 @@ imputed_facs$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 imputed_facs$pc2 <- res.pca$ind$coord[, 2] 
 
 ### join the imputed data 
-imputed_facs <- f %>% left_join(imputed_facs, by = c("pc1", "pc2"), 
+imputed_facs <- F2 %>% left_join(imputed_facs, by = c("pc1", "pc2"), 
                                 suffix = c("_x", "_y"))
 
 #remove all columns of the non-imputed data
@@ -383,7 +388,8 @@ circ <- circleFun(c(0,0),2,npoints = 500)
 
 
 imputed_facs %>%
-  pivot_longer(10:24, names_to = "Cells", values_to = "Proportion") %>%
+  pivot_longer(cols = all_of(CellCount.cols
+                             ), names_to = "Cells", values_to = "Proportion") %>%
   ggplot(aes(x = pc1, y = pc2, color = Parasite_challenge, shape = Parasite_challenge)) +
   geom_hline(yintercept = 0, lty = 2) +
   geom_vline(xintercept = 0, lty = 2) +
@@ -509,8 +515,7 @@ AIC(weight_lm, weight_lm_exp_only)
 
 ```{r imputed_data_prep_facs}
 facs <- imputed_facs %>% 
-  dplyr::select(c(EH_ID, all_of(CellCount.cols))) %>%
-  dplyr::select(-Position)
+  dplyr::select(c(EH_ID, all_of(CellCount.cols))) 
  
  # turn the data frame into a matrix and transpose it. We want to have each cell 
  # type as a row name 
@@ -549,7 +554,7 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 #write imputed data file
 
 write.csv(imputed_facs, "output_data/facs/data_products/imputed_facs_data.csv", row.names = FALSE)
-write.csv(FACS_all, "output_data/facs/data_products/FACS_clean.csv", row.names = FALSE)
+write.csv(F2, "output_data/facs/data_products/FACS_clean.csv", row.names = FALSE)
 
 ```
 
