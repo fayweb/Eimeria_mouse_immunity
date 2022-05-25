@@ -145,7 +145,7 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 ```{r gene_correlations, echo = FALSE}
 
 # draw correlation between the genes
-gene_correlation <- as.matrix(cor(Challenge %>% dplyr::select(Genes), use="pairwise.complete.obs"))
+gene_correlation <- as.matrix(cor(Challenge %>% dplyr::select(all_of(Genes)), use="pairwise.complete.obs"))
 
 # load the function to calculate the p value for correlations
 source("r_scripts/functions/p_value_for_correlations.R")
@@ -193,10 +193,8 @@ g1 <- as_tibble(Challenge) %>%
 
 g1 <- unique(g1) 
 
-
 g %>%
-    drop_na(delta, gene_expression) %>%
-    filter(!Parasite_challenge == "uninfected") %>%
+    filter(!Parasite_challenge == "uninfected", Eim_MC == "TRUE") %>%
     ggplot(aes(x = delta, y = gene_expression, color = Parasite_challenge)) +
     geom_jitter() +
     facet_wrap(~ Gene, scales = "free") +
@@ -212,8 +210,6 @@ g %>%
 
 ```{r gene_expression_box, echo = FALSE, message = FALSE}
 g %>%
-    drop_na(gene_expression) %>%
-    filter(!Parasite_challenge == "uninfected")%>%
   ggplot(aes(x = Parasite_challenge, y = gene_expression, color = Parasite_challenge)) + 
   geom_boxplot() +
   geom_jitter() +
@@ -226,7 +222,6 @@ g %>%
 
 ```{r histogram_genes, echo = FALSE, message=FALSE}
 g  %>%
-  filter(!Parasite_challenge == "uninfected") %>%
   ggplot(aes(x = gene_expression, color = challenge_infection)) + 
   geom_histogram(echo = FALSE)
 ```
