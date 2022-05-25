@@ -560,10 +560,9 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 
 
 ```{r}
-
 write.csv(imputed_expr, "output_data/gene_expression/data_products/imputed_gene_expression.csv", row.names = FALSE)
 
-write.csv(gene_expr, "output_data/gene_expression/data_products/clean_gene_expression.csv", row.names = FALSE)
+write.csv(g2, "output_data/gene_expression/data_products/clean_gene_expression.csv", row.names = FALSE)
 
 ```
 
