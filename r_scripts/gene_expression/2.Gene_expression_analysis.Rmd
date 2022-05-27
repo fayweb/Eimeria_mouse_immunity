@@ -1,0 +1,179 @@
+---
+title: "2.Gene_expresion"
+author: "Fay"
+date: '2022-05-27'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Libraries:
+```{r libraries}
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(cowplot)
+library(randomForest)
+library(ggplot2)
+```
+
+
+#### Import the data:
+
+```{r import}
+g <- read.csv("output_data/gene_expression/data_products/clean_gene_expression.csv")
+
+
+# vectors for selecting gene columns
+Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
+           "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
+           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+
+```
+
+
+
+#### Data cleaning
+
+```{r cleaning}
+g$Parasite_challenge <- as.factor(g$Parasite_challenge)
+g$Eim_MC <- as.factor(g$Eim_MC)
+
+```
+
+#### Imputing missing data + cleaning
+```{r imputing}
+g <- g %>%
+  dplyr::mutate(Infection = case_when(
+    Parasite_challenge == "E_ferrisi" & Eim_MC == "TRUE" ~ "E_ferrisi",
+    Parasite_challenge == "E_ferrisi" & Eim_MC == "FALSE" ~ "uninfected",
+    Parasite_challenge == "E_falciformis" & Eim_MC == "TRUE" ~ "E_falciformis",
+    Parasite_challenge == "E_falciformis" & Eim_MC == "FALSE" ~ "uninfected",
+    Parasite_challenge == "uninfected" & Eim_MC == "TRUE" ~ "infected_eimeria",
+    Parasite_challenge == "uninfected" & Eim_MC == "FALSE" ~ "uninfected",
+    TRUE ~ ""
+  ))
+
+
+# how to impute delta? Replacing with 0 the ones with negative melting curve
+g <- g %>%
+  dplyr::mutate(Intensity = case_when(
+    Eim_MC == "TRUE" ~ delta,
+    Eim_MC == "FALSE" ~ 0))
+
+g.1 <- g %>%
+  dplyr::select(c(max_WL, all_of(Genes)))
+
+# to get reproducible results we use a seed
+set.seed(42)
+
+# We want the maximum weight loss to be predicted by the data ina ll of the other columns
+
+# iter = how many random forests are needed, in theory 6 are enough
+g.imputed <- rfImpute(max_WL ~ ., data = g.1, iter = 6)
+
+g.imputed <- g.imputed %>% dplyr::select(-max_WL)
+
+g <- g %>% 
+  dplyr::select(-all_of(Genes)) 
+
+#full data set containing the imputed gene expression data
+g.imputed <- cbind(g, g.imputed)
+
+
+
+
+```
+
+How many mice are in the infection planning?
+```{r infection_plan}
+g.imputed %>% 
+  filter(infection == "challenge") %>%
+  group_by(Parasite_challenge) %>%
+  summarize(length(EH_ID))
+  
+```
+How many mice are indeed infected?
+
+```{r infected}
+g.imputed %>% 
+  filter(infection == "challenge") %>%
+  group_by(Infection) %>%
+  summarize(length(EH_ID))
+  
+```
+I gues mice got mixed up here?
+
+#### Splitting data into training and testing sets 
+Splitting between training and testing:
+- Assess model performance on unseen data
+- Avoid over-fitting 
+
+
+```{r}
+#select the relevant columns:
+g.imputed <- g.imputed %>%
+  dplyr::select(c(max_WL, Infection, Intensity, all_of(Genes)))
+
+# split data into training and test
+
+set.seed(123) # this will help us reproduce this random assignment
+
+# in this way we can pick the random numbers
+
+training.samples <- g.imputed$max_WL%>%
+  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
+                      list = FALSE) # we don't want to get a list in return
+
+train.data <- g.imputed[training.samples, ] #include all the randomly selected rows
+test.data <- g.imputed[-training.samples, ] 
+
+
+```
+
+#### Building the model
+
+```{r random_forest}
+#train the model
+model <- randomForest(max_WL ~., data = train.data, proximity = TRUE)
+
+```
+
+#### Making predictions
+```{r predictións}
+predictions <- predict(model, test.data)
+
+
+result <- test.data
+result['prediction'] <- predictions
+
+
+#add the results to a data frame containing test data and the prediction
+result <- cbind(g[row.names(result), ], result$prediction)
+
+
+
+```
+
+#### Visualizations
+```{r prediction_scatter}
+result   %>%
+  ggplot() +
+  geom_point(aes(x = `result$prediction`, y = max_WL)) 
+  
+
+```
+```{r}
+plot(y =result$max_WL, x = result$`result$prediction`, 
+     # Draw plot using Base R
+     xlab = "Predicted Values",
+     ylab = "Observed Values", 
+     abline(a = 0,                                        # Add straight line
+       b = 1,
+       col = "red",
+       lwd = 2))
+```
+
+
