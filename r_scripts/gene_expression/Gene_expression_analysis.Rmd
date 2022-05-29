@@ -75,8 +75,14 @@ Challenge <- Challenge %>%
     Parasite_primary == "E_ferrisi" & Parasite_challenge == "uninfected" ~ "ferrisi_uninfected",
         TRUE ~ ""))
 
+### Add the variable end weight (relative weight at day of sacrifice)
+Challenge <- Challenge %>% 
+  filter(!weight == "NA") %>%
+  group_by(EH_ID, infection) %>%
+  dplyr::mutate(dpi_max = max(dpi))
+
 gene <- as_tibble(Challenge) %>%
-  dplyr::filter(infection == "challenge", dpi == "8") %>%
+  dplyr::filter(infection == "challenge", dpi == dpi_max) %>%
   dplyr::group_by(EH_ID) %>%
   dplyr::select(all_of(Genes))
 
@@ -109,7 +115,7 @@ gene <- unique(gene)
 
  
 annotation_df <- as_tibble(Challenge) %>%
-  dplyr::filter(infection == "challenge", dpi == "8") %>%
+  dplyr::filter(infection == "challenge", dpi == dpi_max) %>%
   dplyr::group_by(EH_ID) %>%
   dplyr::select(c("EH_ID", "Parasite_challenge", "infection_history","mouse_strain", 
                   "max_WL", "delta", "hybrid_status")) %>%
@@ -143,9 +149,12 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 
 
 ```{r gene_correlations, echo = FALSE}
+gene_correlation <- Challenge %>% 
+  ungroup() %>%
+  dplyr::select(all_of(Genes))
 
 # draw correlation between the genes
-gene_correlation <- as.matrix(cor(Challenge %>% dplyr::select(all_of(Genes)), use="pairwise.complete.obs"))
+gene_correlation <- as.matrix(cor(gene_correlation, use="pairwise.complete.obs"))
 
 # load the function to calculate the p value for correlations
 source("r_scripts/functions/p_value_for_correlations.R")
@@ -176,7 +185,7 @@ corrplot(gene_correlation,
 ```{r gene_expression_intensity, echo = FALSE, message = FALSE}
 
 g <-  as_tibble(Challenge) %>%
-  dplyr::filter(infection == "challenge", dpi == "8") %>%
+  dplyr::filter(infection == "challenge", dpi == dpi_max) %>%
   dplyr::group_by(EH_ID)%>%
   dplyr::filter(EH_ID %in% colnames(heatmap_data)) %>%
     pivot_longer(cols = all_of(Genes), names_to = "Gene", values_to = "gene_expression")
@@ -184,7 +193,7 @@ g <-  as_tibble(Challenge) %>%
 g <- unique(g)
 
 g1 <- as_tibble(Challenge) %>%
-  dplyr::filter(infection == "challenge", dpi == "8") %>%
+  dplyr::filter(infection == "challenge", dpi == dpi_max) %>%
   dplyr::group_by(EH_ID)%>%
   dplyr::filter(EH_ID %in% colnames(heatmap_data)) %>%
   dplyr::select(all_of(Genes)) %>%
@@ -505,7 +514,7 @@ AIC(weight_lm4)
 
 
 ```{r lm_pc, echo = FALSE}
-weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = g)
+weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = imputed_expr)
 summary(weight_lm_exp_only)
 AIC(weight_lm, weight_lm_exp_only)
 ```
