@@ -26,6 +26,8 @@ library(caret)
 #### Import the data:
 
 ```{r import}
+# Here we import the cleaned data set from the previous script derived from the 
+# data set challenge infections 
 g <- read.csv("output_data/gene_expression/data_products/clean_gene_expression.csv")
 
 
@@ -41,13 +43,12 @@ Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1
 #### Data cleaning
 
 ```{r cleaning}
+# we need to change the Parasite in challenge infections to a factor
 g$Parasite_challenge <- as.factor(g$Parasite_challenge)
 g$Eim_MC <- as.factor(g$Eim_MC)
 
-```
-
-#### Imputing missing data + cleaning
-```{r imputing}
+# Here I create a new column, where we get the actual infection status
+# According to the melting curve for eimeria 
 g <- g %>%
   dplyr::mutate(Infection = case_when(
     Parasite_challenge == "E_ferrisi" & Eim_MC == "TRUE" ~ "E_ferrisi",
@@ -60,15 +61,25 @@ g <- g %>%
   ))
 
 
-
 # how to impute delta? Replacing with 0 the ones with negative melting curve
+# open for other solutions!
 g <- g %>%
   dplyr::mutate(Intensity = case_when(
     Eim_MC == "TRUE" ~ delta,
     Eim_MC == "FALSE" ~ 0))
+```
+
+
+
+
+
+#### Imputing missing data + cleaning
+```{r imputing}
+#Start by selecting only the genes and the maximum weight loss for each mouse
+# Apparently the relative end weight doesn't work so well for predictions
 
 g.1 <- g %>%
-  dplyr::select(c(end_rel_weight, all_of(Genes)))
+  dplyr::select(c(max_WL, all_of(Genes)))
 
 # to get reproducible results we use a seed
 set.seed(42)
@@ -76,9 +87,9 @@ set.seed(42)
 # We want the maximum weight loss to be predicted by the data ina ll of the other columns
 
 # iter = how many random forests are needed, in theory 6 are enough
-g.imputed <- rfImpute(end_rel_weight ~ ., data = g.1, iter = 6)
+g.imputed <- rfImpute(max_WL ~ ., data = g.1, iter = 6)
 
-g.imputed <- g.imputed %>% dplyr::select(-end_rel_weight)
+g.imputed <- g.imputed %>% dplyr::select(-max_WL)
 
 g <- g %>% 
   dplyr::select(-all_of(Genes)) 
@@ -89,6 +100,8 @@ g.imputed <- cbind(g, g.imputed)
 
 
 ```
+
+
 
 How many mice are in the infection planning?
 ```{r infection_plan}
@@ -107,7 +120,7 @@ g.imputed %>%
   summarize(length(EH_ID))
   
 ```
-I gues mice got mixed up here?
+I guess mice got mixed up here?
 
 #### Splitting data into training and testing sets 
 Splitting between training and testing:
@@ -115,10 +128,11 @@ Splitting between training and testing:
 - Avoid over-fitting 
 
 
-```{r}
+
+```{r splitting_data}
 #select the relevant columns:
 g.imputed <- g.imputed %>%
-  dplyr::select(c(end_rel_weight, all_of(Genes)))
+  dplyr::select(c(max_WL, all_of(Genes)))
 
 # split data into training and test
 
@@ -126,7 +140,7 @@ set.seed(123) # this will help us reproduce this random assignment
 
 # in this way we can pick the random numbers
 
-training.samples <- g.imputed$end_rel_weight%>%
+training.samples <- g.imputed$max_WL%>%
   createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
                       list = FALSE) # we don't want to get a list in return
 
@@ -136,52 +150,142 @@ test.data <- g.imputed[-training.samples, ]
 
 ```
 
+
+
 #### Building the model
 
 ```{r random_forest}
 #train the model
-model <- randomForest(end_rel_weight ~., data = train.data, proximity = TRUE)
+model <- randomForest(max_WL ~., data = train.data, proximity = TRUE,
+                      ntree = 1000) # number of trees
+                      
+
+print(model)
+```
+
+Plotting the model will illustrate the error rate as we average across more trees and shows that our error rate stabalizes with around 200 trees.
+
+
+
+```{r}
+plot(model)
+```
+The plotted error rate above is based on the OOB sample error and can be accessed directly at m1$mse. Thus, we can find which number of trees providing the lowest error rate, which is 257 trees providing an weight error of 5.024738.
+
+```{r}
+# number of trees with lowest MSE
+which.min(model$mse)
+## [1] 257
+
+# RMSE of this optimal random forest
+sqrt(model$mse[which.min(model$mse)])
+## [1] 5.024738
+```
+
+########### https://uc-r.github.io/random_forests
+RandomForest also allows us to use a validation set to measure predictive accuracy if we did not want to use the OOB samples. 
+
+```{r}
+
+rf_oob_comp <- randomForest(
+  formula = max_WL ~ .,
+  data    = train.data,
+  xtest   = test.data,
+  ytest   = test.data$max_WL
+)
 
 ```
+
+
+Tutorial: https://hackernoon.com/random-forest-regression-in-r-code-and-interpretation
+Random forest regression in R provides two outputs: decrease in mean square error (MSE) and node purity. Prediction error described as MSE is based on permuting out-of-bag sections of the data per individual tree and predictor, and the errors are then averaged. In the regression context, Node purity is the total decrease in residual sum of squares when splitting on a variable averaged over all trees (i.e. how well a predictor decreases variance). MSE is a more reliable measure of variable importance. If the two importance metrics show different results, listen to MSE. If all of your predictors are numerical, then it shouldn’t be too much of an issue
+
+
+Mean Decrease Gini (IncNodePurity) - This is a measure of variable importance based on the Gini impurity index used for the calculating the splits in trees.
+
+Improving Your Model
+Your model depends on the quality of your dataset and the type of Machine Learning algorithm used. Therefore, to improve the accuracy of your model, you should:
+
+Check what attributes affect our model the most and what variables to leave out in future analysis
+Find out what other attributes affect a person's wage; we can use as predictors in future analysis
+Tweak the algorithm (e.g. change the ntree value)
+Use a different machine learning algorithm
+If any of these reduces the RMSE significantly, you have succeeded in improving your model!
+
+```{r}
+### Visualize variable importance ----------------------------------------------
+
+#Call importance() function on the model model to check how the attributes used as predictors affect our model
+importance(model)
+
+model$mse
+## S3 method for class 'randomForest'
+plot(model, type="l", main=deparse(substitute(x)))
+
+varImpPlot(model)
+
+# Get variable importance from the model fit
+ImpData <- as.data.frame(importance(model))
+ImpData$Var.Names <- row.names(ImpData)
+
+ggplot(ImpData, aes(x=Var.Names, y=`%IncMSE`)) +
+  geom_segment( aes(x=Var.Names, xend=Var.Names, y=0, yend=`%IncMSE`), color="skyblue") +
+  geom_point(aes(size = IncNodePurity), color="blue", alpha=0.6) +
+  theme_light() +
+  coord_flip() +
+  theme(
+    legend.position="bottom",
+    panel.grid.major.y = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+```
+
+
 
 #### Making predictions
+
+
 ```{r predictións}
+#The predict() function in R is used to predict the values based on the input data.
 predictions <- predict(model, test.data)
 
-
+# assign test.data to a new object, so that we can make changes
 result <- test.data
-result['prediction'] <- predictions
 
+#add the new variable of predictions to the result object
+result <- cbind(result, predictions)
 
 #add the results to a data frame containing test data and the prediction
-result <- cbind(g[row.names(result), ], result$prediction)
-
-
+result <- cbind(g[row.names(result), ], predictions)
 
 ```
 
+
+
+
 #### Visualizations
+
+
+
 ```{r prediction_scatter}
 result   %>%
   ggplot() +
-  geom_point(aes(x = `result$prediction`, y = end_rel_weight, color = Parasite_challenge)) +
-  geom_abline() 
+  geom_point(aes(x = predictions, y = max_WL, color = Parasite_challenge)) +
+  geom_abline() +
+  labs(x = "Predictions: Maximum weight loss ", y = "Observed: Maximum weight loss",
+         title = "Predicting tolerance, Weight loss in response to immune gene expression") +
+    theme_bw()
   
 ```
-```{r}
-cor(x = result$`result$prediction`, y = result$end_rel_weight)
+
+
+```{r correlations}
+#How well correlated are our results and predictions?
+cor(x = result$predictions, y = result$max_WL)
 ```
 
 
-```{r}
-plot(y =result$end_rel_weight, x = result$`result$prediction`, 
-     # Draw plot using Base R
-     xlab = "Predicted Values",
-     ylab = "Observed Values", 
-     abline(a = 0,                                        # Add straight line
-       b = 1,
-       col = "red",
-       lwd = 2))
-```
+
 
 
