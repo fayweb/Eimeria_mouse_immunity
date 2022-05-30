@@ -62,8 +62,8 @@ g <- g %>%
 #create new variable end weight 
 # since we will test it in the wild, we will also only have access to the end weight 
 # of the wild mice 
-g <- g %>% 
-  dplyr::mutate(end_weight = (weight / weight_dpi0) * 100)
+#g <- g %>% 
+ # dplyr::mutate(wen = (weight / weight_dpi0) * 100)
 
 
 # how to impute delta? Replacing with 0 the ones with negative melting curve
@@ -73,7 +73,7 @@ g <- g %>%
     Eim_MC == "FALSE" ~ 0))
 
 g.1 <- g %>%
-  dplyr::select(c(end_weight, all_of(Genes)))
+  dplyr::select(c(max_WL, all_of(Genes)))
 
 # to get reproducible results we use a seed
 set.seed(42)
@@ -81,16 +81,15 @@ set.seed(42)
 # We want the maximum weight loss to be predicted by the data ina ll of the other columns
 
 # iter = how many random forests are needed, in theory 6 are enough
-g.imputed <- rfImpute(end_weight ~ ., data = g.1, iter = 6)
+g.imputed <- rfImpute(max_WL ~ ., data = g.1, iter = 6)
 
-g.imputed <- g.imputed %>% dplyr::select(-end_weight)
+g.imputed <- g.imputed %>% dplyr::select(-max_WL)
 
 g <- g %>% 
   dplyr::select(-all_of(Genes)) 
 
 #full data set containing the imputed gene expression data
 g.imputed <- cbind(g, g.imputed)
-
 
 
 
@@ -124,7 +123,7 @@ Splitting between training and testing:
 ```{r}
 #select the relevant columns:
 g.imputed <- g.imputed %>%
-  dplyr::select(c(end_weight, Infection, Intensity, all_of(Genes)))
+  dplyr::select(c(max_WL, all_of(Genes)))
 
 # split data into training and test
 
@@ -132,7 +131,7 @@ set.seed(123) # this will help us reproduce this random assignment
 
 # in this way we can pick the random numbers
 
-training.samples <- g.imputed$end_weight%>%
+training.samples <- g.imputed$max_WL%>%
   createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
                       list = FALSE) # we don't want to get a list in return
 
@@ -146,7 +145,7 @@ test.data <- g.imputed[-training.samples, ]
 
 ```{r random_forest}
 #train the model
-model <- randomForest(end_weight ~., data = train.data, proximity = TRUE)
+model <- randomForest(max_WL ~., data = train.data, proximity = TRUE)
 
 ```
 
@@ -170,12 +169,15 @@ result <- cbind(g[row.names(result), ], result$prediction)
 ```{r prediction_scatter}
 result   %>%
   ggplot() +
-  geom_point(aes(x = `result$prediction`, y = end_weight)) 
-  
-
+  geom_point(aes(x = `result$prediction`, y = max_WL, color = Parasite_challenge)) 
 ```
 ```{r}
-plot(y =result$end_weight, x = result$`result$prediction`, 
+cor(x = result$`result$prediction`, y = result$max_WL)
+```
+
+
+```{r}
+plot(y =result$max_WL, x = result$`result$prediction`, 
      # Draw plot using Base R
      xlab = "Predicted Values",
      ylab = "Observed Values", 

@@ -34,6 +34,7 @@ library(factoextra)
 library(MASS)
 library(reshape2)
 library(cowplot)
+if(any(grepl("package:plyr", search()))) detach("package:plyr") else message("plyr not loaded")
 ```
 
 ```{r Data_preparation_heatmap, echo=FALSE, iclude = FALSE, message=FALSE}
@@ -76,15 +77,52 @@ Challenge <- Challenge %>%
         TRUE ~ ""))
 
 ### Add the variable end weight (relative weight at day of sacrifice)
+# start by adding the variable dpi_max which inficates the last day of each mouse
 Challenge <- Challenge %>% 
-  filter(!weight == "NA") %>%
-  group_by(EH_ID, infection) %>%
+  dplyr::filter(!weight == "NA") %>%
+  dplyr::group_by(EH_ID, infection) %>%
   dplyr::mutate(dpi_max = max(dpi))
+
+#somehow case when dplyr ways didn't work for me and this is the only solution 
+#that is functional
+
+#let's filter for the challenge mice
+chal <- Challenge %>% filter(infection == "challenge")
+
+#now only select the rows where the dpi is equal to the dpi max for each mouse
+chal <- chal[chal$dpi == chal$dpi_max, ] 
+
+#now we can easily add the variable end weight to each mouse (which in now equal
+#to the weight on the dpi = dpi_max)
+chal <- chal %>% dplyr::mutate(end_rel_weight = (weight/weight_dpi0) * 100)
+
+
+#let'repeat for the prim 
+
+
+#let's filter for the challenge mice
+prim <- Challenge %>% filter(infection == "primary")
+
+#now only select the rows where the dpi is equal to the dpi max for each mouse
+prim <- prim[prim$dpi == prim$dpi_max, ] 
+
+#now we can easily add the variable end weight to each mouse (which in now equal
+#to the weight on the dpi = dpi_max)
+prim <- prim %>% dplyr::mutate(end_rel_weight = (weight/weight_dpi0) * 100)
+
+c <- rbind(chal, prim)
+
+#now jon it to the challenge infections
+c %>% dplyr::select(EH_ID, end_rel_weight) %>%
+  right_join(Challenge) -> Challenge
+
+Challenge <- unique(Challenge)
 
 gene <- as_tibble(Challenge) %>%
   dplyr::filter(infection == "challenge", dpi == dpi_max) %>%
   dplyr::group_by(EH_ID) %>%
   dplyr::select(all_of(Genes))
+
 
 gene <- unique(gene)
  
