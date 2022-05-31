@@ -3,16 +3,109 @@ title: "FACS_analysis"
 author: "Fay"
 date: '2022-05-18'
 output:
+  html_document: default
   pdf_document: 
     fig_width: 12
     fig_height: 8
-  html_document: default
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 ```
+Janeway's immunobiology: 
+
+
+An adaptive immune repsone is generated when naive T cells contact activated antigen-presenting cells in the secondary lymphoid organs. 
+
+T cell responses are initiated when a mature naive CD4 or CD8 T cell encounters an activated antigen-presenting cell displaying the appropriate peptide: MHC ligand. 
+
+Priming of naive CD8 T cells generates cytotoxic T cells capable of directly killing pathogen infected cells. CD4 cells develop into a diverse arrray of effector cell types depending on the nature of the signals they receive during priming. 
+
+CD4 effector can also include cytotoxicity, but more frequently it involves the secretions of a set of cytokines. 
+
+*CD4:*  In molecular biology, CD4 (cluster of differentiation 4) is a glycoprotein that serves as a co-receptor for the T-cell receptor (TCR). CD4 is found on the surface of immune cells such as T helper cells, monocytes, macrophages, and dendritic cells. 
+
+CD4+ T helper cells are white blood cells that are an essential part of the human immune system. They are often referred to as CD4 cells, T-helper cells or T4 cells. They are called helper cells because one of their main roles is to send signals to other types of immune cells, including CD8 killer cells, which then destroy the infectious particle. If CD4 cells become depleted, for example in untreated HIV infection, or following immune suppression prior to a transplant, the body is left vulnerable to a wide range of infections that it would otherwise have been able to fight. CD4 is a co-receptor of the T cell receptor (TCR) and assists the latter in communicating with antigen-presenting cells. The TCR complex and CD4 bind to distinct regions of the antigen-presenting MHC class II molecule. The extracellular D1 domain of CD4 binds to the β2 region of MHC class II. 
+
+
+*Treg_prop:* T regulatory cells are a component of the immune system that suppress immune responses of other cells. This is an important "self-check" built into the immune system to prevent excessive reactions. Regulatory T cells come in many forms with the most well-understood being those that express CD4, CD25, and FOXP3 (CD4+CD25+ regulatory T cells). These Treg cells are different from helper T cells.[8] Another regulatory T cell subset is Treg17 cells.[9] Regulatory T cells are involved in shutting down immune responses after they have successfully eliminated invading organisms, and also in preventing autoimmunity.[10]
+
+CD4+ FOXP3+ CD25(high) regulatory T cells have been called "naturally occurring" regulatory T cells[11] to distinguish them from "suppressor" T cell populations that are generated in vitro. Additional regulatory T cell populations include Tr1, Th3, CD8+CD28−, and Qa-1 restricted T cells. The contribution of these populations to self-tolerance and immune homeostasis is less well defined. FOXP3 can be used as a good marker for mouse CD4+CD25+ T cells, although recent studies have also shown evidence for FOXP3 expression in CD4+CD25− T cells. In humans, FOXP3 is also expressed by recently activated conventional T cells and thus does not specifically identify human Tregs.[12]
+
+All T cells derive from progenitor cells in the bone marrow, which become committed to their lineage in the thymus. All T cells begin as CD4-CD8-TCR- cells at the DN (double-negative) stage, where an individual cell will rearrange its T cell receptor genes to form a unique, functional molecule, which they, in turn, test against cells in the thymic cortex for a minimal level of interaction with self-MHC. If they receive these signals, they proliferate and express both CD4 and CD8, becoming double-positive cells. The selection of Tregs occurs on radio-resistant hematopoietically-derived MHC class II-expressing cells in the medulla or Hassall's corpuscles in the thymus. 
+
+*CD8:* CD8 (cluster of differentiation 8) is a transmembrane glycoprotein that serves as a co-receptor for the T-cell receptor (TCR). Along with the TCR, the CD8 co-receptor plays a role in T cell signaling and aiding with cytotoxic T cell-antigen interactions.
+
+Like the TCR, CD8 binds to a major histocompatibility complex (MHC) molecule, but is specific for the MHC class I protein.[1]
+
+The CD8 co-receptor is predominantly expressed on the surface of cytotoxic T cells, but can also be found on natural killer cells, cortical thymocytes, and dendritic cells. The CD8 molecule is a marker for cytotoxic T cell population. It is expressed in T cell lymphoblastic lymphoma and hypo-pigmented mycosis fungoides.[2]
+
+The extracellular IgV-like domain of CD8-α interacts with the α3 portion of the Class I MHC molecule.[5] This affinity keeps the T cell receptor of the cytotoxic T cell and the target cell bound closely together during antigen-specific activation. Cytotoxic T cells with CD8 surface protein are called CD8+ T cells. The main recognition site is a flexible loop at the α3 domain of an MHC molecule. This was discovered by doing mutational analyses. The flexible α3 domain is located between residues 223 and 229 in the genome.[4] In addition to aiding with cytotoxic T cell antigen interactions the CD8 co-receptor also plays a role in T cell signaling. The cytoplasmic tails of the CD8 co-receptor interact with Lck (lymphocyte-specific protein tyrosine kinase). Once the T cell receptor binds its specific antigen Lck phosphorylates the cytoplasmic CD3 and ζ-chains of the TCR complex which initiates a cascade of phosphorylation eventually leading to activation of transcription factors like NFAT, NF-κB, and AP-1 which affect the expression of certain genes.[6]
+
+*Treg17:* The regulatory T cells (Tregs /ˈtiːrɛɡ/ or Treg cells), formerly known as suppressor T cells, are a subpopulation of T cells that modulate the immune system, maintain tolerance to self-antigens, and prevent autoimmune disease. Treg cells are immunosuppressive and generally suppress or downregulate induction and proliferation of effector T cells.[1] Treg cells express the biomarkers CD4, FOXP3, and CD25 and are thought to be derived from the same lineage as naïve CD4+ cells.[2] Because effector T cells also express CD4 and CD25, Treg cells are very difficult to effectively discern from effector CD4+, making them difficult to study. Research has found that the cytokine transforming growth factor beta (TGF-β) is essential for Treg cells to differentiate from naïve CD4+ cells and is important in maintaining Treg cell homeostasis.[3]
+
+Mouse models have suggested that modulation of Treg cells can treat autoimmune disease and cancer and can facilitate organ transplantation[4] and wound healing.[5] Their implications for cancer are complicated. Treg cells tend to be upregulated in individuals with cancer, and they seem to be recruited to the site of many tumors. Studies in both humans and animal models have implicated that high numbers of Treg cells in the tumor microenvironment is indicative of a poor prognosis, and Treg cells are thought to suppress tumor immunity, thus hindering the body's innate ability to control the growth of cancerous cells.[6] Immunotherapy research is studying how regulation of T cells could possibly be utilized in the treatment of cancer.[7]
+
+ Another regulatory T cell subset is Treg17 cells
+ Induced regulatory T cells
+Induced regulatory T (iTreg) cells (CD4+ CD25+ FOXP3+) are suppressive cells involved in tolerance. iTreg cells have been shown to suppress T cell proliferation and experimental autoimmune diseases. These cells include Treg17 cells.
+
+*IFNy_CD8:* Interferon gamma (IFN-γ) is a dimerized soluble cytokine that is the only member of the type II class of interferons.[5] The existence of this interferon, which early in its history was known as immune interferon, was described by E. F. Wheelock as a product of human leukocytes stimulated with phytohemagglutinin, and by others as a product of antigen-stimulated lymphocytes.[6
+
+IFN-γ, or type II interferon, is a cytokine that is critical for innate and adaptive immunity against viral, some bacterial and protozoan infections. IFN-γ is an important activator of macrophages and inducer of major histocompatibility complex class II molecule expression. Aberrant IFN-γ expression is associated with a number of autoinflammatory and autoimmune diseases. The importance of IFN-γ in the immune system stems in part from its ability to inhibit viral replication directly, and most importantly from its immunostimulatory and immunomodulatory effects. IFN-γ is produced predominantly by natural killer cells (NK) and natural killer T cells (NKT) as part of the innate immune response, and by CD4 Th1 and CD8 cytotoxic T lymphocyte (CTL) effector T cells once antigen-specific immunity develops[11][12] as part of the adaptive immune response. IFN-γ is also produced by non-cytotoxic innate lymphoid cells (ILC), a family of immune cells first discovered in the early 2010s.[13]
+
+IFN-γ is secreted by T helper cells (specifically, Th1 cells), cytotoxic T cells (TC cells), macrophages, mucosal epithelial cells and NK cells. IFN-γ is both an important autocrine signal for professional APCs in early innate immune response, and an important paracrine signal in adaptive immune response. The expression of IFN-γ is induced by the cytokines IL-12, IL-15, IL-18, and type I IFN.[20] IFN-γ is the only Type II interferon and it is serologically distinct from Type I interferons; it is acid-labile, while the type I variants are acid-stable.
+
+IFN-γ has antiviral, immunoregulatory, and anti-tumor properties.[21] It alters transcription in up to 30 genes producing a variety of physiological and cellular responses. Among the effects are:
+
+Promotes NK cell activity[22]
+Increases antigen presentation and lysosome activity of macrophages.
+Activates inducible nitric oxide synthase (iNOS)
+Induces the production of IgG2a and IgG3 from activated plasma B cells
+Causes normal cells to increase expression of class I MHC molecules as well as class II MHC on antigen-presenting cells—to be specific, through induction of antigen processing genes, including subunits of the immunoproteasome (MECL1, LMP2, LMP7), as well as TAP and ERAAP in addition possibly to the direct upregulation of MHC heavy chains and B2-microglobulin itself
+Promotes adhesion and binding required for leukocyte migration
+Induces the expression of intrinsic defense factors—for example, with respect to retroviruses, relevant genes include TRIM5alpha, APOBEC, and Tetherin, representing directly antiviral effects
+Primes alveolar macrophages against secondary bacterial infections.[23][24]
+IFN-γ is the primary cytokine that defines Th1 cells: Th1 cells secrete IFN-γ, which in turn causes more undifferentiated CD4+ cells (Th0 cells) to differentiate into Th1 cells ,[25] representing a positive feedback loop—while suppressing Th2 cell differentiation. (Equivalent defining cytokines for other cells include IL-4 for Th2 cells and IL-17 for Th17 cells.)
+
+NK cells and CD8+ cytotoxic T cells also produce IFN-γ. IFN-γ suppresses osteoclast formation by rapidly degrading the RANK adaptor protein TRAF6 in the RANK-RANKL signaling pathway, which otherwise stimulates the production of NF-κB.
+
+
+*Th1:* They help to eradicate infections by microbes hat can survive or replicate within macrophages. Examples include certain viruses, protozoans and intracellular bacteria. If a th1 cell recognizes microbes displayed on the surface of an infected macrophagem it will activate the macrophage further through the release of IFN-g which enhances the macrophages microbicidal activity to kill ingested microbes. 
+Type 1 responses also promote B cell class switching that favors production of opsonizing IgG antibodies. 
+
+
+*IFNy_CD4:* IFNy producing cd4 cells (Look at the above)
+
+*Treg:*  Look at treg
+
+*Th17:* T helper 17 cells (Th17) are a subset of pro-inflammatory T helper cells defined by their production of interleukin 17 (IL-17). They are related to T regulatory cells and the signals that cause Th17s to differentiate actually inhibit Treg differentiation.[1] However, Th17s are developmentally distinct from Th1 and Th2 lineages. Th17 cells play an important role in maintaining mucosal barriers and contributing to pathogen clearance at mucosal surfaces; such protective and non-pathogenic Th17 cells have been termed as Treg17 cells.[2]
+Treg17 (Regulatory Th17) cells are generated from CD4+ T cells.
+
+Transforming growth factor beta (TGF-β), interleukin 6 (IL-6), interleukin 21 (IL-21) and interleukin 23 (IL-23) contribute to Th17 formation in mice and humans. Key factors in the differentiation of Th17 cells are signal transducer and the activator of transcription 3 (Stat3) and retinoic acid receptor-related orphan receptors gamma (RORγ) and alpha (RORα).[3] Th17 cells are differentiated when naive T cells are exposed to the cytokines mentioned above. These cytokines are produced by activated antigen presenting cells (APCs) after contact with pathogens.[4] The Th17 cells can alter their differentiation program ultimately giving rise to either protective or pro-inflammatory pathogenic cells. The protective and non-pathogenic Th17 cells induced by IL-6 and TGF-β are termed as Treg17 cells. The pathogenic Th17 cells are induced by IL-23 and IL-1β.[5] IL-21, produced by Th17 cells themselves, has also been shown to initiate an alternative route for the activation of Th17 populations.[6] Both interferon gamma (IFNγ) and IL-4, the main stimulators of Th1 and Th2 differentiation, respectively, have been shown to inhibit Th17 differentiation
+
+
+*Dividing cells:* The acute adaptive immune response is complex, proceeding through phases of activation of quiescent lymphocytes, rapid expansion by cell division and cell differentiation, cessation of division and eventual death of greater than 95 % of the newly generated population. Control of the response is not central but appears to operate as a distributed process where global patterns reliably emerge as a result of collective behaviour of a large number of autonomous cells.
+
+The immune system of vertebrates is markedly complex. Broadly, the system is organised into innate and adaptive components with the former characterized by rapid responses triggered by common features of infectious organisms (Medzhitov and Janeway 1997), while the latter is responsible for slower but highly efficient pathogen-specific responses and the generation of long-lived protection and memory. The strength and speed of the adaptive immune response is in large part determined by the sheer number of different pathogen-specific B and T lymphocytes that must be made and maintained. To pre-empt the possibility of infection by millions of possible pathogens it is impossible to code for a target-specific clone for each possible pathogen in the germ-line. Instead, DNA coding for receptors is shuffled uniquely in each cell to create a broad range of specificities combinatorially as predicted theoretically by Burnet (1957). Then, during the acute immune response, the small number of specific pathogen-specific lymphocyte clones are selected, activated and expanded many fold by cell division resulting in cell numbers sufficiently large to clear the pathogen (Fig. 1) (De Boer and Perelson 2013). As such, cell division is one of the key mechanisms behind a successful immune response via an on-demand expansion of a pathogen-specific clone.
+
+
+*Div_treg:*
+
+*Il17A_CD4:* Il17A_CD4
+Interleukin-17A is a protein that in humans is encoded by the IL17A gene. In rodents, IL-17A used to be referred to as CTLA8, after the similarity with a viral gene (O40633).
+Function
+The protein encoded by this gene is a proinflammatory cytokine produced by activated T cells. This cytokine regulates the activities of NF-kappaB and mitogen-activated protein kinases. This cytokine can stimulate the expression of IL6 and cyclooxygenase-2 (PTGS2/COX-2), as well as enhance the production of nitric oxide (NO).
+
+
+
+
+*Div_Th1:*
+*Div_Act_CD8:*
+*Div_Th17:*
+*Act_CD8:*
 
 ## 1.  facs expression in the laboratory infections - Heatmap
 
@@ -140,10 +233,12 @@ heatmap_data %>%
 ```{r facs_corr_matrix, echo = FALSE}
 
 # draw correlation between the facs
-facs_correlation <-  as.matrix(cor(Challenge %>%
-                  dplyr::select(CellCount.cols) %>%
-                  dplyr::filter(Position == "mLN") %>%
-                  dplyr::select(-Position), use="pairwise.complete.obs"))
+facs_correlation <-  as.matrix(cor(
+  Challenge %>%
+    dplyr::select(c(CellCount.cols, Position)) %>%
+    dplyr::filter(Position == "mLN") %>%
+    dplyr::select(-Position),
+  use="pairwise.complete.obs"))
 
 
 # load the function to calculate the p value for correlations
