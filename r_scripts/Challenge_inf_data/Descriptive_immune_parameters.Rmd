@@ -2,7 +2,9 @@
 title: "Descriptive_immune_parameters"
 author: "Fay"
 date: "06/05/2022"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
