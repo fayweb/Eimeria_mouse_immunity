@@ -50,7 +50,7 @@ g$Eim_MC <- as.factor(g$Eim_MC)
 # Here I create a new column, where we get the actual infection status
 # According to the melting curve for eimeria 
 g <- g %>%
-  dplyr::mutate(Infection = case_when(
+  dplyr::mutate(current_infection = case_when(
     Parasite_challenge == "E_ferrisi" & Eim_MC == "TRUE" ~ "E_ferrisi",
     Parasite_challenge == "E_ferrisi" & Eim_MC == "FALSE" ~ "uninfected",
     Parasite_challenge == "E_falciformis" & Eim_MC == "TRUE" ~ "E_falciformis",
@@ -91,11 +91,11 @@ g.imputed <- rfImpute(max_WL ~ ., data = g.1, iter = 6)
 
 g.imputed <- g.imputed %>% dplyr::select(-max_WL)
 
-g <- g %>% 
+g_minus <- g %>% 
   dplyr::select(-all_of(Genes)) 
 
 #full data set containing the imputed gene expression data
-g.imputed <- cbind(g, g.imputed)
+g.imputed <- cbind(g_minus, g.imputed)
 
 
 
@@ -116,7 +116,7 @@ How many mice are indeed infected?
 ```{r infected}
 g.imputed %>% 
   filter(infection == "challenge") %>%
-  group_by(Infection) %>%
+  group_by(current_infection) %>%
   summarize(length(EH_ID))
   
 ```
@@ -185,16 +185,6 @@ sqrt(model$mse[which.min(model$mse)])
 ########### https://uc-r.github.io/random_forests
 RandomForest also allows us to use a validation set to measure predictive accuracy if we did not want to use the OOB samples. 
 
-```{r}
-
-rf_oob_comp <- randomForest(
-  formula = max_WL ~ .,
-  data    = train.data,
-  xtest   = test.data,
-  ytest   = test.data$max_WL
-)
-
-```
 
 
 Tutorial: https://hackernoon.com/random-forest-regression-in-r-code-and-interpretation
@@ -212,7 +202,7 @@ Tweak the algorithm (e.g. change the ntree value)
 Use a different machine learning algorithm
 If any of these reduces the RMSE significantly, you have succeeded in improving your model!
 
-```{r}
+```{r include = FALSE, message = FALSE, echo = FALSE}
 ### Visualize variable importance ----------------------------------------------
 
 #Call importance() function on the model model to check how the attributes used as predictors affect our model
@@ -228,17 +218,17 @@ varImpPlot(model)
 ImpData <- as.data.frame(importance(model))
 ImpData$Var.Names <- row.names(ImpData)
 
-ggplot(ImpData, aes(x=Var.Names, y=`%IncMSE`)) +
-  geom_segment( aes(x=Var.Names, xend=Var.Names, y=0, yend=`%IncMSE`), color="skyblue") +
-  geom_point(aes(size = IncNodePurity), color="blue", alpha=0.6) +
-  theme_light() +
-  coord_flip() +
-  theme(
-    legend.position="bottom",
-    panel.grid.major.y = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.y = element_blank()
-  )
+#ggplot(ImpData, aes(x=Var.Names, y=`%IncMSE`)) +
+ # geom_segment( aes(x=Var.Names, xend=Var.Names, y=0, yend=`%IncMSE`), color="skyblue") +
+  #geom_point(aes(size = IncNodePurity), color="blue", alpha=0.6) +
+  #theme_light() +
+  #coord_flip() +
+  #theme(
+   ## legend.position="bottom",
+    #panel.grid.major.y = element_blank(),
+    #panel.border = element_blank(),
+    #axis.ticks.y = element_blank()
+  #)
 ```
 
 
@@ -271,7 +261,7 @@ result <- cbind(g[row.names(result), ], predictions)
 ```{r prediction_scatter}
 result   %>%
   ggplot() +
-  geom_point(aes(x = predictions, y = max_WL, color = Parasite_challenge)) +
+  geom_point(aes(x = predictions, y = max_WL, color = Parasite_challenge, size = delta)) +
   geom_abline() +
   labs(x = "Predictions: Maximum weight loss ", y = "Observed: Maximum weight loss",
          title = "Predicting tolerance, Weight loss in response to immune gene expression") +
@@ -279,13 +269,275 @@ result   %>%
   
 ```
 
+#### Predicting eimeria species according to gene expression
+```{r}
+g$current_infection <- as.factor(g$current_infection)
 
-```{r correlations}
-#How well correlated are our results and predictions?
-cor(x = result$predictions, y = result$max_WL)
+#now select the genes and the actual infection of the mice in the new mutate column
+#infection
+g.2 <- g %>% 
+    dplyr::select(c(current_infection, delta, all_of(Genes)))
+
+# to get reproducible results we use a seed
+set.seed(42)
+# We want the current infection to be predicted by the data ina ll of the other columns
+# iter = how many random forests are needed, in theory 6 are enough
+
+
+#now we can impute our data
+g.imputed_parasite <- rfImpute(current_infection ~ ., data = g.2, iter = 6)
+
+g.imputed_parasite <- g.imputed_parasite %>% dplyr::select(- current_infection)
+
+g_minus <- g %>% dplyr::select(-c((all_of(Genes)), delta))
+
+#full data set containing the imputed gene expression data
+g.imputed_parasite <- cbind(g_minus, g.imputed_parasite)
+
+
+```
+
+#### Now split the data again into training and testing
+```{r splitting_data}
+
+g.imputed_parasite$current_infection <- as.factor(g.imputed_parasite$current_infection)
+
+#select the relevant columns:
+g.imputed_parasite <- g.imputed_parasite %>%
+  dplyr::select(c(current_infection, delta, all_of(Genes)))
+
+# split data into training and test
+set.seed(123) # this will help us reproduce this random assignment
+# in this way we can pick the random numbers
+training.samples_parasite <- g.imputed_parasite$current_infection%>%
+  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
+                      list = FALSE) # we don't want to get a list in return
+train.data_parasite <- g.imputed_parasite[training.samples, ] #include all the randomly selected rows
+test.data_parasite <- g.imputed_parasite[-training.samples, ] 
+```
+
+#### Building the model
+
+```{r random_forest}
+#train the model
+model_Parasite <- randomForest(current_infection ~., data = train.data_parasite, proximity = TRUE,
+                      ntree = 1500) # number of trees
+                      
+print(model_Parasite)
+```
+OOB = 46.43, this means that only 53 % of our predictions are accurate
+
+
+
+```{r}
+plot(model_Parasite)
+```
+
+#### Test the model
+
+
+#### Making predictions
+
+
+```{r predictións}
+#The predict() function in R is used to predict the values based on the input data.
+predictions_parasite <- predict(model_Parasite, test.data_parasite)
+# assign test.data to a new object, so that we can make changes
+result_parasite <- test.data_parasite
+#add the new variable of predictions to the result object
+result_parasite <- cbind(result_parasite, predictions_parasite)
+#add the results to a data frame containing test data and the prediction
+result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
 ```
 
 
 
+
+#### Visualizations
+
+
+
+```{r prediction_scatter}
+result_parasite   %>%
+  ggplot() +
+  geom_point(aes(x = predictions_parasite, y = current_infection, color = current_infection)) +
+  geom_abline() +
+  labs(x = "Predictions: current infection ", y = "Observed: current infection",
+         title = "Predicting current infection in response to immune gene expression") +
+    theme_bw()
+  
+```
+
+############################# same but for parasite challenge instead of current infection
+#### Predicting eimeria species according to gene expression
+```{r}
+g$Parasite_challenge <- as.factor(g$Parasite_challenge)
+
+#now select the genes and the actual infection of the mice in the new mutate column
+#infection
+g.2 <- g %>% 
+    dplyr::select(c(Parasite_challenge, delta, all_of(Genes)))
+
+# to get reproducible results we use a seed
+set.seed(42)
+# We want the current infection to be predicted by the data ina ll of the other columns
+# iter = how many random forests are needed, in theory 6 are enough
+
+
+#now we can impute our data
+g.imputed_parasite <- rfImpute(Parasite_challenge ~ ., data = g.2, iter = 6)
+
+g.imputed_parasite <- g.imputed_parasite %>% dplyr::select(- Parasite_challenge)
+
+g_minus <- g %>% dplyr::select(-c((all_of(Genes)), delta))
+
+#full data set containing the imputed gene expression data
+g.imputed_parasite <- cbind(g_minus, g.imputed_parasite)
+
+
+```
+
+#### Now split the data again into training and testing
+```{r splitting_data}
+
+g.imputed_parasite$Parasite_challenge <- as.factor(g.imputed_parasite$Parasite_challenge)
+
+#select the relevant columns:
+g.imputed_parasite <- g.imputed_parasite %>%
+  dplyr::select(c(Parasite_challenge, delta, all_of(Genes)))
+
+# split data into training and test
+set.seed(123) # this will help us reproduce this random assignment
+# in this way we can pick the random numbers
+training.samples_parasite <- g.imputed_parasite$Parasite_challenge%>%
+  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
+                      list = FALSE) # we don't want to get a list in return
+train.data_parasite <- g.imputed_parasite[training.samples, ] #include all the randomly selected rows
+test.data_parasite <- g.imputed_parasite[-training.samples, ] 
+```
+
+#### Building the model
+
+```{r random_forest}
+#train the model
+model_Parasite <- randomForest(Parasite_challenge ~., data = train.data_parasite, proximity = TRUE,
+                      ntree = 1500) # number of trees
+                      
+print(model_Parasite)
+```
+OOB = 46.43, this means that only 53 % of our predictions are accurate
+
+
+
+```{r}
+plot(model_Parasite)
+```
+
+#### Test the model
+
+
+#### Making predictions
+
+
+```{r predictións}
+#The predict() function in R is used to predict the values based on the input data.
+predictions_parasite <- predict(model_Parasite, test.data_parasite)
+# assign test.data to a new object, so that we can make changes
+result_parasite <- test.data_parasite
+#add the new variable of predictions to the result object
+result_parasite <- cbind(result_parasite, predictions_parasite)
+#add the results to a data frame containing test data and the prediction
+result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
+```
+
+
+
+
+#### Visualizations
+
+
+
+```{r prediction_scatter}
+result_parasite   %>%
+  ggplot() +
+  geom_point(aes(x = predictions_parasite, y = Parasite_challenge, color = Parasite_challenge)) +
+  geom_abline() +
+  labs(x = "Predictions: current infection ", y = "Observed: current infection",
+         title = "Predicting current infection in response to immune gene expression") +
+    theme_bw()
+  
+```
+
+## Field data
+
+#### Importing field data
+
+```{r import_field, message = FALSE, echo = FALSE}
+setwd("~/GitHub/Mouse_Eimeria_Field/")
+Field <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/master/data_products/SOTA_Data_Product.csv")
+```
+
+#### Summary statistics for the field data
+
+```{r summary_stats_field}
+Field %>% summarise(length(Mouse_ID))
+```
+We have 1921 mice in total.
+
+
+
+```{r genes}
+EqPCR.cols      <- c("delta_ct_cewe_MminusE", "MC.Eimeria", "Ct.Eimeria") #,"Ct.Mus""delta_ct_ilwe_MminusE", )
+
+EimGeno.cols    <- c("n18S_Seq", "COI_Seq", "ORF470_Seq", "eimeriaSpecies")
+
+Gene.Exp.cols   <- c("IFNy",  "CXCR3", "IL.6", #"GBP2", "IL.12", "IRG6",
+                     "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN",
+                     "CXCR3", "CASP1", "CXCL9", 
+                     "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
+                     "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+
+House.Keeping.cols <- c("GAPDH", "PPIB", "B.actin", "B-actin")
+```
+
+```{r}
+# remove columns with only NAs 
+genes <- Field %>% 
+  dplyr::select(Gene.Exp.cols)
+
+genes <- genes[rowSums(is.na(genes)) == 0, ]
+
+ r <- Filter(function(x)!all(is.na(x)), Field[ , all_of(Gene.Exp.cols)]) 
+
+#genes <- Field[ , all_of(Gene.Exp.cols)]
+
+ # remove columns with only NAs 
+# genes <- Filter(function(x)!all(is.na(x)), genes) 
+ 
+# filter all columns with only nas
+#genes <- genes[, colSums(is.na(genes)) != nrow(genes)]
+
+
+#r <- filter(Field, rowSums((Field[ , all_of(Gene.Exp.cols)]) != "NA")
+```
+
+#### Ditch the previous step, let's now try a weird imputation of all the data
+
+```{r impute_field}
+#Start by selecting only the genes 
+
+# to get reproducible results we use a seed
+set.seed(42)
+
+
+# iter = how many random forests are needed, in theory 6 are enough
+f.imputed <- rfImpute(max_WL ~ ., data = g.1, iter = 6)
+g.imputed <- g.imputed %>% dplyr::select(-max_WL)
+g <- g %>% 
+  dplyr::select(-all_of(Genes)) 
+#full data set containing the imputed gene expression data
+g.imputed <- cbind(g, g.imputed)
+
+```
 
 
