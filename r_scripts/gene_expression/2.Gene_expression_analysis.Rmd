@@ -353,20 +353,7 @@ result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
 
 
 
-#### Visualizations
 
-
-
-```{r prediction_scatter}
-result_parasite   %>%
-  ggplot() +
-  geom_point(aes(x = predictions_parasite, y = current_infection, color = current_infection)) +
-  geom_abline() +
-  labs(x = "Predictions: current infection ", y = "Observed: current infection",
-         title = "Predicting current infection in response to immune gene expression") +
-    theme_bw()
-  
-```
 
 ############################# same but for parasite challenge instead of current infection
 #### Predicting eimeria species according to gene expression
@@ -404,7 +391,7 @@ g.imputed_parasite$Parasite_challenge <- as.factor(g.imputed_parasite$Parasite_c
 
 #select the relevant columns:
 g.imputed_parasite <- g.imputed_parasite %>%
-  dplyr::select(c(Parasite_challenge, delta, all_of(Genes)))
+  dplyr::select(c(Parasite_challenge, all_of(Genes)))
 
 # split data into training and test
 set.seed(123) # this will help us reproduce this random assignment
@@ -458,14 +445,28 @@ result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
 
 
 ```{r prediction_scatter}
-result_parasite   %>%
-  ggplot() +
-  geom_point(aes(x = predictions_parasite, y = Parasite_challenge, color = Parasite_challenge)) +
-  geom_abline() +
-  labs(x = "Predictions: current infection ", y = "Observed: current infection",
-         title = "Predicting current infection in response to immune gene expression") +
-    theme_bw()
-  
+
+conf_matrix_parasite <- confusionMatrix(result_parasite$predictions_parasite, reference = result_parasite$Parasite_challenge)
+
+print(conf_matrix_parasite)
+
+conf_matrix_parasite$table
+
+plt <- as.data.frame(conf_matrix_parasite$table)
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+
+ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="forestgreen") +
+        labs(x = "Predictions",y = "Reference") 
+
+```
+
+
+```{r}
+train.data_parasite %>% 
+  group_by(Parasite_challenge) %>%
+  summarize(length(Parasite_challenge))
 ```
 
 ## Field data
@@ -501,26 +502,22 @@ House.Keeping.cols <- c("GAPDH", "PPIB", "B.actin", "B-actin")
 ```
 
 ```{r}
-# remove columns with only NAs 
-genes <- Field %>% 
-  dplyr::select(Gene.Exp.cols)
+#which are the numbers of the columns of Field
+names <- data.frame(colnames(Field))
+
+f <- Field[ , c(76:78, 80:97)]
 
 #how many nas in each column
-sapply(genes, function(x) sum(is.na(x)))
+sapply(f, function(x) sum(is.na(x)))
 
 #remove rows with only nas
-genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
+f <- f[rowSums(is.na(f)) != ncol(f), ]
 
-#add this to the bid data frame 
+Field <- Field %>% 
+  dplyr::select(-c(76:78, 80:97))
 
-Field %>% 
-  dplyr::select(all_of(Gene.Exp.cols)) %>%
-  [rowSums(is.na(Field %>% 
-  dplyr::select(all_of(Gene.Exp.cols)))) != ncol(Field %>% 
-  dplyr::select(all_of(Gene.Exp.cols))), ]
-  
-
-Field[ , Gene.Exp.cols] <- [rowSums(is.na(Field[ , Gene.Exp.cols])) != ncol(Field[ , Gene.Exp.cols]), ]
+#merge the data frame to keep only the selected rows
+f <- merge(Field, f, by = "row.names") 
 
 ```
 
@@ -538,6 +535,13 @@ f.imputed <- rfImpute(max_WL ~ ., data = g.1, iter = 6)
 g.imputed <- g.imputed %>% dplyr::select(-max_WL)
 g <- g %>% 
   dplyr::select(-all_of(Genes)) 
+
+
+
+#use the package mice to impute the data!!!!!!!!!!!!!!!!!!!!
+
+
+
 #full data set containing the imputed gene expression data
 g.imputed <- cbind(g, g.imputed)
 
