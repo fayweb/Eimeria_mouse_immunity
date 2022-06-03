@@ -505,20 +505,23 @@ House.Keeping.cols <- c("GAPDH", "PPIB", "B.actin", "B-actin")
 genes <- Field %>% 
   dplyr::select(Gene.Exp.cols)
 
-genes <- genes[rowSums(is.na(genes)) == 0, ]
+#how many nas in each column
+sapply(genes, function(x) sum(is.na(x)))
 
- r <- Filter(function(x)!all(is.na(x)), Field[ , all_of(Gene.Exp.cols)]) 
+#remove rows with only nas
+genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
 
-#genes <- Field[ , all_of(Gene.Exp.cols)]
+#add this to the bid data frame 
 
- # remove columns with only NAs 
-# genes <- Filter(function(x)!all(is.na(x)), genes) 
- 
-# filter all columns with only nas
-#genes <- genes[, colSums(is.na(genes)) != nrow(genes)]
+Field %>% 
+  dplyr::select(all_of(Gene.Exp.cols)) %>%
+  [rowSums(is.na(Field %>% 
+  dplyr::select(all_of(Gene.Exp.cols)))) != ncol(Field %>% 
+  dplyr::select(all_of(Gene.Exp.cols))), ]
+  
 
+Field[ , Gene.Exp.cols] <- [rowSums(is.na(Field[ , Gene.Exp.cols])) != ncol(Field[ , Gene.Exp.cols]), ]
 
-#r <- filter(Field, rowSums((Field[ , all_of(Gene.Exp.cols)]) != "NA")
 ```
 
 #### Ditch the previous step, let's now try a weird imputation of all the data
