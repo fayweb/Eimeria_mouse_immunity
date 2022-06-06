@@ -134,7 +134,8 @@ Splitting between training and testing:
 ```{r splitting_data}
 #select the relevant columns:
 g.imputed <- g.imputed %>%
-  dplyr::select(c(max_WL, all_of(Genes)))
+  dplyr::select(c(max_WL, all_of(Genes))) %>%
+  dplyr::select(- CXCR3_bio)
 
 # split data into training and test
 
@@ -358,7 +359,9 @@ result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
 
 
 ############################# same but for parasite challenge instead of current infection
+
 #### Predicting eimeria species according to gene expression
+
 ```{r}
 g$Parasite_challenge <- as.factor(g$Parasite_challenge)
 
@@ -746,5 +749,41 @@ Another useful visual take on the distributions can be obtained using the stripp
 stripplot(igf, pch = 20, cex = 1.2)
 ```
 
+#### Applying the model for predicting weight loss to our imputed data set
 
+Start by making the predictions for the field data. 
+
+
+```{r predictións}
+# Start by selecting the columns that appear in both the training data set and the 
+# field data set
+completeField <- completeField %>%
+  dplyr::select(intersect(colnames(completeField), colnames(train.data)))
+
+
+#The predict() function in R is used to predict the values based on the input data.
+predictions_field <- predict(model, completeField)
+
+# assign test.data to a new object, so that we can make changes
+result_field <- completeField
+
+#add the new variable of predictions to the result object
+result_field <- cbind(result_field, predictions_field)
+
+#add the results to a data frame containing test data and the prediction
+result_field <- cbind(f[row.names(result_field), ], predictions_field)
+```
+
+
+#### It is time to apply the package of Alice Balard et al. on our predictions!
+
+
+Let's see if we indeed have differences across the hybrid index with our predicted 
+weight loss. 
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+require(devtools)
+
+devtools::install_github("alicebalard/parasiteLoad", force = TRUE)
+```
 
