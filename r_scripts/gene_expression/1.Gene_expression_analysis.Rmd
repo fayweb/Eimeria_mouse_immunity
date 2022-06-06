@@ -664,6 +664,28 @@ AIC(weight_lm2)
 ```
 
 
+Try instead: 
+LLR test (likelihood ration)  (LM4 package )? 
+
+https://www.rdocumentation.org/packages/lmtest/versions/0.9-38/topics/lrtest
+
+In this way you compare each model, with the different variables usesd to predict. 
+
+Another way is to compare the AIC. (function : step)
+
+```{r}
+install.packages("lmtest")
+library(lmtest)
+
+weight_lm3 <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = imputed_expr)
+weight_no_pc1 <- lm(max_WL ~ pc2 + hybrid_status, data = imputed_expr)
+weight_no_pc2 <- lm(max_WL ~ pc1  + hybrid_status, data = imputed_expr)
+weight_no_hybrid <- lm(max_WL ~ pc1 + pc2, data = imputed_expr)
+lrtest(weight_lm3, weight_no_pc1)
+lrtest(weight_lm3, weight_no_pc2)
+lrtest(weight_lm3, weight_no_hybrid)
+```
+
 
 ```{r lm_pc_hybrid, echo = FALSE}
 weight_lm3 <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = imputed_expr)

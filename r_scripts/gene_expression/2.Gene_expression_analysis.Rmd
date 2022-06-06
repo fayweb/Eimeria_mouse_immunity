@@ -43,7 +43,7 @@ Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1
 #### Data cleaning
 
 ```{r cleaning}
-# we need to change the Parasite in challenge infections to a factor
+# we need to change the  in challenge infections to a factor
 g$Parasite_challenge <- as.factor(g$Parasite_challenge)
 g$Eim_MC <- as.factor(g$Eim_MC)
 
@@ -391,7 +391,13 @@ g.imputed_parasite$Parasite_challenge <- as.factor(g.imputed_parasite$Parasite_c
 
 #select the relevant columns:
 g.imputed_parasite <- g.imputed_parasite %>%
-  dplyr::select(c(Parasite_challenge, all_of(Genes)))
+  dplyr::select(c(Parasite_challenge, Eim_MC, all_of(Genes)))
+
+# to use in the next model
+parasite_data <- g.imputed_parasite
+
+g.imputed_parasite <- g.imputed_parasite %>% 
+  dplyr::select(-Eim_MC)
 
 # split data into training and test
 set.seed(123) # this will help us reproduce this random assignment
@@ -469,6 +475,77 @@ train.data_parasite %>%
   summarize(length(Parasite_challenge))
 ```
 
+################################### Repeat the previous model, this time testing for
+infected with Eimeria or not. #######################################################
+
+```{r melting-curve - model}
+
+# to use in the next model
+parasite_data <- parasite_data %>%
+  dplyr::select(-Parasite_challenge)
+
+
+# split data into training and test
+set.seed(123) # this will help us reproduce this random assignment
+# in this way we can pick the random numbers
+training.samples_melting <- parasite_data$Eim_MC%>%
+  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
+                      list = FALSE) # we don't want to get a list in return
+train.data_melting <- parasite_data[training.samples, ] #include all the randomly selected rows
+test.data_melting <- parasite_data[-training.samples, ] 
+```
+
+
+
+#### Building the model
+
+```{r random_forest}
+#train the model
+model_melting <- randomForest(Eim_MC ~., data = train.data_melting, proximity = TRUE,
+                      ntree = 1500) # number of trees
+                      
+print(model_melting)
+```
+
+#### Test the model
+
+
+#### Making predictions
+
+
+```{r predictións}
+#The predict() function in R is used to predict the values based on the input data.
+predictions_melting <- predict(model_melting, test.data_melting)
+# assign test.data to a new object, so that we can make changes
+result_melting <- test.data_melting
+#add the new variable of predictions to the result object
+result_melting <- cbind(result_melting, predictions_melting)
+#add the results to a data frame containing test data and the prediction
+result_melting <- cbind(g[row.names(result_melting), ], predictions_melting)
+```
+
+
+
+
+
+```{r prediction_scatter}
+
+conf_matrix_melting <- confusionMatrix(result_melting$predictions_melting, reference = result_melting$Eim_MC)
+
+print(conf_matrix_melting)
+
+conf_matrix_melting$table
+
+plt <- as.data.frame(conf_matrix_melting$table)
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+
+ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="forestgreen") +
+        labs(x = "Predictions",y = "Reference") 
+
+```
+
 ## Field data
 
 #### Importing field data
@@ -520,6 +597,55 @@ Field <- Field %>%
 f <- merge(Field, f, by = "row.names") 
 
 ```
+
+###################### Imputing missing data ###################################
+
+For the lab data I have used the function rfimpute from the package random forest. 
+I can't use the same function for our lab data as the function requires the data 
+set to contain predictor variable and response variables. 
+
+Therefore I will be using the package MICE (multivariate Imputation by chained 
+Equations) which only requires a data frame of missing observations.
+
+Description: *Multiple imputation using Fully Conditional Specification (FCS)*
+
+implemented by the MICE algorithm as described in Van Buuren and
+Groothuis-Oudshoorn (2011) <doi:10.18637/jss.v045.i03>. Each variable has
+its own imputation model. Built-in imputation models are provided for
+continuous data (predictive mean matching, normal), binary data (logistic
+regression), unordered categorical data (polytomous logistic regression)
+and ordered categorical data (proportional odds). MICE can also impute
+continuous two-level data (normal model, pan, second-level variables).
+Passive imputation can be used to maintain consistency between variables.
+Various diagnostic plots are available to inspect the quality of the
+imputations.
+
+https://www.jstatsoft.org/article/view/v045i03
+
+Missing data can be classified into three categories:
+1. Missing completely at random (MCAR)
+2. Missing at Random (MAR)
+3. Missing NOT at random (MNAR)
+
+
+MCAR implies the reason for the missingness of a field is completely random, and that we probably can't predict that value from any other value in the data. 
+
+
+
+
+
+
+```{r impute_missing}
+library(missForest)
+library(mice)
+
+
+
+
+```
+
+
+
 
 #### Ditch the previous step, let's now try a weird imputation of all the data
 
