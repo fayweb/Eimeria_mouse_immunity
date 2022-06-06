@@ -560,9 +560,15 @@ ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
 #### Importing field data
 
 ```{r import_field, message = FALSE, echo = FALSE}
-setwd("~/GitHub/Mouse_Eimeria_Field/")
-Field <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/master/data_products/SOTA_Data_Product.csv")
+
+Field <- read.csv("data_products/SOTA_Data_Product.csv")
 ```
+
+```{r}
+Field <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/master/data_products/SOTA_Data_Product.csv")
+
+```
+
 
 #### Summary statistics for the field data
 
