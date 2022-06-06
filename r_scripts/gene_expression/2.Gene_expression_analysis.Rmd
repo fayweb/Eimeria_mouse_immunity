@@ -622,26 +622,39 @@ imputations.
 
 https://www.jstatsoft.org/article/view/v045i03
 
-Missing data can be classified into three categories:
-1. Missing completely at random (MCAR)
-2. Missing at Random (MAR)
-3. Missing NOT at random (MNAR)
+tutorial: https://www.youtube.com/watch?v=WPiYOS3qK70
+
+https://datascienceplus.com/handling-missing-data-with-mice-package-a-simple-approach/
+
+### Missing data can be classified into three categories:
+#### 1. Missing completely at random (MCAR)
+  
+  We can't probably predict that value from any other value in the data. MCAR implies the reason for the missingness of a field is completely random, and that we probably can't predict that value from any other value in the data. 
+  
+#### 2. Missing at Random (MAR)
+
+  Missingess can be explained by other values in other columns, but not from that 
+  column.
+  
+#### 3. Missing NOT at random (MNAR)
 
 
-MCAR implies the reason for the missingness of a field is completely random, and that we probably can't predict that value from any other value in the data. 
-
-
-
+The basic MICE assumption is that the data is missing at random, and that we can make a guess about its true value by looking at other data samples.
 
 
 
 ```{r impute_missing}
-library(missForest)
 library(mice)
 
+f <- f %>% dplyr::select(-"Row.names")
 
+#turn the eimeria species into logical
+f$eimeriaSpecies <- as.factor(f$eimeriaSpecies)
 
+# check the data for missing values
+sapply(f, function(x) sum(is.na(x)))
 
+init <- mice(f, maxit = 0)
 ```
 
 
