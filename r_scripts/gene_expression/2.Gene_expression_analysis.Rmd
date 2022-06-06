@@ -20,6 +20,8 @@ library(cowplot)
 library(randomForest)
 library(ggplot2)
 library(caret)
+library(VIM) # visualizing missing data
+library(mice) # imputing missing data without predictors
 ```
 
 
@@ -624,7 +626,12 @@ https://www.jstatsoft.org/article/view/v045i03
 
 tutorial: https://www.youtube.com/watch?v=WPiYOS3qK70
 
+https://datascienceplus.com/imputing-missing-data-with-r-mice-package/
+
+
 https://datascienceplus.com/handling-missing-data-with-mice-package-a-simple-approach/
+
+
 
 ### Missing data can be classified into three categories:
 #### 1. Missing completely at random (MCAR)
@@ -643,47 +650,101 @@ The basic MICE assumption is that the data is missing at random, and that we can
 
 
 
+#### Let's start by cleaning and checking the missing data points in our field data. 
+
 ```{r impute_missing}
 library(mice)
 
 f <- f %>% dplyr::select(-"Row.names")
 
+
 #turn the eimeria species into logical
 f$eimeriaSpecies <- as.factor(f$eimeriaSpecies)
 
+field_genes <- f %>% 
+  dplyr::select(Gene.Exp.cols)
+
 # check the data for missing values
-sapply(f, function(x) sum(is.na(x)))
+sapply(field_genes, function(x) sum(is.na(x)))
 
-init <- mice(f, maxit = 0)
+field_genes %>%
+  aggr(col = c('navyblue', 'red'), numbers = TRUE, sortVars = TRUE, labels=names(field_genes), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+       
+       
+marginplot(field_genes[c(1,2)])
+
+```
+
+
+#### Now let's coninue by ussing the package MICE to impute the data
+
+```{r imputing_mice}
+
+# The frequency distribution of the missing cases per variable can be obtained as:
+init <- mice(field_genes, maxit = 0)
+
+# table of amount of variables with the amount of missing values 
+table(init$nmis)
+
+# which method is used for imputation? In this case the package mice 
+# uses the default method for continuous variable, 
+# which is pmm, or predictive mean matching
+
+meth <- init$method
+
+
+# now impute the immune gene expression for the field and save it as the oject: 
+# igf
+# m=5 refers to the number of imputed datasets. Five is the default value.
+igf <- mice(field_genes, method = meth, m = 5, seed = 500)
+summary(igf)
+
+# to check each column with imputed data
+## igf$imp$IFNy
+
+#Now we can get back the completed dataset using the complete()
+completeField <- complete(igf, 1)
+
+```
+
+Predictive mean matching with \(d = 5\) is the default in mice() for continuous data. The method is robust against misspecification of the imputation model, yet performs as well as theoretically superior methods. In the context of missing covariate data, Marshall, Altman, and Holder (2010) concluded that predictive mean matching “produced the least biased estimates and better model performance measures.” Another simulation study that addressed skewed data concluded that predictive mean matching “may be the preferred approach provided that less than 50% of the cases have missing data and the missing data are not MNAR” (Marshall et al. 2010). Kleinke (2017) found that the method works well across a wide variety of scenarios, but warned the default cannot address severe skewness or small samples.
+
+
+
+
+Let’s compare the distributions of original and imputed data using a some useful plots.
+First of all we can use a scatterplot and plot Ozone against all the other variables
+Let's first plot the variables for which we have few missing values
+```{r distr_orig_pred}
+
+xyplot(igf,IFNy ~ SOCS1 + IRGM1 + MUC2, pch=18,cex=1)
+```
+
+
+What we would like to see is that the shape of the magenta points (imputed) matches the shape of the blue ones (observed). The matching shape tells us that the imputed values are indeed “plausible values”.
+
+Now let's plot the variables with many missing data points.
+
+
+```{r distr_orig_pred2}
+
+xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
 ```
 
 
 
-
-#### Ditch the previous step, let's now try a weird imputation of all the data
-
-```{r impute_field}
-#Start by selecting only the genes 
-
-# to get reproducible results we use a seed
-set.seed(42)
-
-
-# iter = how many random forests are needed, in theory 6 are enough
-f.imputed <- rfImpute(max_WL ~ ., data = g.1, iter = 6)
-g.imputed <- g.imputed %>% dplyr::select(-max_WL)
-g <- g %>% 
-  dplyr::select(-all_of(Genes)) 
-
-
-
-#use the package mice to impute the data!!!!!!!!!!!!!!!!!!!!
-
-
-
-#full data set containing the imputed gene expression data
-g.imputed <- cbind(g, g.imputed)
-
+```{r densityplotfield}
+densityplot(igf)
 ```
+
+The density of the imputed data for each imputed dataset is showed in magenta while the density of the observed data is showed in blue. Again, under our previous assumptions we expect the distributions to be similar.
+
+Another useful visual take on the distributions can be obtained using the stripplot() function that shows the distributions of the variables as individual points
+
+
+```{r strirrplot}
+stripplot(igf, pch = 20, cex = 1.2)
+```
+
 
 
