@@ -22,6 +22,7 @@ library(ggplot2)
 library(caret)
 library(VIM) # visualizing missing data
 library(mice) # imputing missing data without predictors
+library(ggpubr)
 ```
 
 
@@ -783,9 +784,7 @@ result_field <- cbind(result_field, predictions_field)
 f <- f %>% 
   dplyr::select(-intersect(colnames(result_field), colnames(f)))
 
-result_field <- cbind(f, result_field)
-
-#result_field <- cbind(f[row.names(result_field), ], predictions_field)
+result_field2 <- cbind(f, result_field)
 ```
 
 
@@ -799,6 +798,8 @@ weight loss.
 require(devtools)
 
 devtools::install_github("alicebalard/parasiteLoad", force = TRUE)
+
+library(parasiteLoad)
 ```
 
 #### Check the distribution 
@@ -812,33 +813,74 @@ result_field %>% ggplot(aes(x = predictions_field)) +
 ```
 Fitting distributions??
 
+```{r}
+library(fitdistrplus)
+library(logspline)
+
+descdisst(data = result_field, discrete = FALSE)
+
+```
+
+
 
 ```{r}
+
+result_field <- cbind(result_field, result_field2$HI)
+result_field <- cbind(result_field, result_field2$Sex)
+
+result_field <- result_field %>%
+  dplyr::rename(HI = 'result_field2$HI', Sex = 'result_field2$Sex')
+
+glimpse(result_field)
+
+
+result_field$Sex <- as.factor(result_field$Sex)
+
 # improve paramBounds
-speparam <- c(L1start = 0,
-              L1LB = -20,
-              L1UB = 20,
-              L2start = 0,
-              L2LB = -20,
-              L2UB = 20,
-              alphaStart = 0, alphaLB = -100, alphaUB = 100,
-              mysdStart = 1, mysdLB = 1.e-9, mysdUB = 1000)
+ speparam <- c(L1start = mean(stats::na.omit(result_field[["predictions_field"]])),
+                     L1LB = min(stats::na.omit(result_field[["predictions_field"]])),
+                     L1UB = max(stats::na.omit(result_field[["predictions_field"]])),
+                     L2start = mean(stats::na.omit(result_field[["predictions_field"]])),
+                     L2LB = min(stats::na.omit(result_field[["predictions_field"]])),
+                     L2UB = max(stats::na.omit(result_field[["predictions_field"]])),
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     mysdStart = 1, mysdLB = 1e-9, mysdUB = 10)
+
+
+ speparam <- speparam <- c(L1start = -16,
+              L1LB = -16,
+              L1UB = -6,
+              L2start = -11,
+              L2LB = -16,
+              L2UB = -6,
+              alphaStart = 0, alphaLB = -5, alphaUB = 5,
+              mysdStart = 1, mysdLB = 1.e-9, mysdUB = 10.000000000)
+
+
 
 min(stats::na.omit(result_field[["predictions_field"]]))
 hist(result_field[["predictions_field"]])
 
-result_field$Sex <- as.factor(result_field$Sex)
+speparam <- c(L1start = -12,
+              L1LB = -20,
+              L1UB = -10,
+              L2start = -15,
+              L2LB = -20,
+              L2UB = -10,
+              alphaStart = 0, alphaLB = -100, alphaUB = 100,
+              mysdStart = 1, mysdLB = 0.000000001 , mysdUB = 10.000000000)
 
 
 glimpse(result_field)
+summary(result_field)
+
 
 ##All
 fitWL_eimeria <-
   parasiteLoad::analyse(data = result_field,
                         response = "predictions_field",
-                        model = "normal",
+                        model = c,
                         group = "Sex",
-                        hybridIndex = "HI",
                         myparamBounds = "speparam")
 
 
