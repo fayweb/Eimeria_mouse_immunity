@@ -73,6 +73,8 @@ g <- g %>%
 # create variable maximum weight loss instead of maximum relative weight loss
 g <- g %>% dplyr::mutate(max_WL = max_WL - 100)
 
+summary(g)
+
 ```
 
 
@@ -559,10 +561,6 @@ ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
 
 #### Importing field data
 
-```{r import_field, message = FALSE, echo = FALSE}
-
-Field <- read.csv("data_products/SOTA_Data_Product.csv")
-```
 
 ```{r}
 Field <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/master/data_products/SOTA_Data_Product.csv")
@@ -782,6 +780,11 @@ result_field <- completeField
 result_field <- cbind(result_field, predictions_field)
 
 #add the results to a data frame containing test data and the prediction
+f <- f %>% 
+  dplyr::select(-intersect(colnames(result_field), colnames(f)))
+
+result_field <- cbind(f, result_field)
+
 #result_field <- cbind(f[row.names(result_field), ], predictions_field)
 ```
 
@@ -802,43 +805,12 @@ devtools::install_github("alicebalard/parasiteLoad", force = TRUE)
 
 ```{r}
 result_field %>% ggplot(aes(x = predictions_field)) +
-  geom_histogram()
+  geom_histogram(binwidth = 1.5)
+
+
+
 ```
-
-
-```{r}
-
-
-# The density plot and the CDF plot may be considered as the basic classical 
-# goodness-of-fits plots. The Q-Q plot emphasizes the lack-of-fit at the 
-# distribution tails while the P-P plot emphasizes the lack-of-fit at the 
-# distribution center. The nbinom distribution could be prefered for its better
-# description of the tail of the empirical distribution.#
-
-
-result_field
-x <- result_field
-x <- x[x>0]
-hist(x, breaks = 100)
-descdist(x)
-findGoodDist(x, distribs = c("normal", "negative binomial", "poisson"), 
-             distribs2 = c("norm", "nbinom", "pois"))
-
-x <- qpcrdata$`delta_ct_max_MminusE+5`
-x <- x[x>0]
-hist(x, breaks = 100)
-descdist(x)
-findGoodDist(x, distribs = c("normal", "t", "weibull"), 
-             distribs2 = c("norm", "t", "weibull"))
-© 2022 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
-```
-
-
-
+Fitting distributions??
 
 
 ```{r}
@@ -851,22 +823,28 @@ speparam <- c(L1start = 0,
               L2UB = 20,
               alphaStart = 0, alphaLB = -100, alphaUB = 100,
               mysdStart = 1, mysdLB = 1.e-9, mysdUB = 1000)
-min(stats::na.omit(body_data_eimeria[["residuals"]]))
-hist(body_data_eimeria[["residuals"]])
+
+min(stats::na.omit(result_field[["predictions_field"]]))
+hist(result_field[["predictions_field"]])
+
+result_field$Sex <- as.factor(result_field$Sex)
 
 
-# change the variable sex into a factor
-result_field <- as.factor(result_field$Sex)
+glimpse(result_field)
 
 ##All
-fitResiduals_eimeria <-
+fitWL_eimeria <-
   parasiteLoad::analyse(data = result_field,
                         response = "predictions_field",
-                        model = "",
-                        group = "sex")
+                        model = "normal",
+                        group = "Sex",
+                        hybridIndex = "HI",
+                        myparamBounds = "speparam")
 
-#,
-                        myparamBounds = speparam)
+
+
+typeof(result_field$Sex)
+#                        
 
 ```
 
