@@ -23,6 +23,7 @@ library(caret)
 library(VIM) # visualizing missing data
 library(mice) # imputing missing data without predictors
 library(ggpubr)
+library(optimx)
 ```
 
 
@@ -74,7 +75,6 @@ g <- g %>%
 # create variable maximum weight loss instead of maximum relative weight loss
 g <- g %>% dplyr::mutate(max_WL = max_WL - 100)
 
-summary(g)
 
 ```
 
@@ -220,7 +220,7 @@ importance(model)
 
 model$mse
 ## S3 method for class 'randomForest'
-plot(model, type="l", main=deparse(substitute(x)))
+plot(model, type = "l", main=deparse(substitute(x)))
 
 varImpPlot(model)
 
@@ -784,7 +784,7 @@ result_field <- cbind(result_field, predictions_field)
 f <- f %>% 
   dplyr::select(-intersect(colnames(result_field), colnames(f)))
 
-result_field2 <- cbind(f, result_field)
+result_field <- cbind(f, result_field)
 ```
 
 
@@ -797,7 +797,9 @@ weight loss.
 ```{r, warning=FALSE, echo=FALSE, message=FALSE}
 require(devtools)
 
-devtools::install_github("alicebalard/parasiteLoad", force = TRUE)
+devtools::install_github("alicebalard/parasiteLoad@v2.0")
+
+#force = TRUE)
 
 library(parasiteLoad)
 ```
@@ -811,82 +813,183 @@ result_field %>% ggplot(aes(x = predictions_field)) +
 
 
 ```
+
+```{r}
+result_field %>%
+    ggplot(aes(x = HI , y = predictions_field , color = Sex)) +
+    geom_smooth() +
+    geom_point()
+
+
+result_field %>%
+    ggplot(aes(x = Body_Length , y = predictions_field , color = Sex)) +
+    geom_smooth() +
+    geom_point()
+```
+
+Nice to see that they are normally distributed. 
+
+
 Fitting distributions??
+
+Ratios / Percentages are not normally distributed. Weibull is a good distributions. 
+
+Alice used weibull for the qpcr data. (paper) 
 
 ```{r}
 library(fitdistrplus)
 library(logspline)
 
-descdisst(data = result_field, discrete = FALSE)
+result_field <- result_field %>%
+dplyr::mutate(WL = predictions_field * (-1))
+
+x <- result_field$WL
+
+descdist(data = x, discrete = FALSE)
+descdist(data = x, discrete = FALSE, #data is continuous
+         boot = 1000)
+
 
 ```
 
+Test for binomial distribution
+
+```{r}
+set.seed(10)
+n = 25
+size = 27
+prob = .4
+data = rbinom(x, size = size, prob = prob)
+fit = fitdist(data = data, dist="binom", 
+                   fix.arg=list(size = size), 
+                   start=list(prob = 0.1))
+
+summary(fit)
+
+
+plot(fit)
+```
 
 
 ```{r}
+normal_ <- fitdist(x, "norm")
+weibull_ <- fitdist(x, "weibull")
+gamma_ <- fitdist(x, "gamma")
+```
+```{r}
+library(fitdistrplus) # evaluate distribution
 
-result_field <- cbind(result_field, result_field2$HI)
-result_field <- cbind(result_field, result_field2$Sex)
+# Define function to be used to test, get the log lik and aic
+tryDistrib <- function(x, distrib){
+  # deals with fitdistr error:
+  fit <- tryCatch(MASS::fitdistr(x, distrib), error=function(err) "fit failed")
+  return(list(fit = fit,
+              loglik = tryCatch(fit$loglik, error=function(err) "no loglik computed"), 
+              AIC = tryCatch(fit$aic, error=function(err) "no aic computed")))
+}
 
-result_field <- result_field %>%
-  dplyr::rename(HI = 'result_field2$HI', Sex = 'result_field2$Sex')
 
-glimpse(result_field)
 
+findGoodDist <- function(x, distribs, distribs2){
+  l =lapply(distribs, function(i) tryDistrib(x, i))
+  names(l) <- distribs
+  print(l)
+  listDistr <- lapply(distribs2, function(i){
+    if (i %in% "t"){
+      fitdistrplus::fitdist(x, i, start = list(df =2))
+    } else {
+      fitdistrplus::fitdist(x,i)
+    }}
+  ) 
+  par(mfrow=c(2,2))
+  denscomp(listDistr, legendtext=distribs2)
+  cdfcomp(listDistr, legendtext=distribs2)
+  qqcomp(listDistr, legendtext=distribs2)
+  ppcomp(listDistr, legendtext=distribs2)
+  par(mfrow=c(1,1))
+}
+```
+
+```{r}
+tryDistrib(x, "normal")
+
+```
+
+```{r}
+tryDistrib(x, "binomial")
+```
+
+```{r}
+tryDistrib(x, "student")
+```
+```{r}
+tryDistrib(x, "negbin", warnings = FALSE, message = FALSE)
+```
+
+```{r}
+tryDistrib(x, "weibull")
+```
+
+```{r , warnings = FALSE, message = FALSE}
+tryDistrib(x, "weibullshifted")
+```
+```{r}
+findGoodDist(x, "normal", "weibull")
+```
+
+```{r normal}
+plot(normal_)
+summary(normal_)
+```
+```{r gamma_}
+plot(gamma_)
+summary(gamma_)
+```
+
+```{r weibull_}
+plot(weibull_)
+summary(weibull_)
+```
+
+
+
+
+
+```{r, include =FALSE, message = FALSE, warnings = FALSE}
 
 result_field$Sex <- as.factor(result_field$Sex)
 
-# improve paramBounds
- speparam <- c(L1start = mean(stats::na.omit(result_field[["predictions_field"]])),
-                     L1LB = min(stats::na.omit(result_field[["predictions_field"]])),
-                     L1UB = max(stats::na.omit(result_field[["predictions_field"]])),
-                     L2start = mean(stats::na.omit(result_field[["predictions_field"]])),
-                     L2LB = min(stats::na.omit(result_field[["predictions_field"]])),
-                     L2UB = max(stats::na.omit(result_field[["predictions_field"]])),
+result_field <- result_field %>%
+    drop_na(HI)
+
+parasiteLoad::getParamBounds("weibull", data = result_field, response = "WL")
+
+
+speparam <- c(L1start = 10,
+                     L1LB = 1e-9,
+                     L1UB = 20,
+                     L2start = 10,
+                     L2LB = 1e-9,
+                     L2UB = 20,
                      alphaStart = 0, alphaLB = -5, alphaUB = 5,
-                     mysdStart = 1, mysdLB = 1e-9, mysdUB = 10)
-
-
- speparam <- speparam <- c(L1start = -16,
-              L1LB = -16,
-              L1UB = -6,
-              L2start = -11,
-              L2LB = -16,
-              L2UB = -6,
-              alphaStart = 0, alphaLB = -5, alphaUB = 5,
-              mysdStart = 1, mysdLB = 1.e-9, mysdUB = 10.000000000)
-
-
-
-min(stats::na.omit(result_field[["predictions_field"]]))
-hist(result_field[["predictions_field"]])
-
-speparam <- c(L1start = -12,
-              L1LB = -20,
-              L1UB = -10,
-              L2start = -15,
-              L2LB = -20,
-              L2UB = -10,
-              alphaStart = 0, alphaLB = -100, alphaUB = 100,
-              mysdStart = 1, mysdLB = 0.000000001 , mysdUB = 10.000000000)
-
-
-glimpse(result_field)
-summary(result_field)
-
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
 
 ##All
-fitWL_eimeria <-
-  parasiteLoad::analyse(data = result_field,
-                        response = "predictions_field",
-                        model = c,
-                        group = "Sex",
-                        myparamBounds = "speparam")
+fitWL_eimeria <- parasiteLoad::analyse(data = result_field,
+                        response = "WL",
+                        model = "weibull",
+                        group = "Sex")
 
 
-
-typeof(result_field$Sex)
-#                        
-
+plotWL_hybrids <-
+  bananaPlot(mod = fitResiduals_eimeria$H3,
+             data = body_data_eimeria,
+             response = "residuals",
+             group = "presence_eimeria_tissues") +
+  scale_fill_manual(values = c("grey", "green")) +
+  scale_color_manual(values = c("grey", "green")) +
+  theme_bw()
+plotResiduals_eimeria
 ```
+
 
