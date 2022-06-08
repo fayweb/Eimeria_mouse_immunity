@@ -3,8 +3,8 @@ title: "2.Gene_expresion"
 author: "Fay"
 date: '2022-05-27'
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -951,8 +951,12 @@ plot(weibull_)
 summary(weibull_)
 ```
 
+ ####### Is alpha significant for each hypothesis?
 
-
+H0: the expected load for the subspecies and between 2 groups is the same
+H1: the mean load across 2 groups is the same, but can differ across subspecies
+H2: the mean load across subspecies is the same, but can differ between the 2 groups
+H3: the mean load can differ both across subspecies and between 2 groups
 
 
 ```{r, include =FALSE, message = FALSE, warnings = FALSE}
@@ -981,15 +985,7 @@ fitWL_eimeria <- parasiteLoad::analyse(data = result_field,
                         group = "Sex")
 
 
-plotWL_hybrids <-
-  bananaPlot(mod = fitResiduals_eimeria$H3,
-             data = body_data_eimeria,
-             response = "residuals",
-             group = "presence_eimeria_tissues") +
-  scale_fill_manual(values = c("grey", "green")) +
-  scale_color_manual(values = c("grey", "green")) +
-  theme_bw()
-plotResiduals_eimeria
+
 ```
 
 
