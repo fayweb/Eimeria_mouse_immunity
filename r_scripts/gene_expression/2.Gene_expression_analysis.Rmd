@@ -28,7 +28,7 @@ library(optimx)
 ```
 
 
-#### Import the data:
+## Import the data:
 
 ```{r import}
 # Here we import the cleaned data set from the previous script derived from the 
@@ -45,7 +45,7 @@ Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1
 
 
 
-#### Data cleaning
+## Data cleaning
 
 ```{r cleaning}
 # we need to change the  in challenge infections to a factor
@@ -83,7 +83,7 @@ g <- g %>% dplyr::mutate(max_WL = max_WL - 100)
 
 
 
-#### Imputing missing data + cleaning
+## Imputing missing data + cleaning
 ```{r imputing}
 #Start by selecting only the genes and the maximum weight loss for each mouse
 # Apparently the relative end weight doesn't work so well for predictions
@@ -132,7 +132,7 @@ g.imputed %>%
 ```
 I guess mice got mixed up here?
 
-#### Splitting data into training and testing sets 
+## Splitting data into training and testing sets 
 Splitting between training and testing:
 - Assess model performance on unseen data
 - Avoid over-fitting 
@@ -163,7 +163,7 @@ test.data <- g.imputed[-training.samples, ]
 
 
 
-#### Building the model
+## Building the model
 
 ```{r }
 #train the model
@@ -193,7 +193,7 @@ sqrt(model$mse[which.min(model$mse)])
 ## [1] 5.024738
 ```
 
-########### https://uc-r.github.io/s
+### https://uc-r.github.io/s
 RandomForest also allows us to use a validation set to measure predictive accuracy if we did not want to use the OOB samples. 
 
 
@@ -244,7 +244,7 @@ ImpData$Var.Names <- row.names(ImpData)
 
 
 
-#### Making predictions
+## Making predictions
 
 
 ```{r }
@@ -265,7 +265,7 @@ result <- cbind(g[row.names(result), ], predictions)
 
 
 
-#### Visualizations
+## Visualizations
 
 
 
@@ -280,7 +280,7 @@ result   %>%
   
 ```
 
-#### Predicting eimeria species according to gene expression
+## Predicting eimeria species according to gene expression
 ```{r}
 g$current_infection <- as.factor(g$current_infection)
 
@@ -308,7 +308,7 @@ g.imputed_parasite <- cbind(g_minus, g.imputed_parasite)
 
 ```
 
-#### Now split the data again into training and testing
+## Now split the data again into training and testing
 ```{r }
 
 g.imputed_parasite$current_infection <- as.factor(g.imputed_parasite$current_infection)
@@ -327,7 +327,7 @@ train.data_parasite <- g.imputed_parasite[training.samples, ] #include all the r
 test.data_parasite <- g.imputed_parasite[-training.samples, ] 
 ```
 
-#### Building the model
+## Building the model
 
 ```{r }
 #train the model
@@ -344,10 +344,10 @@ OOB = 46.43, this means that only 53 % of our predictions are accurate
 plot(model_Parasite)
 ```
 
-#### Test the model
+## Test the model
 
 
-#### Making predictions
+## Making predictions
 
 
 ```{r }
@@ -366,9 +366,9 @@ result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
 
 
 
-############################# same but for parasite challenge instead of current infection
+### same but for parasite challenge instead of current infection
 
-#### Predicting eimeria species according to gene expression
+## Predicting eimeria species according to gene expression
 
 ```{r}
 g$Parasite_challenge <- as.factor(g$Parasite_challenge)
@@ -397,7 +397,7 @@ g.imputed_parasite <- cbind(g_minus, g.imputed_parasite)
 
 ```
 
-#### Now split the data again into training and testing
+## Now split the data again into training and testing
 ```{r splitting_data}
 
 g.imputed_parasite$Parasite_challenge <- as.factor(g.imputed_parasite$Parasite_challenge)
@@ -422,7 +422,7 @@ train.data_parasite <- g.imputed_parasite[training.samples, ] #include all the r
 test.data_parasite <- g.imputed_parasite[-training.samples, ] 
 ```
 
-#### Building the model
+## Building the model
 
 ```{r }
 #train the model
@@ -439,10 +439,10 @@ OOB = 46.43, this means that only 53 % of our predictions are accurate
 plot(model_Parasite)
 ```
 
-#### Test the model
+## Test the model
 
 
-#### Making predictions
+## Making predictions
 
 
 ```{r }
@@ -459,7 +459,7 @@ result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
 
 
 
-#### Visualizations
+## Visualizations
 
 
 
@@ -488,8 +488,8 @@ train.data_parasite %>%
   summarize(length(Parasite_challenge))
 ```
 
-################################### Repeat the previous model, this time testing for
-infected with Eimeria or not. #######################################################
+### Repeat the previous model, this time testing for
+infected with Eimeria or not. ###
 
 ```{r melting-curve - model}
 
@@ -510,7 +510,7 @@ test.data_melting <- parasite_data[-training.samples, ]
 
 
 
-#### Building the model
+## Building the model
 
 ```{r }
 #train the model
@@ -520,10 +520,10 @@ model_melting <- randomForest(Eim_MC ~., data = train.data_melting, proximity = 
 print(model_melting)
 ```
 
-#### Test the model
+## Test the model
 
 
-#### Making predictions
+## Making predictions
 
 
 ```{r }
@@ -561,7 +561,7 @@ ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
 
 ## Field data
 
-#### Importing field data
+## Importing field data
 
 
 ```{r}
@@ -570,7 +570,7 @@ Field <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/
 ```
 
 
-#### Summary statistics for the field data
+## Summary statistics for the field data
 
 ```{r summary_stats_field}
 Field %>% summarise(length(Mouse_ID))
@@ -613,7 +613,7 @@ f <- merge(Field, f, by = "row.names")
 
 ```
 
-###################### Imputing missing data ###################################
+## Imputing missing data ###
 
 For the lab data I have used the function rfimpute from the package random forest. 
 I can't use the same function for our lab data as the function requires the data 
@@ -647,23 +647,23 @@ https://datascienceplus.com/handling-missing-data-with-mice-package-a-simple-app
 
 
 ### Missing data can be classified into three categories:
-#### 1. Missing completely at random (MCAR)
+## 1. Missing completely at random (MCAR)
   
   We can't probably predict that value from any other value in the data. MCAR implies the reason for the missingness of a field is completely random, and that we probably can't predict that value from any other value in the data. 
   
-#### 2. Missing at Random (MAR)
+## 2. Missing at Random (MAR)
 
   Missingess can be explained by other values in other columns, but not from that 
   column.
   
-#### 3. Missing NOT at random (MNAR)
+## 3. Missing NOT at random (MNAR)
 
 
 The basic MICE assumption is that the data is missing at random, and that we can make a guess about its true value by looking at other data samples.
 
 
 
-#### Let's start by cleaning and checking the missing data points in our field data. 
+## Let's start by cleaning and checking the missing data points in our field data. 
 
 ```{r impute_missing}
 library(mice)
@@ -689,7 +689,7 @@ marginplot(field_genes[c(1,2)])
 ```
 
 
-#### Now let's coninue by ussing the package MICE to impute the data
+## Now let's coninue by ussing the package MICE to impute the data
 
 ```{r imputing_mice}
 
@@ -759,7 +759,7 @@ Another useful visual take on the distributions can be obtained using the stripp
 stripplot(igf, pch = 20, cex = 1.2)
 ```
 
-#### Applying the model for predicting weight loss to our imputed data set
+## Applying the model for predicting weight loss to our imputed data set
 
 Start by making the predictions for the field data. 
 
@@ -789,7 +789,7 @@ result_field <- cbind(f, result_field)
 ```
 
 
-#### It is time to apply the package of Alice Balard et al. on our predictions!
+## It is time to apply the package of Alice Balard et al. on our predictions!
 
 
 Let's see if we indeed have differences across the hybrid index with our predicted 
@@ -805,7 +805,7 @@ devtools::install_github("alicebalard/parasiteLoad@v2.0")
 library(parasiteLoad)
 ```
 
-#### Check the distribution 
+## Check the distribution 
 
 ```{r}
 result_field %>% ggplot(aes(x = predictions_field)) +
@@ -950,11 +950,14 @@ plot(weibull_)
 summary(weibull_)
 ```
 
- ####### Is alpha significant for each hypothesis?
+ ### Is alpha significant for each hypothesis?
 
 H0: the expected load for the subspecies and between 2 groups is the same
+
 H1: the mean load across 2 groups is the same, but can differ across subspecies
+
 H2: the mean load across subspecies is the same, but can differ between the 2 groups
+
 H3: the mean load can differ both across subspecies and between 2 groups
 
 
@@ -978,13 +981,92 @@ speparam <- c(L1start = 10,
                      myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
 
 ##All
-parasiteLoad::analyse(data = result_field,
+fitWL_Sex <- parasiteLoad::analyse(data = result_field,
                         response = "WL",
                         model = "weibull",
                         group = "Sex")
+
+fitWL_Sex
+
+plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
+             data = result_field,
+             response = "WL",
+             group = "Sex") +
+  scale_fill_manual(values = c("grey", "green")) +
+  scale_color_manual(values = c("grey", "green")) +
+  theme_bw()
+
+plot_WL_Sex
 
 
 
 ```
 
+
+## Summary stats for the field 
+
+Can we test the hybrid index, WL and the infection ? 
+
+```{r}
+result_field %>%
+    dplyr::group_by(MC.Eimeria) %>%
+    summarize(length(Mouse_ID))
+```
+
+
+```{r}
+result_field %>%
+    dplyr::group_by(eimeriaSpecies) %>%
+    summarize(length(Mouse_ID))
+```
+
+## Reproducing for melting curve
+
+
+```{r}
+
+result_field_mc <- result_field %>% 
+    drop_na("MC.Eimeria")
+
+parasiteLoad::getParamBounds("weibull", data = result_field_mc, response = "WL")
+
+
+speparam <- c(L1start = 10,
+                     L1LB = 1e-9,
+                     L1UB = 20,
+                     L2start = 10,
+                     L2LB = 1e-9,
+                     L2UB = 20,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
+
+
+result_field_mc <- result_field_mc %>%
+    dplyr::mutate(Eimeria = case_when(
+        MC.Eimeria == "TRUE" ~ "positive",
+        MC.Eimeria == "FALSE" ~ "negative",
+        TRUE ~ ""
+    ))
+
+result_field_mc$Eimeria <- as.factor(result_field_mc$Eimeria)
+
+
+##All
+fitWL_Eimeria <- parasiteLoad::analyse(data = result_field_mc,
+                        response = "WL",
+                        model = "weibull",
+                        group = "Eimeria")
+fitWL_Eimeria
+
+plot_WL_Eimeria <- bananaPlot(mod = fitWL_Eimeria$H0,
+             data = result_field_mc,
+             response = "WL",
+             group = "Eimeria") +
+  scale_fill_manual(values = c("grey", "green")) +
+  scale_color_manual(values = c("grey", "green")) +
+  theme_bw()
+
+plot_WL_Eimeria
+
+```
 
