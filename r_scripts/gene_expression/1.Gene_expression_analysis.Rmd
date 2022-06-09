@@ -3,10 +3,10 @@ title: "Gene_expression_analysis"
 author: "Fay"
 date: '2022-05-18'
 output:
+  html_document: default
   pdf_document: 
     fig_width: 12
     fig_height: 8
-  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -70,6 +70,7 @@ library(factoextra)
 library(MASS)
 library(reshape2)
 library(cowplot)
+library(lmtest)
 if(any(grepl("package:plyr", search()))) detach("package:plyr") else message("plyr not loaded")
 ```
 
@@ -674,8 +675,7 @@ In this way you compare each model, with the different variables usesd to predic
 Another way is to compare the AIC. (function : step)
 
 ```{r}
-install.packages("lmtest")
-library(lmtest)
+
 
 weight_lm3 <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = imputed_expr)
 weight_no_pc1 <- lm(max_WL ~ pc2 + hybrid_status, data = imputed_expr)
