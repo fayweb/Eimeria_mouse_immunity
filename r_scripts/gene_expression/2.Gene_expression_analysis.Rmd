@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Libraries:
 ```{r libraries}
+#install.packages("optimx", version = "2021-10.12") # this package is required for 
+#the parasite load package to work
 library(tidyverse)
 library(tidyr)
 library(dplyr)
@@ -33,7 +35,7 @@ library(optimx)
 ```{r import}
 # Here we import the cleaned data set from the previous script derived from the 
 # data set challenge infections 
-g <- read.csv("output_data/gene_expression/data_products/clean_gene_expression.csv")
+g <- read.csv("https://raw.githubusercontent.com/fayweb/Eimeria_mouse_immunity/main/output_data/gene_expression/data_products/clean_gene_expression.csv")
 
 
 # vectors for selecting gene columns
@@ -74,7 +76,7 @@ g <- g %>%
     Eim_MC == "FALSE" ~ 0))
 
 # create variable maximum weight loss instead of maximum relative weight loss
-g <- g %>% dplyr::mutate(max_WL = max_WL - 100)
+g <- g %>% dplyr::mutate(max_WL = 100 - max_WL)
 
 
 ```
@@ -140,6 +142,8 @@ Splitting between training and testing:
 
 
 ```{r }
+g.imputed_full <- g.imputed
+
 #select the relevant columns:
 g.imputed <- g.imputed %>%
   dplyr::select(c(max_WL, all_of(Genes))) %>%
@@ -270,24 +274,31 @@ result <- cbind(g[row.names(result), ], predictions)
 
 
 ```{r }
+# trying to find a way to represent the delta ct for the negative ones
+# please find a better way to do this
+result <- result %>% 
+    dplyr::mutate(delta2 = case_when(
+       current_infection == "uninfected" ~ -10,
+       TRUE ~ delta
+    ))
+
 result   %>%
   ggplot() +
-  geom_point(aes(x = predictions, y = max_WL, color = Parasite_challenge, size = delta)) +
+  geom_point(aes(x = predictions, y = max_WL, color = current_infection, size = delta2)) +
   geom_abline() +
-  labs(x = "Predictions: Maximum weight loss ", y = "Observed: Maximum weight loss",
-         title = "Predicting tolerance, Weight loss in response to immune gene expression") +
+  labs(x = "Predictions: Maximum weight loss", y = "Observed: Maximum weight loss") +
     theme_bw()
   
 ```
 
 ## Predicting eimeria species according to gene expression
 ```{r}
-g$current_infection <- as.factor(g$current_infection)
+g$Parasite_challenge <- as.factor(g$Parasite_challenge)
 
 #now select the genes and the actual infection of the mice in the new mutate column
 #infection
 g.2 <- g %>% 
-    dplyr::select(c(current_infection, delta, all_of(Genes)))
+    dplyr::select(c(Parasite_challenge, delta, all_of(Genes)))
 
 # to get reproducible results we use a seed
 set.seed(42)
@@ -296,9 +307,9 @@ set.seed(42)
 
 
 #now we can impute our data
-g.imputed_parasite <- rfImpute(current_infection ~ ., data = g.2, iter = 6)
+g.imputed_parasite <- rfImpute(Parasite_challenge ~ ., data = g.2, iter = 6)
 
-g.imputed_parasite <- g.imputed_parasite %>% dplyr::select(- current_infection)
+g.imputed_parasite <- g.imputed_parasite %>% dplyr::select(- Parasite_challenge)
 
 g_minus <- g %>% dplyr::select(-c((all_of(Genes)), delta))
 
@@ -311,27 +322,29 @@ g.imputed_parasite <- cbind(g_minus, g.imputed_parasite)
 ## Now split the data again into training and testing
 ```{r }
 
-g.imputed_parasite$current_infection <- as.factor(g.imputed_parasite$current_infection)
+g.imputed_parasite$Parasite_challenge <- as.factor(g.imputed_parasite$Parasite_challenge)
 
 #select the relevant columns:
 g.imputed_parasite <- g.imputed_parasite %>%
-  dplyr::select(c(current_infection, delta, all_of(Genes)))
+  dplyr::select(c(Parasite_challenge, all_of(Genes)))
 
 # split data into training and test
 set.seed(123) # this will help us reproduce this random assignment
 # in this way we can pick the random numbers
-training.samples_parasite <- g.imputed_parasite$current_infection%>%
+training.samples_parasite <- g.imputed_parasite$Parasite_challenge%>%
   createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
                       list = FALSE) # we don't want to get a list in return
 train.data_parasite <- g.imputed_parasite[training.samples, ] #include all the randomly selected rows
 test.data_parasite <- g.imputed_parasite[-training.samples, ] 
+
+
 ```
 
 ## Building the model
 
 ```{r }
 #train the model
-model_Parasite <- randomForest(current_infection ~., data = train.data_parasite, proximity = TRUE,
+model_Parasite <- randomForest(Parasite_challenge ~., data = train.data_parasite, proximity = TRUE,
                       ntree = 1500) # number of trees
                       
 print(model_Parasite)
@@ -363,10 +376,6 @@ result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
 
 
 
-
-
-
-### same but for parasite challenge instead of current infection
 
 ## Predicting eimeria species according to gene expression
 
@@ -497,6 +506,9 @@ infected with Eimeria or not. ###
 parasite_data <- parasite_data %>%
   dplyr::select(-Parasite_challenge)
 
+parasite_data <- parasite_data %>%
+    dplyr::select(-CXCR3_bio)
+
 
 # split data into training and test
 set.seed(123) # this will help us reproduce this random assignment
@@ -529,6 +541,8 @@ print(model_melting)
 ```{r }
 #The predict() function in R is used to predict the values based on the input data.
 predictions_melting <- predict(model_melting, test.data_melting)
+
+
 # assign test.data to a new object, so that we can make changes
 result_melting <- test.data_melting
 #add the new variable of predictions to the result object
@@ -798,7 +812,7 @@ weight loss.
 ```{r, warning=FALSE, echo=FALSE, message=FALSE}
 require(devtools)
 
-devtools::install_github("alicebalard/parasiteLoad@v2.0")
+devtools::install_github("alicebalard/parasiteLoad@v2.0", force = TRUE)
 
 #force = TRUE)
 
@@ -842,7 +856,7 @@ library(fitdistrplus)
 library(logspline)
 
 result_field <- result_field %>%
-dplyr::mutate(WL = predictions_field * (-1))
+dplyr::mutate(WL = predictions_field)
 
 x <- result_field$WL
 
@@ -992,8 +1006,8 @@ plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
              data = result_field,
              response = "WL",
              group = "Sex") +
-  scale_fill_manual(values = c("grey", "green")) +
-  scale_color_manual(values = c("grey", "green")) +
+    scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
   theme_bw()
 
 plot_WL_Sex
@@ -1062,11 +1076,243 @@ plot_WL_Eimeria <- bananaPlot(mod = fitWL_Eimeria$H0,
              data = result_field_mc,
              response = "WL",
              group = "Eimeria") +
-  scale_fill_manual(values = c("grey", "green")) +
-  scale_color_manual(values = c("grey", "green")) +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
   theme_bw()
 
 plot_WL_Eimeria
 
 ```
 
+## Applying the classification model on the field data
+
+
+
+Let's see how well our predictions work!
+
+
+```{r }
+#The predict() function in R is used to predict the values based on the input data.
+predictions_melting_field <- predict(model_melting, result_field_mc)
+# assign test.data to a new object, so that we can make changes
+
+
+result_melting_field <- result_field_mc
+#add the new variable of predictions to the result object
+result_melting_field <- cbind(result_melting_field, predictions_melting_field)
+
+
+#turn the variable of melting curve into a factor so that you can compare to the predictions
+result_melting_field$MC.Eimeria <- as.factor(as.character(result_melting_field$MC.Eimeria))
+
+```
+
+
+
+
+
+```{r }
+
+conf_matrix_melting_field <- confusionMatrix(result_melting_field$predictions_melting_field, reference = result_melting_field$MC.Eimeria)
+
+print(conf_matrix_melting_field)
+conf_matrix_melting_field$table
+
+plt <- as.data.frame(conf_matrix_melting_field$table)
+
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="forestgreen") +
+        labs(x = "Predictions",y = "Reference") 
+```
+
+## Test the other model for parasite species
+## Making predictions
+
+
+```{r }
+
+#The predict() function in R is used to predict the values based on the input data.
+predictions_parasite_field <- predict(model_Parasite, result_field_mc)
+
+# assign test.data to a new object, so that we can make changes
+result_parasite <- test.data_parasite
+#add the new variable of predictions to the result object
+result_parasite <- cbind(result_parasite, predictions_parasite)
+#add the results to a data frame containing test data and the prediction
+result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
+```
+
+
+
+
+## Visualizations
+
+
+
+```{r }
+
+conf_matrix_parasite <- confusionMatrix(result_parasite$predictions_parasite, reference = result_parasite$Parasite_challenge)
+
+print(conf_matrix_parasite)
+
+conf_matrix_parasite$table
+
+plt <- as.data.frame(conf_matrix_parasite$table)
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+
+ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="forestgreen") +
+        labs(x = "Predictions",y = "Reference") 
+
+```
+## Next steps
+
+Question the removal of CXCL3, maybe it exists in the wild and we need to rename
+How to deal with the delta ct?
+
+#what about instead of classifying testing with random forest for infection intensity?
+
+
+
+
+##########################################################
+### Let's test if we can predict infection intensity according to gene expression
+## Splitting data into training and testing sets 
+Splitting between training and testing:
+- Assess model performance on unseen data
+- Avoid over-fitting 
+
+
+
+```{r }
+#select the relevant columns:
+g.imputed <- g.imputed_full %>%
+    dplyr::select(c(delta, all_of(Genes))) %>%
+    drop_na(delta)
+
+g.imputed <- g.imputed %>%
+    rename(CXCR3 = CXCR3_bio)
+
+# split data into training and test
+
+set.seed(123) # this will help us reproduce this random assignment
+
+# in this way we can pick the random numbers
+
+training.samples <- g.imputed$delta%>%
+  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
+                      list = FALSE) # we don't want to get a list in return
+
+train.data <- g.imputed[training.samples, ] #include all the randomly selected rows
+test.data <- g.imputed[-training.samples, ] 
+
+
+```
+
+
+
+## Building the model
+
+```{r }
+#train the model
+model_delta <- randomForest(delta ~., data = train.data, proximity = TRUE,
+                      ntree = 1000) # number of trees
+                      
+
+print(model_delta)
+```
+
+Plotting the model will illustrate the error rate as we average across more trees and shows that our error rate stabalizes with around 200 trees.
+
+
+
+```{r}
+plot(model_delta)
+```
+
+
+## Making predictions
+
+
+```{r }
+#The predict() function in R is used to predict the values based on the input data.
+predictions <- predict(model_delta, test.data)
+
+# assign test.data to a new object, so that we can make changes
+result <- test.data
+
+#add the new variable of predictions to the result object
+result <- cbind(result, predictions)
+
+
+Parasite_challenge <- g.imputed_full %>% slice(as.numeric(row.names(result)))
+
+Parasite_challenge <- Parasite_challenge %>% 
+    dplyr::select(Parasite_challenge)
+
+result <- cbind(result, Parasite_challenge)
+
+
+
+```
+
+
+
+
+## Visualizations
+
+
+
+```{r }
+result %>%
+  ggplot() +
+  geom_point(aes(x = predictions, y = delta, color = Parasite_challenge)) +
+  geom_abline() +
+  labs(x = "Predictions: Infection intensity", y = "Infection intensity") +
+    theme_bw()
+
+```
+
+```{r}
+cor(result$predictions, result$delta)
+```
+
+  Okay! Now let's test it on the field
+  
+  ## Applying the model for predicting weight loss to our imputed data set
+
+Start by making the predictions for the field data. 
+
+
+```{r }
+# Start by selecting the columns that appear in both the training data set and the 
+# field data set
+
+#Now we can get back the completed dataset using the complete()
+completeField <- complete(igf, 1)
+
+completeField <- completeField %>%
+  dplyr::select(intersect(colnames(completeField), colnames(train.data)))
+
+set.seed(333)
+
+#The predict() function in R is used to predict the values based on the input data.
+predictions_field <- predict(model_delta, completeField)
+
+# assign test.data to a new object, so that we can make changes
+result_field <- completeField
+
+#add the new variable of predictions to the result object
+result_field <- cbind(result_field, predictions_field)
+
+#add the results to a data frame containing test data and the prediction
+delta_field <- f %>% dplyr::select(delta_ct_cewe_MminusE)
+
+result_field <- cbind(delta_field, result_field)
+
+result_field <- result_field %>%
+    drop_na(delta_ct_cewe_MminusE)
+```

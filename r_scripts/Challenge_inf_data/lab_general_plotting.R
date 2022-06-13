@@ -255,10 +255,7 @@ png("output_data/gene_expression/10.01_gene_expression_intensity.png",
 
 gene_na_omit %>%
     pivot_longer(cols = 8:28, names_to = "Gene", values_to = "gene_expression") %>%
-    na.omit(delta) -> gene_expr_delta
-
-
-%>%
+    na.omit(delta) -> gene_expr_delta %>%
     ggplot(aes(x = delta, y = gene_expression, color = challenge_infection)) 
 
 glimpse(gene_expr_delta)
