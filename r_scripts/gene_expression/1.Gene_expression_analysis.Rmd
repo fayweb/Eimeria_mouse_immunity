@@ -13,14 +13,13 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 
 ```
-
 GAPDH	HKG				
 B-actin	HKG				
 Ppia	HKG				
 Ppip	HKG				
 CDC42	HKG	susceptible to DNA contamination			
 					
-					
+Housekeeping genes selected: GAPDH and PPIB					
 					
 Relm-b	mucosal defense factor (goblet cells)				
 Muc2	the major secretory mucin within the gastrointestinal tract				
@@ -74,13 +73,27 @@ library(lmtest)
 if(any(grepl("package:plyr", search()))) detach("package:plyr") else message("plyr not loaded")
 ```
 
+
+#document gene normalization
+https://www.youtube.com/watch?v=tgp4bbnj-ng
+paper: Licak Analysis of relative gene expression data using real time quantitative
+Add the normalized Gene expression to the rest of the data 
+
+
 ```{r Data_preparation_heatmap, echo=FALSE, iclude = FALSE, message=FALSE}
 ### Import the data
 Challenge <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
 
+# Vector for selecting genes
 Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
            "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
            "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+
+Genes_refe <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
+           "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
+           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF", "PPIB")
+
+
 
 Challenge <- Challenge %>%
     dplyr::mutate(Parasite_primary = case_when(
@@ -145,12 +158,14 @@ prim <- prim[prim$dpi == prim$dpi_max, ]
 
 #now we can easily add the variable end weight to each mouse (which in now equal
 #to the weight on the dpi = dpi_max)
-prim <- prim %>% dplyr::mutate(end_rel_weight = (weight/weight_dpi0) * 100)
+prim <- prim %>% 
+  dplyr::mutate(end_rel_weight = (weight/weight_dpi0) * 100)
 
 c <- rbind(chal, prim)
 
 #now jon it to the challenge infections
-c %>% dplyr::select(EH_ID, end_rel_weight) %>%
+c %>% 
+  dplyr::select(EH_ID, end_rel_weight) %>%
   right_join(Challenge) -> Challenge
 
 Challenge <- unique(Challenge)
@@ -158,14 +173,91 @@ Challenge <- unique(Challenge)
 gene <- as_tibble(Challenge) %>%
   dplyr::filter(infection == "challenge", dpi == dpi_max) %>%
   dplyr::group_by(EH_ID) %>%
-  dplyr::select(all_of(Genes))
-
+  dplyr::select(c(EH_ID, Eim_MC, all_of(Genes_refe)))
 
 gene <- unique(gene)
- 
- # turn the data frame into a matrix and transpose it. We want to have each cell 
+
+#gene uninfected
+gu <- gene %>% 
+  dplyr::filter(Eim_MC == "FALSE")
+
+# is mean a good measure? Or should I use the median?
+# calculating the mean for all the columns 
+gu <- as.data.frame(colMeans(gu[3:23], na.rm = TRUE))
+
+# creating a data frame to work on
+gu <- tibble::rownames_to_column(gu, "row_names")
+
+gu <- gu %>% pivot_wider(names_from = "row_names", values_from = "colMeans(gu[3:23], na.rm = TRUE)")
+
+# we want to #1 Normalize Ct (target gene) to Ct reference gene
+# to do that we need the calibrator genes: 
+# Dct calibrator= Ct(target of calibrator) - Ct(reference of calibrator)
+cal <- function(x) {x - gu$PPIB} # function of calibrator
+
+gu <- gu %>% 
+  dplyr::mutate(
+    IFNy_cal = cal(IFNy),
+    CXCR3_bio_cal  = cal(CXCR3_bio),
+    IL.6_cal = cal(IL.6),
+    IL.10_cal = cal(IL.10),
+    IL.13_cal = cal(IL.13),
+    IL1RN_cal = cal(IL1RN),
+    CASP1_cal = cal(CASP1),
+    CXCL9_cal  = cal(CXCL9),
+    IDO1_cal = cal(IDO1),
+    IRGM1_cal = cal(IRGM1),
+    MPO_cal  = cal(MPO),
+    MPO_cal  = cal(MPO),
+    MUC2_cal = cal(MUC2),
+    MUC5AC_cal = cal(MUC5AC),
+    MYD88_cal  = cal(MYD88),
+    NCR1_cal  = cal(NCR1),
+    PRF1_cal = cal(PRF1),
+    RETNLB_cal = cal(RETNLB),
+    SOCS1_cal = cal(SOCS1),
+    TICAM1_cal  = cal(TICAM1),
+    TNF_cal= cal(TNF))
+                       
+                
+# Normalization of gene expression data 
+
+gene <- gene %>%
+  #1 Normalize Ct (target gene) to Ct reference gene
+  #delta ct of calibrator - delta ct test sample
+  dplyr::mutate(
+    IFNy_N = 2^-((IFNy - PPIB) - gu$IFNy_cal),
+    CXCR3_bio_N  = 2^-((CXCR3_bio - PPIB)- gu$CXCR3_bio_cal),
+    IL.6_N = 2^-((IL.6 - PPIB)- gu$IL.6_cal),
+    IL.10_N = 2^-((IL.10 - PPIB)- gu$ IL.10_cal),
+    IL.13_N = 2^-((IL.13 - PPIB)- gu$IL.13_cal),
+    IL1RN_N = 2^-((IL1RN - PPIB)- gu$IL1RN_cal),
+    CASP1_N = 2^-((CASP1 - PPIB)- gu$CASP1_cal),
+    CXCL9_N  = 2^-((CXCL9 - PPIB)- gu$CXCL9_cal),
+    IDO1_N = 2^-((IDO1 - PPIB)- gu$IDO1_cal),
+    IRGM1_N = 2^-(( IRGM1 - PPIB)- gu$IRGM1_cal),
+    MPO_N  =  2^-((MPO - PPIB) - gu$MPO_cal),
+    MUC2_N = 2^-((MUC2 - PPIB)- gu$MUC2_cal),
+    MUC5AC_N = 2^-((MUC5AC - PPIB)- gu$MUC5AC_cal),
+    MYD88_N  = 2^-((MYD88 - PPIB)- gu$MYD88_cal),
+    NCR1_N  = 2^-((NCR1 - PPIB)- gu$NCR1_cal),
+    PRF1_N = 2^-((PRF1 - PPIB)- gu$PRF1_cal),
+    RETNLB_N =  2^-((RETNLB - PPIB)- gu$RETNLB_cal),
+    SOCS1_N = 2^-((SOCS1 - PPIB)- gu$SOCS1_cal),
+    TICAM1_N  = 2^-((TICAM1 - PPIB)- gu$TICAM1_cal),
+    TNF_N = 2^-((TNF - PPIB) - gu$TNF_cal)
+  )
+
+
+gene_normalized <- gene
+#create a new vector for selecting genes
+genes_N <- c("IFNy_N", "CXCR3_bio_N", "IL.6_N", "IL.10_N", "IL.13_N", "IL.10_N", "IL.13_N", "IL1RN_N", 
+           "CASP1_N", "CXCL9_N", "IDO1_N", "IRGM1_N", "MPO_N", "MUC2_N", "MUC5AC_N", "MYD88_N", 
+           "NCR1_N", "PRF1_N", "RETNLB_N", "SOCS1_N", "TICAM1_N", "TNF_N")
+
+# turn the data frame into a matrix and transpose it. We want to have each cell 
  # type as a row name 
- gene <- t(as.matrix(gene %>% dplyr::select(c(EH_ID, all_of(Genes)))))
+ gene <- t(as.matrix(gene %>% dplyr::select(c(EH_ID, all_of(genes_N)))))
  
  #switch the matrix back to a data frame format
  gene <- as.data.frame(gene)
@@ -224,7 +316,7 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 
 
 ```{r gene_correlations, echo = FALSE}
-gene_correlation <- Challenge %>% 
+gene_correlation <- gene_normalized %>% 
   ungroup() %>%
   dplyr::select(all_of(Genes))
 
