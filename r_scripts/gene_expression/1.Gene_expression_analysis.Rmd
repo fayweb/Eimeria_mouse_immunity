@@ -91,7 +91,7 @@ Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1
 
 Genes_refe <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
            "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
-           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF", "PPIB")
+           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF", "PPIB", "GAPDH")
 
 
 
@@ -177,9 +177,39 @@ gene <- as_tibble(Challenge) %>%
 
 gene <- unique(gene)
 
+```
+
+
+Normalization of gene expression data: 
+
+Using the package: NormqPCR-package: Functions for normalisation of RT-qPCR data.
+```{r install_package_normalizing qPCR, warnings = FAlSE, message = FALSE}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("NormqPCR")
+```
+
+```{r}
+NormqPCR::deltaDeltaCq(qPCRBatch = gene, hkgs = "PPIB")
+```
+
+
+```{r}
+#create calibrator samples
+gu <- gene %>%
+  slice(min(IFNy))
+
+#
+  mutate(Calibrator_IFNy = min(IFNy) - PPIB) 
+
+
 #gene uninfected
 gu <- gene %>% 
   dplyr::filter(Eim_MC == "FALSE")
+
+
+min(gene$IFNy, na.rm = TRUE)
 
 # is mean a good measure? Or should I use the median?
 # calculating the mean for all the columns 
@@ -190,66 +220,36 @@ gu <- tibble::rownames_to_column(gu, "row_names")
 
 gu <- gu %>% pivot_wider(names_from = "row_names", values_from = "colMeans(gu[3:23], na.rm = TRUE)")
 
-# we want to #1 Normalize Ct (target gene) to Ct reference gene
-# to do that we need the calibrator genes: 
-# Dct calibrator= Ct(target of calibrator) - Ct(reference of calibrator)
-cal <- function(x) {x - gu$PPIB} # function of calibrator
-
-gu <- gu %>% 
-  dplyr::mutate(
-    IFNy_cal = cal(IFNy),
-    CXCR3_bio_cal  = cal(CXCR3_bio),
-    IL.6_cal = cal(IL.6),
-    IL.10_cal = cal(IL.10),
-    IL.13_cal = cal(IL.13),
-    IL1RN_cal = cal(IL1RN),
-    CASP1_cal = cal(CASP1),
-    CXCL9_cal  = cal(CXCL9),
-    IDO1_cal = cal(IDO1),
-    IRGM1_cal = cal(IRGM1),
-    MPO_cal  = cal(MPO),
-    MPO_cal  = cal(MPO),
-    MUC2_cal = cal(MUC2),
-    MUC5AC_cal = cal(MUC5AC),
-    MYD88_cal  = cal(MYD88),
-    NCR1_cal  = cal(NCR1),
-    PRF1_cal = cal(PRF1),
-    RETNLB_cal = cal(RETNLB),
-    SOCS1_cal = cal(SOCS1),
-    TICAM1_cal  = cal(TICAM1),
-    TNF_cal= cal(TNF))
-                       
-                
 # Normalization of gene expression data 
 
+
+
 gene <- gene %>%
-  #1 Normalize Ct (target gene) to Ct reference gene
-  #delta ct of calibrator - delta ct test sample
   dplyr::mutate(
-    IFNy_N = 2^-((IFNy - PPIB) - gu$IFNy_cal),
-    CXCR3_bio_N  = 2^-((CXCR3_bio - PPIB)- gu$CXCR3_bio_cal),
-    IL.6_N = 2^-((IL.6 - PPIB)- gu$IL.6_cal),
-    IL.10_N = 2^-((IL.10 - PPIB)- gu$ IL.10_cal),
-    IL.13_N = 2^-((IL.13 - PPIB)- gu$IL.13_cal),
-    IL1RN_N = 2^-((IL1RN - PPIB)- gu$IL1RN_cal),
-    CASP1_N = 2^-((CASP1 - PPIB)- gu$CASP1_cal),
-    CXCL9_N  = 2^-((CXCL9 - PPIB)- gu$CXCL9_cal),
-    IDO1_N = 2^-((IDO1 - PPIB)- gu$IDO1_cal),
-    IRGM1_N = 2^-(( IRGM1 - PPIB)- gu$IRGM1_cal),
-    MPO_N  =  2^-((MPO - PPIB) - gu$MPO_cal),
-    MUC2_N = 2^-((MUC2 - PPIB)- gu$MUC2_cal),
-    MUC5AC_N = 2^-((MUC5AC - PPIB)- gu$MUC5AC_cal),
-    MYD88_N  = 2^-((MYD88 - PPIB)- gu$MYD88_cal),
-    NCR1_N  = 2^-((NCR1 - PPIB)- gu$NCR1_cal),
-    PRF1_N = 2^-((PRF1 - PPIB)- gu$PRF1_cal),
-    RETNLB_N =  2^-((RETNLB - PPIB)- gu$RETNLB_cal),
-    SOCS1_N = 2^-((SOCS1 - PPIB)- gu$SOCS1_cal),
-    TICAM1_N  = 2^-((TICAM1 - PPIB)- gu$TICAM1_cal),
-    TNF_N = 2^-((TNF - PPIB) - gu$TNF_cal)
+    IFNy_N = 2^-((IFNy - PPIB) - gu$IFNy),
+    CXCR3_bio_N  = 2^-((CXCR3_bio - PPIB)- gu$CXCR3_bio),
+    IL.6_N = 2^-((IL.6 - PPIB)- gu$IL.6),
+    IL.10_N = 2^-((IL.10 - PPIB)- gu$ IL.10),
+    IL.13_N = 2^-((IL.13 - PPIB)- gu$IL.13),
+    IL1RN_N = 2^-((IL1RN - PPIB)- gu$IL1RN),
+    CASP1_N = 2^-((CASP1 - PPIB)- gu$CASP1),
+    CXCL9_N  = 2^-((CXCL9 - PPIB)- gu$CXCL9),
+    IDO1_N = 2^-((IDO1 - PPIB)- gu$IDO1),
+    IRGM1_N = 2^-(( IRGM1 - PPIB)- gu$IRGM1),
+    MPO_N  =  2^-((MPO - PPIB) - gu$MPO),
+    MUC2_N = 2^-((MUC2 - PPIB)- gu$MUC2),
+    MUC5AC_N = 2^-((MUC5AC - PPIB)- gu$MUC5AC),
+    MYD88_N  = 2^-((MYD88 - PPIB)- gu$MYD88),
+    NCR1_N  = 2^-((NCR1 - PPIB)- gu$NCR1),
+    PRF1_N = 2^-((PRF1 - PPIB)- gu$PRF1),
+    RETNLB_N =  2^-((RETNLB - PPIB)- gu$RETNLB),
+    SOCS1_N = 2^-((SOCS1 - PPIB)- gu$SOCS1),
+    TICAM1_N  = 2^-((TICAM1 - PPIB)- gu$TICAM1),
+    TNF_N = 2^-((TNF - PPIB) - gu$TNF)
   )
 
 
-gene_normalized <- gene
+
 #create a new vector for selecting genes
 genes_N <- c("IFNy_N", "CXCR3_bio_N", "IL.6_N", "IL.10_N", "IL.13_N", "IL.10_N", "IL.13_N", "IL1RN_N", 
            "CASP1_N", "CXCL9_N", "IDO1_N", "IRGM1_N", "MPO_N", "MUC2_N", "MUC5AC_N", "MYD88_N", 
@@ -302,7 +302,6 @@ rownames(annotation_df) <- annotation_df$EH_ID
 rownames(annotation_df) <- colnames(heatmap_data)
 
 ```
-
 
 Heatmap on gene expression data: 
 
