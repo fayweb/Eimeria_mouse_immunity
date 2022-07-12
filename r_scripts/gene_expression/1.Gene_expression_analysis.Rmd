@@ -51,7 +51,7 @@ IL-10
 
 ## 1.  Gene expression in the laboratory infections - Heatmap
 
-```{r, echo=FALSE, include = FALSE}
+```{r load_libraries, echo=FALSE, include = FALSE}
 library(pheatmap)
 library(tidyverse)
 library(matrixStats)
@@ -71,6 +71,7 @@ library(reshape2)
 library(cowplot)
 library(lmtest)
 if(any(grepl("package:plyr", search()))) detach("package:plyr") else message("plyr not loaded")
+
 ```
 
 
@@ -85,13 +86,13 @@ Add the normalized Gene expression to the rest of the data
 Challenge <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
 
 # Vector for selecting genes
-Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
+Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13","IL1RN", 
            "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
            "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
 
-Genes_refe <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
+Genes_refe <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL1RN", 
            "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
-           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF", "PPIB", "GAPDH")
+           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF", "PPIB")
 
 
 
@@ -179,82 +180,66 @@ gene <- unique(gene)
 
 ```
 
+https://www.youtube.com/watch?v=tgp4bbnj-ng
 
-Normalization of gene expression data: 
+If you don't need a graph with absolute values of expressions and just relative comparison then you can choose one of the samples as a calibrator (control sample). This control sample will have the value of 1 and the rest of the samples will be compared relative to this one. I would choose as control the sample with the lowest expression.
 
-Using the package: NormqPCR-package: Functions for normalisation of RT-qPCR data.
-```{r install_package_normalizing qPCR, warnings = FAlSE, message = FALSE}
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+https://www.researchgate.net/post/How-can-I-analyze-qPCR-data-without-control-sample
 
-BiocManager::install("NormqPCR")
-```
-
-```{r}
-NormqPCR::deltaDeltaCq(qPCRBatch = gene, hkgs = "PPIB")
-```
-
-
-```{r}
-#create calibrator samples
-gu <- gene %>%
-  slice(min(IFNy))
-
-#
-  mutate(Calibrator_IFNy = min(IFNy) - PPIB) 
+```{r normalize_gene_expression}
+#create calibrator samples for the analysis
+# create new columns with the minimum of each gene
+# which I will use as the calibrator sample
+#create a function which gives you the PPIB value for the minimum value of a gene
+Dct_Calibrator <- function(x) {
+ h <-  gene[which(gene[[x]] == min(gene[[x]], na.rm = TRUE)), ][,c(x, "PPIB")]
+ h[[x]] - h[["PPIB"]]
+}
 
 
-#gene uninfected
-gu <- gene %>% 
-  dplyr::filter(Eim_MC == "FALSE")
+#Apply the function to all genes
+Calibrator_values <- as.data.frame(unlist(lapply(Genes, Dct_Calibrator)))
+
+Calibrator_values <- cbind(Calibrator_values, as.data.frame(Genes))
 
 
-min(gene$IFNy, na.rm = TRUE)
+Calibrator_values <- Calibrator_values %>%
+  rename(Dct.calibrator = "unlist(lapply(Genes, Dct_Calibrator))")
 
-# is mean a good measure? Or should I use the median?
-# calculating the mean for all the columns 
-gu <- as.data.frame(colMeans(gu[3:23], na.rm = TRUE))
-
-# creating a data frame to work on
-gu <- tibble::rownames_to_column(gu, "row_names")
-
-gu <- gu %>% pivot_wider(names_from = "row_names", values_from = "colMeans(gu[3:23], na.rm = TRUE)")
-
-# Normalization of gene expression data 
+Calibrator_values <- Calibrator_values %>% pivot_wider(names_from = Genes, values_from = Dct.calibrator)
 
 
 
 gene <- gene %>%
-  dplyr::mutate(
-    IFNy_N = 2^-((IFNy - PPIB) - gu$IFNy),
-    CXCR3_bio_N  = 2^-((CXCR3_bio - PPIB)- gu$CXCR3_bio),
-    IL.6_N = 2^-((IL.6 - PPIB)- gu$IL.6),
-    IL.10_N = 2^-((IL.10 - PPIB)- gu$ IL.10),
-    IL.13_N = 2^-((IL.13 - PPIB)- gu$IL.13),
-    IL1RN_N = 2^-((IL1RN - PPIB)- gu$IL1RN),
-    CASP1_N = 2^-((CASP1 - PPIB)- gu$CASP1),
-    CXCL9_N  = 2^-((CXCL9 - PPIB)- gu$CXCL9),
-    IDO1_N = 2^-((IDO1 - PPIB)- gu$IDO1),
-    IRGM1_N = 2^-(( IRGM1 - PPIB)- gu$IRGM1),
-    MPO_N  =  2^-((MPO - PPIB) - gu$MPO),
-    MUC2_N = 2^-((MUC2 - PPIB)- gu$MUC2),
-    MUC5AC_N = 2^-((MUC5AC - PPIB)- gu$MUC5AC),
-    MYD88_N  = 2^-((MYD88 - PPIB)- gu$MYD88),
-    NCR1_N  = 2^-((NCR1 - PPIB)- gu$NCR1),
-    PRF1_N = 2^-((PRF1 - PPIB)- gu$PRF1),
-    RETNLB_N =  2^-((RETNLB - PPIB)- gu$RETNLB),
-    SOCS1_N = 2^-((SOCS1 - PPIB)- gu$SOCS1),
-    TICAM1_N  = 2^-((TICAM1 - PPIB)- gu$TICAM1),
-    TNF_N = 2^-((TNF - PPIB) - gu$TNF)
-  )
-
-
+  dplyr::mutate(IFNy_N = 2^- ((IFNy - PPIB) - Calibrator_values[["IFNy"]]),
+                CXCR3_bio_N  = 2^- ((CXCR3_bio - PPIB)- Calibrator_values[["CXCR3_bio"]]),
+                IL.6_N = 2^-((IL.6 - PPIB)- Calibrator_values[["IL.6"]]),
+                IL.10_N = 2^-((IL.10 - PPIB)- Calibrator_values[["IL.10"]]),
+                IL.13_N = 2^-((IL.13 - PPIB)- Calibrator_values[["IL.13"]]),
+                IL1RN_N = 2^-((IL1RN - PPIB)- Calibrator_values[["IL1RN"]]),
+                CASP1_N = 2^-((CASP1 - PPIB)- Calibrator_values[["CASP1"]]),
+                CXCL9_N  = 2^-((CXCL9 - PPIB)- Calibrator_values[["CXCL9"]]),
+                IDO1_N = 2^-((IDO1 - PPIB)- Calibrator_values[["IDO1"]]),
+                IRGM1_N = 2^-(( IRGM1 - PPIB)- Calibrator_values[["IRGM1"]]),
+                MPO_N  =  2^-((MPO - PPIB) - Calibrator_values[["MPO"]]),
+                MUC2_N = 2^-((MUC2 - PPIB)- Calibrator_values[["MUC2"]]),
+                MUC5AC_N = 2^-((MUC5AC - PPIB)- Calibrator_values[["MUC5AC"]]),
+                MYD88_N  = 2^-((MYD88 - PPIB)- Calibrator_values[["MYD88"]]),
+                NCR1_N  = 2^-((NCR1 - PPIB)- Calibrator_values[["NCR1"]]),
+                PRF1_N = 2^-((PRF1 - PPIB)- Calibrator_values[["PRF1"]]),
+                RETNLB_N =  2^-((RETNLB - PPIB)- Calibrator_values[["RETNLB"]]),
+                SOCS1_N = 2^-((SOCS1 - PPIB)- Calibrator_values[["SOCS1"]]),
+                TICAM1_N  = 2^-((TICAM1 - PPIB)- Calibrator_values[["TICAM1"]]),
+                TNF_N = 2^-((TNF - PPIB) - Calibrator_values[["TNF"]]))
+           
 
 #create a new vector for selecting genes
-genes_N <- c("IFNy_N", "CXCR3_bio_N", "IL.6_N", "IL.10_N", "IL.13_N", "IL.10_N", "IL.13_N", "IL1RN_N", 
+genes_N <- c("IFNy_N", "CXCR3_bio_N", "IL.6_N", "IL.10_N", "IL.13_N", "IL1RN_N", 
            "CASP1_N", "CXCL9_N", "IDO1_N", "IRGM1_N", "MPO_N", "MUC2_N", "MUC5AC_N", "MYD88_N", 
            "NCR1_N", "PRF1_N", "RETNLB_N", "SOCS1_N", "TICAM1_N", "TNF_N")
 
+
+gene_normalized <- gene
 # turn the data frame into a matrix and transpose it. We want to have each cell 
  # type as a row name 
  gene <- t(as.matrix(gene %>% dplyr::select(c(EH_ID, all_of(genes_N)))))
@@ -317,7 +302,7 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 ```{r gene_correlations, echo = FALSE}
 gene_correlation <- gene_normalized %>% 
   ungroup() %>%
-  dplyr::select(all_of(Genes))
+  dplyr::select(all_of(genes_N))
 
 # draw correlation between the genes
 gene_correlation <- as.matrix(cor(gene_correlation, use="pairwise.complete.obs"))
