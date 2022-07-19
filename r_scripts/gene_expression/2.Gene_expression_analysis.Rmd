@@ -28,7 +28,8 @@ knitr::opts_chunk$set(echo = TRUE,  warning = FALSE)
 
 In this document I am preparing the models using the lab data only. 
 
-# Install necessary libraries:
+#  Load necessary libraries:
+
 ```{r libraries, message = FALSE, warnings = FALSE}
 #install.packages("optimx", version = "2021-10.12") # this package is required for 
 #the parasite load package to work
@@ -39,10 +40,7 @@ library(cowplot)
 library(randomForest)
 library(ggplot2)
 library(caret)
-library(VIM) # visualizing missing data
-library(mice) # imputing missing data without predictors
 library(ggpubr)
-library(optimx)
 library(rfUtilities) # Implements a permutation test cross-validation for 
 # Random Forests models
 ```
@@ -116,14 +114,12 @@ genes.
 # Apparently the relative end weight doesn't work so well for predictions
 
 g.1 <- g %>% dplyr::select(c(all_of(Genes), max_WL,
-                             primary_infection, challenge_infection, 
-                             mouse_strain, Parasite_primary, Parasite_challenge, 
-                             max_OOC, Eim_MC,  delta, Parasite_primary, 
-                             Parasite_challenge, OPG_O))
+                             mouse_strain, CD4, Treg, Div_Treg, 
+                             Treg17, Th1, Div_Th1, Th17, Div_Th17, CD8, Act_CD8, 
+                             Div_Act_CD8, IFNy_CD4, IFNy_CD8,Treg_prop, 
+                             IL17A_CD4))
 
 sapply(g.1, function(x) sum(is.na(x)))
-g.1$max_OOC[is.infinite(g.1$max_OOC)] <- NA  
-
 
 g.1  <- g.1 %>% mutate_if(is.character, as.factor)
 g.1  <- g.1 %>% mutate_if(is.integer, as.numeric)
@@ -154,8 +150,7 @@ g.imputed <- cbind(g_minus, g.imputed)
 
 How many mice are in the infection planning?
 ```{r infection_plan}
-g.imputed %>% 
-  filter(infection == "challenge") %>%
+g.imputed  %>%
   group_by(Parasite_challenge) %>%
   summarize(length(EH_ID))
   
@@ -554,7 +549,7 @@ model_mc <- randomForest(Eim_MC ~., data = train.data_mc, proximity = TRUE,
                       ntree = 1500) # number of trees
 
 # save the model 
-save(model_mc, file =  "r_scripts/models/predict_mc_eimeria")
+save(model_mc, file =  "r_scripts/models/predict_infecting_parasite")
 
                       
 print(model_mc)

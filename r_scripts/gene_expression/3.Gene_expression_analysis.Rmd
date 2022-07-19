@@ -1,12 +1,44 @@
 ---
-title: "3.Gene_expressions_analysis"
-author: "Fay"
+title: "3.Gene_expressions_analysis -  Applying random forests on field data"
+author: "Fay Webster"
 date: '2022-07-18'
-output: html_document
+geometry: margin=2cm
+output:
+  pdf_document: default
+  theme: journal
+  toc: yes
+  toc_float: yes
+  html_document: null
+  word_document: default
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+# Aim: 
+- Applying the models established in the script: 
+2.Gene_expression_analysis on the field data.
+- How are hybrid mice different to the parental species?
+
+#  Load necessary libraries:
+
+```{r libraries, message = FALSE, warnings = FALSE}
+#install.packages("optimx", version = "2021-10.12") # this package is required for 
+#the parasite load package to work
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(cowplot)
+library(randomForest)
+library(ggplot2)
+library(caret)
+library(VIM) # visualizing missing data
+library(mice) # imputing missing data without predictors
+library(ggpubr)
+library(optimx)
+library(rfUtilities) # Implements a permutation test cross-validation for 
+# Random Forests models
 ```
 
 ## Field data
@@ -20,7 +52,7 @@ Field <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/
 ```
 
 
-## Summary statistics for the field data
+## Cleaning data 
 
 ```{r summary_stats_field}
 Field %>% summarise(length(Mouse_ID))
@@ -28,6 +60,7 @@ Field %>% summarise(length(Mouse_ID))
 We have 1921 mice in total.
 
 
+#### Prepare columns for selecting
 
 ```{r genes}
 EqPCR.cols      <- c("delta_ct_cewe_MminusE", "MC.Eimeria", "Ct.Eimeria") #,"Ct.Mus""delta_ct_ilwe_MminusE", )
@@ -42,6 +75,9 @@ Gene.Exp.cols   <- c("IFNy",  "CXCR3", "IL.6", #"GBP2", "IL.12", "IRG6",
 
 House.Keeping.cols <- c("GAPDH", "PPIB", "B.actin", "B-actin")
 ```
+
+
+
 
 ```{r}
 #which are the numbers of the columns of Field
