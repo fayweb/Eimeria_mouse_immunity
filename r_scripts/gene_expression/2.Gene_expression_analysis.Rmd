@@ -221,7 +221,10 @@ test.data <- g.imputed[-training.samples, ]
 #train the model
 weight_loss_predict <- randomForest(max_WL ~., data = train.data, 
                                     proximity = TRUE, ntree = 1000) 
-# ntree = number of trees                      
+# ntree = number of trees     
+
+# save the model 
+save(weight_loss_predict, file =  "r_scripts/models/predict_weight_loss.RData")
 
 print(weight_loss_predict)
 ```
@@ -434,7 +437,10 @@ test.data_parasite <- g.imputed_parasite[-training.samples, ]
 model_Parasite <- randomForest(Parasite_challenge ~., 
                                data = train.data_parasite, proximity = TRUE,
                       ntree = 1500) # number of trees
-                      
+
+# save the model 
+save(model_Parasite, file =  "r_scripts/models/predict_infecting_parasite")
+
 print(model_Parasite)
 ```
 OOB = 46.43, this means that only 53 % of our predictions are accurate
@@ -546,6 +552,10 @@ test.data_mc <- g.imputed_mc[-training.samples, ]
 #train the model
 model_mc <- randomForest(Eim_MC ~., data = train.data_mc, proximity = TRUE,
                       ntree = 1500) # number of trees
+
+# save the model 
+save(model_mc, file =  "r_scripts/models/predict_mc_eimeria")
+
                       
 print(model_mc)
 ```
