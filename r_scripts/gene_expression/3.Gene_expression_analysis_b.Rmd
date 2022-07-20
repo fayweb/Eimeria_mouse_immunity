@@ -16,7 +16,9 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 # Aim: 
+
 - Applying the models established in the script: 
 2.Gene_expression_analysis on the field data.
 - How are hybrid mice different to the parental species?
@@ -32,18 +34,21 @@ library(dplyr)
 library(cowplot)
 library(randomForest)
 library(ggplot2)
-library(caret)
 library(VIM) # visualizing missing data
 library(mice) # imputing missing data without predictors
 library(ggpubr)
 library(optimx)
 library(rfUtilities) # Implements a permutation test cross-validation for 
 # Random Forests models
+library(mice) #imputations
+library(fitdistrplus) #testing distributions
+library(logspline)
+library(caret)
 ```
 
-## Field data
+# Field data
 
-## Importing field data
+## Import field data
 
 
 ```{r}
@@ -52,10 +57,12 @@ Field <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/
 ```
 
 
-## Cleaning data 
+## Clean data 
 
 ```{r summary_stats_field}
 Field %>% summarise(length(Mouse_ID))
+Field <- Field %>%
+    drop_na(HI)
 ```
 
 We have 1921 mice in total.
@@ -78,7 +85,7 @@ House.Keeping.cols <- c("GAPDH", "PPIB", "B.actin", "B-actin")
 ```
 
 
-#### Cleaning
+### Actual Cleaning
 
 ```{r}
 #which are the numbers of the columns of Field
@@ -97,34 +104,826 @@ f <- f[rowSums(is.na(f)) != ncol(f), ]
 Field <- Field[row.names(f), ]
 
 # select columns to be included in imputation
-f.1 <- Field %>% dplyr::select(c("Mouse_ID", "Address", "Sex", "Longitude", 
-                     "Latitude", "Year", "HI", "HI_NLoci", "mtBamH", "YNPAR", 
-                     "X332", "X347", "X65", "Tsx", "Btk", "Syap1", "Es1", 
-                     "Gpd1", "Idh1", "Mpi", "Np", "Sod1", "Es1C", "Gpd1C",
-                     "Idh1C", "MpiC", "NpC", "Sod1C", "HI_NLoci", "HI", "Zfy2", 
-                     "Y", "Region", "Body_Weight", "Body_Length", "Tail_Length",
-                     "Fleas", "Ticks", "Ectoparasites_Logical", "Aspiculuris_sp",
-                     "Syphacia_sp", "Trichuris_muris", "Taenia_sp",
-                     "Heterakis_sp", "Mastophorus_muris", "Hymenolepis_sp", 
-                     "Catenotaenia_pusilla", "Heligmosomoides_polygurus", 
-                     "Worms_presence", "counter", "Feces_Weight", "Date_count", 
-                     "N_oocysts_sq1", "N_oocysts_sq2", "N_oocysts_sq3",  
-                     "N_oocysts_sq4", "N_oocysts_sq5", "N_oocysts_sq6", 
-                     "N_oocysts_sq7","N_oocysts_sq8", "mean_neubauer", 
-                     "delta_ct_ilwe_MminusE", "delta_ct_cewe_MminusE", 
-                     "MC.Eimeria", "Ct.Eimeria", "Ct.Mus", "n18S_Seq", 
-                     "COI_Seq", "ORF470_Seq", "eimeriaSpecies", "IFNy", 
-                     "IL.12", "IRG6", "CXCR3", "IL.6", "GBP2", "IL.10", 
-                     "IL.13", "IL.10", "IL.13", "IL1RN", "CXCR3", "CASP1", 
-                     "CXCL9","IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
-                     "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF", "GAPDH", 
-                     "PPIB", "B.actin", "B-actin","ILWE_Crypto_Ct", 
-                     "Oocyst_Predict_Crypto", "ILWE_DNA_Content_ng.microliter",
-                      "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8", "Act_CD8", 
-                     "IFNy_CD4", "IL17A_CD4", "IFNy_CD8"
-                     )
+# Including data on body size, adult / pregnant, and on parasites other
+# than eimeria
+f.1 <- Field %>% dplyr::select(c("Body_Weight", "Body_Length", "Tail_Length",
+                                 "Aspiculuris_sp", "Syphacia_sp", 
+                                 "Trichuris_muris", "Taenia_sp", 
+                                 "Heterakis_sp", "Mastophorus_muris", 
+                                 "Hymenolepis_sp", "Catenotaenia_pusilla",
+                                 all_of(Gene.Exp.cols)))
+                                 
 
-g.1  <- g.1 %>% mutate_if(is.character, as.factor)
-g.1  <- g.1 %>% mutate_if(is.integer, as.numeric)
+f.1  <- f.1 %>% mutate_if(is.character, as.factor)
+f.1  <- f.1 %>% mutate_if(is.integer, as.numeric)
 
 ```
+
+
+`
+
+## Imputing missing data 
+
+For the lab data I have used the function rfimpute from the package random 
+forest. I can't use the same function for our lab data as the function requires
+the data set to contain predictor variable and response variables. 
+
+Therefore I will be using the package MICE (multivariate Imputation by chained 
+Equations) which only requires a data frame of missing observations.
+
+Description: *Multiple imputation using Fully Conditional Specification (FCS)*
+
+implemented by the MICE algorithm as described in Van Buuren and
+Groothuis-Oudshoorn (2011) <doi:10.18637/jss.v045.i03>. Each variable has
+its own imputation model. Built-in imputation models are provided for
+continuous data (predictive mean matching, normal), binary data (logistic
+regression), unordered categorical data (polytomous logistic regression)
+and ordered categorical data (proportional odds). MICE can also impute
+continuous two-level data (normal model, pan, second-level variables).
+Passive imputation can be used to maintain consistency between variables.
+Various diagnostic plots are available to inspect the quality of the
+imputations.
+
+https://www.jstatsoft.org/article/view/v045i03
+
+tutorial: https://www.youtube.com/watch?v=WPiYOS3qK70
+
+https://datascienceplus.com/imputing-missing-data-with-r-mice-package/
+
+
+https://datascienceplus.com/handling-missing-data-with-mice-package-a-simple-approach/
+
+
+
+### Missing data can be classified into three categories:
+#### 1. Missing completely at random (MCAR)
+  
+We can't probably predict that value from any other value in the data. 
+MCAR implies the reason for the missingness of a field is completely random, 
+and that we probably can't predict that value from any other value in the data. 
+  
+#### 2. Missing at Random (MAR)
+
+Missingess can be explained by other values in other columns, but not from
+that column.
+  
+#### 3. Missing NOT at random (MNAR)
+
+
+The basic MICE assumption is that the data is missing at random, and that we can 
+make a guess about its true value by looking at other data samples.
+
+
+
+## Step1 : cleaning and checking the missing data points in our field data. 
+
+```{r impute_missing}
+
+# check the data for missing values
+sapply(f.1, function(x) sum(is.na(x)))
+
+f.1 %>%
+  aggr(col = c('navyblue', 'red'), numbers = TRUE, sortVars = TRUE, 
+       labels=names(f), cex.axis=.7, gap=3, 
+       ylab=c("Histogram of missing data","Pattern"))
+       
+       
+marginplot(f.1[c(1,2)])
+
+```
+
+
+
+## Now let's coninue by ussing the package MICE to impute the data
+
+```{r imputing_mice}
+
+# The frequency distribution of the missing cases per variable can be obtained 
+# as:
+init <- mice(f.1, maxit = 0)
+
+# table of amount of variables with the amount of missing values 
+table(init$nmis)
+
+# which method is used for imputation? In this case the package mice 
+# uses the default method for continuous variable, 
+# which is pmm, or predictive mean matching
+
+meth <- init$method
+
+
+# now impute the immune gene expression for the field and save it as the oject: 
+# igf
+# m=5 refers to the number of imputed datasets. Five is the default value.
+igf <- mice(f.1, method = meth, m = 5, seed = 500)
+summary(igf)
+
+# to check each column with imputed data
+## igf$imp$IFNy
+
+#Now we can get back the completed dataset using the complete()
+completeField <- complete(igf, 1)
+
+```
+
+Predictive mean matching with \(d = 5\) is the default in mice() for continuous 
+data. The method is robust against misspecification of the imputation model, 
+yet performs as well as theoretically superior methods. In the context of missing 
+covariate data, Marshall, Altman, and Holder (2010) concluded that predictive 
+mean matching “produced the least biased estimates and better model performance 
+measures.” Another simulation study that addressed skewed data concluded that 
+predictive mean matching “may be the preferred approach provided that less than 
+50% of the cases have missing data and the missing data are not MNAR” 
+(Marshall et al. 2010). Kleinke (2017) found that the method works well across a 
+wide variety of scenarios, but warned the default cannot address severe 
+skewness or small samples.
+
+
+Let’s compare the distributions of original and imputed data using a some useful 
+plots.First of all we can use a scatterplot and plot Ozone against all the other 
+variables. Let's first plot the variables for which we have few missing values.
+
+
+
+```{r distr_orig_pred}
+
+xyplot(igf,IFNy ~ SOCS1 + IRGM1 + MUC2, pch=18,cex=1)
+
+
+```
+
+
+What we would like to see is that the shape of the magenta points (imputed) 
+matches the shape of the blue ones (observed). The matching shape tells us that 
+the imputed values are indeed “plausible values”.
+
+Now let's plot the variables with many missing data points.
+
+
+```{r distr_orig_pred2}
+
+xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
+```
+
+
+
+```{r densityplotfield}
+densityplot(igf)
+```
+
+The density of the imputed data for each imputed dataset is showed in magenta 
+while the density of the observed data is showed in blue. Again, under our 
+previous assumptions we expect the distributions to be similar.
+
+Another useful visual take on the distributions can be obtained using the 
+stripplot() function that shows the distributions of the variables as individual 
+points
+
+
+```{r strirrplot}
+stripplot(igf, pch = 20, cex = 1.2)
+```
+
+
+# Predicting weight loss in our imputed field data
+
+Start by making the predictions for the field data. 
+
+
+```{r predicting_field }
+# Start by selecting the columns that appear in both the training data set and  
+# the field data set
+completeField <- completeField %>%
+  dplyr::select(intersect(colnames(completeField), c("IFNy", "IL.6", "IL.10", 
+                                                     "IL.13", "IL1RN", "CASP1",
+                                                     "CXCL9", "IDO1", "IRGM1", 
+                                                     "MPO", "MUC2", "MUC5AC", 
+                                                     "MYD88", "NCR1", "PRF1", 
+                                                     "RETNLB", "SOCS1", "TICAM1",
+                                                     "TNF")))
+
+
+# load predicting weight loss model
+load("r_scripts/models/predict_weight_loss.RData")
+
+set.seed(540)
+
+
+#The predict() function in R is used to predict the values based on the input data.
+predictions_field <- predict(weight_loss_predict, completeField)
+
+# assign test.data to a new object, so that we can make changes
+result_field <- completeField
+
+#add the new variable of predictions to the result object
+result_field <- cbind(result_field, predictions_field)
+
+# add it to the field data 
+Field <- cbind(Field, predictions_field)
+```
+
+
+# It is time to apply the package of Alice Balard et al. on our predictions!
+
+
+Let's see if we indeed have differences across the hybrid index with our predicted 
+weight loss. 
+
+## Install the package
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+require(devtools)
+
+devtools::install_github("alicebalard/parasiteLoad@v2.0", force = TRUE)
+
+#force = TRUE)
+
+library(parasiteLoad)
+```
+
+## Data diagnostics
+
+### Visualizations 
+
+#### What is the distribution of the predicted weight loss?
+
+```{r}
+
+Field %>% ggplot(aes(x = predictions_field)) +
+  geom_histogram(binwidth = 1.5)
+
+```
+#### Rough graph of our predictions against the hybrid index and against the 
+#### body length
+
+```{r}
+Field %>%
+    ggplot(aes(x = HI , y = predictions_field , color = Sex)) +
+    geom_smooth() +
+    geom_point()
+
+
+Field %>%
+    ggplot(aes(x = Body_Length , y = predictions_field , color = Sex)) +
+    geom_smooth() +
+    geom_point()
+```
+
+
+### Fitting distributions??
+
+Ratios / Percentages are not normally distributed. Weibull is a good distributions. 
+
+Alice used weibull for the qpcr data. (paper) 
+
+```{r}
+Field <- Field %>%
+dplyr::mutate(WL = predictions_field)
+
+x <- Field$WL
+
+descdist(data = x, discrete = FALSE)
+descdist(data = x, discrete = FALSE, #data is continuous
+         boot = 1000)
+
+
+```
+
+### Test for binomial distribution
+
+```{r}
+set.seed(10)
+n = 25
+size = 27
+prob = .4
+data = rbinom(x, size = size, prob = prob)
+fit = fitdist(data = data, dist="binom", 
+                   fix.arg=list(size = size), 
+                   start=list(prob = 0.1))
+
+summary(fit)
+
+
+plot(fit)
+```
+
+
+#### Functions for testing distributions
+```{r}
+normal_ <- fitdist(x, "norm")
+weibull_ <- fitdist(x, "weibull")
+gamma_ <- fitdist(x, "gamma")
+
+
+# Define function to be used to test, get the log lik and aic
+tryDistrib <- function(x, distrib){
+  # deals with fitdistr error:
+  fit <- tryCatch(MASS::fitdistr(x, distrib), error=function(err) "fit failed")
+  return(list(fit = fit,
+              loglik = tryCatch(fit$loglik, error=function(err) "no loglik computed"), 
+              AIC = tryCatch(fit$aic, error=function(err) "no aic computed")))
+}
+
+
+
+findGoodDist <- function(x, distribs, distribs2){
+  l =lapply(distribs, function(i) tryDistrib(x, i))
+  names(l) <- distribs
+  print(l)
+  listDistr <- lapply(distribs2, function(i){
+    if (i %in% "t"){
+      fitdistrplus::fitdist(x, i, start = list(df =2))
+    } else {
+      fitdistrplus::fitdist(x,i)
+    }}
+  ) 
+  par(mfrow=c(2,2))
+  denscomp(listDistr, legendtext=distribs2)
+  cdfcomp(listDistr, legendtext=distribs2)
+  qqcomp(listDistr, legendtext=distribs2)
+  ppcomp(listDistr, legendtext=distribs2)
+  par(mfrow=c(1,1))
+}
+```
+
+
+```{r}
+tryDistrib(x, "normal")
+tryDistrib(x, "binomial")
+tryDistrib(x, "student")
+tryDistrib(x, "weibull")
+tryDistrib(x, "weibullshifted")
+
+```
+
+```{r}
+findGoodDist(x, "normal", "weibull")
+```
+
+```{r normal}
+plot(normal_)
+summary(normal_)
+plot(gamma_)
+summary(gamma_)
+plot(weibull_)
+summary(weibull_)
+```
+
+
+We have a weibull distribution!
+
+
+
+### Is alpha significant for each hypothesis?
+
+
+
+```{r}
+Field$Sex <- as.factor(Field$Sex)
+
+
+
+parasiteLoad::getParamBounds("weibull", data = Field, response = "WL")
+
+
+speparam <- c(L1start = 10,
+                     L1LB = 1e-9,
+                     L1UB = 20,
+                     L2start = 10,
+                     L2LB = 1e-9,
+                     L2UB = 20,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
+
+##All
+fitWL_Sex <- parasiteLoad::analyse(data = Field,
+                        response = "WL",
+                        model = "weibull",
+                        group = "Sex")
+
+fitWL_Sex
+
+plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
+             data = Field,
+             response = "WL",
+             group = "Sex") +
+    scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_bw()
+
+plot_WL_Sex
+
+```
+H0: the expected load for the subspecies and between 2 groups is the same
+
+H1: the mean load across 2 groups is the same, but can differ across subspecies
+
+H2: the mean load across subspecies is the same, but can differ between the 
+2 groups
+
+H3: the mean load can differ both across subspecies and between 2 groups
+
+   dLL dDF     pvalue
+1 1.94   1 0.04885336
+[1] "Testing H1 no alpha vs alpha"
+   dLL dDF    pvalue
+1 1.27   1 0.1112538
+[1] "Testing H2 groupA no alpha vs alpha"
+   dLL dDF    pvalue
+1 0.47   1 0.3316769
+[1] "Testing H2 groupB no alpha vs alpha"
+  dLL dDF    pvalue
+1 1.7   1 0.0655139
+[1] "Testing H3 groupA no alpha vs alpha"
+   dLL dDF    pvalue
+1 0.35   1 0.4012688
+[1] "Testing H3 groupB no alpha vs alpha"
+   dLL dDF     pvalue
+1 2.03   1 0.04371418
+[1] "Testing H1 vs H0"
+   dLL dDF  pvalue
+1 1.83   1 0.05574
+[1] "Testing H2 vs H0"
+   dLL dDF    pvalue
+1 0.31   3 0.8939139
+[1] "Testing H3 vs H1"
+   dLL dDF    pvalue
+1 2.43   4 0.3011761
+[1] "Testing H3 vs H2"
+   dLL dDF     pvalue
+1 3.96   2 0.01909913
+
+
+
+## Summary stats for the field 
+
+Can we test the hybrid index, WL and the infection ? 
+
+```{r}
+Field %>%
+  dplyr::group_by(MC.Eimeria) %>%
+  dplyr::summarise(length(Mouse_ID))
+    
+```
+
+
+```{r}
+Field %>%
+    dplyr::group_by(eimeriaSpecies) %>%
+    dplyr::summarize(length(Mouse_ID))
+```
+
+## Reproducing for melting curve
+
+
+```{r}
+
+Field_mc <- Field %>% 
+    drop_na("MC.Eimeria")
+
+parasiteLoad::getParamBounds("weibull", data = Field_mc, response = "WL")
+
+
+speparam <- c(L1start = 10,
+                     L1LB = 1e-9,
+                     L1UB = 20,
+                     L2start = 10,
+                     L2LB = 1e-9,
+                     L2UB = 20,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
+
+
+Field_mc <- Field_mc %>%
+    dplyr::mutate(Eimeria = case_when(
+        MC.Eimeria == "TRUE" ~ "positive",
+        MC.Eimeria == "FALSE" ~ "negative",
+        TRUE ~ ""
+    ))
+
+Field_mc$Eimeria <- as.factor(Field_mc$Eimeria)
+
+
+##All
+fitWL_Eimeria <- parasiteLoad::analyse(data = Field_mc,
+                        response = "WL",
+                        model = "weibull",
+                        group = "Eimeria")
+fitWL_Eimeria
+
+plot_WL_Eimeria <- bananaPlot(mod = fitWL_Eimeria$H0,
+             data = Field_mc,
+             response = "WL",
+             group = "Eimeria") +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_bw()
+
+plot_WL_Eimeria
+
+```
+  dLL dDF     pvalue
+1 1.51   1 0.08179395
+[1] "Testing H1 no alpha vs alpha"
+   dLL dDF    pvalue
+1 1.07   1 0.1434471
+[1] "Testing H2 groupA no alpha vs alpha"
+   dLL dDF    pvalue
+1 1.32   1 0.1046118
+[1] "Testing H2 groupB no alpha vs alpha"
+   dLL dDF    pvalue
+1 0.02   1 0.8530121
+[1] "Testing H3 groupA no alpha vs alpha"
+   dLL dDF    pvalue
+1 1.12   1 0.1345719
+[1] "Testing H3 groupB no alpha vs alpha"
+   dLL dDF    pvalue
+1 0.01   1 0.8721156
+[1] "Testing H1 vs H0"
+   dLL dDF     pvalue
+1 1.69   1 0.06625789
+[1] "Testing H2 vs H0"
+   dLL dDF     pvalue
+1 4.03   3 0.04480045
+[1] "Testing H3 vs H1"
+   dLL dDF    pvalue
+1 2.91   4 0.2130876
+[1] "Testing H3 vs H2"
+   dLL dDF    pvalue
+1 0.57   2 0.5675372
+
+
+
+## Applying the classification model on the field data
+
+
+### Predicting melting curve
+```{r }
+
+# load model
+load("r_scripts/models/predicting_mc.RData")
+
+#The predict() function in R is used to predict the values based on the input 
+# data.
+predictions_mc_field <- predict(model_mc, completeField)
+
+#add the new variable of predictions to the result object
+Field <- cbind(Field, predictions_mc_field)
+
+
+#turn the variable of melting curve into a factor so that you can compare to 
+# the predictions
+Field$predictions_mc_field <- 
+  as.factor(as.character(Field$predictions_mc_field))
+Field$MC.Eimeria <- 
+  as.factor(as.character(Field$MC.Eimeria))
+
+```
+
+
+
+
+### Confusion matrix
+
+```{r }
+Field_mc <- Field %>% 
+  filter(!MC.Eimeria == "NA")
+
+conf_matrix_mc <- 
+  confusionMatrix(Field_mc$predictions_mc_field, 
+                  reference = Field_mc$MC.Eimeria)
+
+print(conf_matrix_mc)
+
+conf_matrix_mc$table
+
+plt <- as.data.frame(conf_matrix_mc$table)
+
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="forestgreen") +
+        labs(x = "Predictions",y = "Reference") 
+```
+
+## Test the other model for parasite species
+## Making predictions
+
+
+```{r }
+load("r_scripts/models/predict_infecting_parasite.RData")
+
+Field_Eim <- Field %>% 
+  drop_na(eimeriaSpecies)
+
+Field_Eim$eimeriaSpecies <- gsub("Negative", "uninfected", Field_Eim$eimeriaSpecies)
+
+Field_Eim <- as.factor(Field_Eim$eimeriaSpecies)
+
+#The predict() function in R is used to predict the values based on the input data.
+predictions_parasite_field <- predict(model_Parasite, completeField)
+
+
+#add the new variable of predictions to the result object
+Field_Eim <- cbind(Field, predictions_parasite_field)
+
+
+
+
+```
+
+
+
+
+## Visualizations
+
+
+
+```{r }
+
+conf_matrix_parasite <- confusionMatrix(Field_Eim$predictions_parasite_field, reference = Field_Eim$eimeriaSpecies)
+
+print(conf_matrix_parasite)
+
+conf_matrix_parasite$table
+
+plt <- as.data.frame(conf_matrix_parasite$table)
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+
+ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="forestgreen") +
+        labs(x = "Predictions",y = "Reference") 
+
+```
+## Next steps
+
+Question the removal of CXCL3, maybe it exists in the wild and we need to rename
+How to deal with the delta ct?
+
+#what about instead of classifying testing with random forest for infection intensity?
+
+
+
+
+##########################################################
+### Let's test if we can predict infection intensity according to gene expression
+## Splitting data into training and testing sets 
+# Using lab data first
+Splitting between training and testing:
+- Assess model performance on unseen data
+- Avoid over-fitting 
+
+
+
+```{r }
+#select the relevant columns:
+g.imputed <- g.imputed_full %>%
+    dplyr::select(c(delta, all_of(Genes))) %>%
+    drop_na(delta)
+
+g.imputed <- g.imputed %>%
+    rename(CXCR3 = CXCR3_bio)
+
+# split data into training and test
+
+set.seed(123) # this will help us reproduce this random assignment
+
+# in this way we can pick the random numbers
+
+training.samples <- g.imputed$delta%>%
+  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
+                      list = FALSE) # we don't want to get a list in return
+
+train.data <- g.imputed[training.samples, ] #include all the randomly selected rows
+test.data <- g.imputed[-training.samples, ] 
+
+
+```
+
+
+
+## Building the model
+
+```{r }
+#train the model
+model_delta <- randomForest(delta ~., data = train.data, proximity = TRUE,
+                      ntree = 1000) # number of trees
+                      
+
+print(model_delta)
+```
+
+Plotting the model will illustrate the error rate as we average across more trees and shows that our error rate stabalizes with around 200 trees.
+
+
+
+```{r}
+plot(model_delta)
+```
+
+
+## Making predictions
+
+
+```{r }
+#The predict() function in R is used to predict the values based on the input data.
+predictions <- predict(model_delta, test.data)
+
+# assign test.data to a new object, so that we can make changes
+result <- test.data
+
+#add the new variable of predictions to the result object
+result <- cbind(result, predictions)
+
+
+Parasite_challenge <- g.imputed_full %>% slice(as.numeric(row.names(result)))
+
+Parasite_challenge <- Parasite_challenge %>% 
+    dplyr::select(Parasite_challenge)
+
+result <- cbind(result, Parasite_challenge)
+
+
+
+```
+
+
+
+
+## Visualizations
+
+
+
+```{r }
+result %>%
+  ggplot() +
+  geom_point(aes(x = predictions, y = delta, color = Parasite_challenge)) +
+  geom_abline() +
+  labs(x = "Predictions: Infection intensity", y = "Infection intensity") +
+    theme_bw()
+
+```
+
+```{r}
+cor(result$predictions, result$delta)
+```
+
+  Okay! Now let's test it on the field
+  
+  ## Applying the model for predicting weight loss to our imputed data set
+
+Start by making the predictions for the field data. 
+
+
+```{r }
+# Start by selecting the columns that appear in both the training data set and the 
+# field data set
+
+#Now we can get back the completed dataset using the complete()
+completeField <- complete(igf, 1)
+
+completeField <- completeField %>%
+  dplyr::select(intersect(colnames(completeField), colnames(train.data)))
+
+set.seed(333)
+
+#The predict() function in R is used to predict the values based on the input data.
+predictions_field <- predict(model_delta, completeField)
+
+# assign test.data to a new object, so that we can make changes
+result_field <- completeField
+
+#add the new variable of predictions to the result object
+result_field <- cbind(result_field, predictions_field)
+
+#add the results to a data frame containing test data and the prediction
+delta_field <- f %>% dplyr::select(delta_ct_cewe_MminusE)
+
+result_field <- cbind(delta_field, result_field)
+
+result_field <- result_field %>%
+    drop_na(delta_ct_cewe_MminusE)
+```
+
+
+Visualize the predictions for the field
+## Visualizations
+
+
+
+```{r }
+glimpse(result_field)
+result_field %>%
+  ggplot() +
+  geom_point(aes(x = result_field$predictions_field, y = result_field$delta_ct_cewe_MminusE))+
+  geom_abline() +
+  labs(x = "Predictions: Infection intensity", y = "Infection intensity") +
+    theme_bw()
+
+```
+
+```{r}
+cor(result_field$predictions_field, result_field$delta_ct_cewe_MminusE)
+```
+
