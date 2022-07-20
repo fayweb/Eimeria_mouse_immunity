@@ -137,10 +137,11 @@ g.imputed <- rfImpute(max_WL ~ ., data = g.1, iter = 6)
 
 
 g_minus <- g %>% 
-  dplyr::select(-c(max_WL, primary_infection, challenge_infection, 
-                  mouse_strain, Parasite_primary, Parasite_challenge, max_OOC, 
-                  Eim_MC, delta, Parasite_primary, Parasite_challenge, OPG_O, 
-                  all_of(Genes)))
+  dplyr::select(-c(all_of(Genes), max_WL,
+                             mouse_strain, CD4, Treg, Div_Treg, 
+                             Treg17, Th1, Div_Th1, Th17, Div_Th17, CD8, Act_CD8, 
+                             Div_Act_CD8, IFNy_CD4, IFNy_CD8,Treg_prop, 
+                             IL17A_CD4))
 
 #full data set containing the imputed gene expression data
 g.imputed <- cbind(g_minus, g.imputed)
