@@ -106,6 +106,8 @@ Field <- Field[row.names(f), ]
 # select columns to be included in imputation
 # Including data on body size, adult / pregnant, and on parasites other
 # than eimeria
+
+
 f.1 <- Field %>% dplyr::select(c("Body_Weight", "Body_Length", "Tail_Length",
                                  "Aspiculuris_sp", "Syphacia_sp", 
                                  "Trichuris_muris", "Taenia_sp", 
@@ -113,6 +115,9 @@ f.1 <- Field %>% dplyr::select(c("Body_Weight", "Body_Length", "Tail_Length",
                                  "Hymenolepis_sp", "Catenotaenia_pusilla",
                                  all_of(Gene.Exp.cols)))
                                  
+#how many nas in each column
+sapply(f.1, function(x) sum(is.na(x)))
+
 
 f.1  <- f.1 %>% mutate_if(is.character, as.factor)
 f.1  <- f.1 %>% mutate_if(is.integer, as.numeric)
@@ -347,14 +352,19 @@ library(parasiteLoad)
 
 #### What is the distribution of the predicted weight loss?
 
+
 ```{r}
 
 Field %>% ggplot(aes(x = predictions_field)) +
   geom_histogram(binwidth = 1.5)
 
 ```
+
+
 #### Rough graph of our predictions against the hybrid index and against the 
 #### body length
+
+
 
 ```{r}
 Field %>%
@@ -368,6 +378,8 @@ Field %>%
     geom_smooth() +
     geom_point()
 ```
+
+
 
 
 ### Fitting distributions??
