@@ -514,6 +514,8 @@ plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
 plot_WL_Sex
 
 ```
+
+<p style="color:blue">
 H0: the expected load for the subspecies and between 2 groups is the same
 
 H1: the mean load across 2 groups is the same, but can differ across subspecies
@@ -522,38 +524,6 @@ H2: the mean load across subspecies is the same, but can differ between the
 2 groups
 
 H3: the mean load can differ both across subspecies and between 2 groups
-
-   dLL dDF     pvalue
-1 1.94   1 0.04885336
-[1] "Testing H1 no alpha vs alpha"
-   dLL dDF    pvalue
-1 1.27   1 0.1112538
-[1] "Testing H2 groupA no alpha vs alpha"
-   dLL dDF    pvalue
-1 0.47   1 0.3316769
-[1] "Testing H2 groupB no alpha vs alpha"
-  dLL dDF    pvalue
-1 1.7   1 0.0655139
-[1] "Testing H3 groupA no alpha vs alpha"
-   dLL dDF    pvalue
-1 0.35   1 0.4012688
-[1] "Testing H3 groupB no alpha vs alpha"
-   dLL dDF     pvalue
-1 2.03   1 0.04371418
-[1] "Testing H1 vs H0"
-   dLL dDF  pvalue
-1 1.83   1 0.05574
-[1] "Testing H2 vs H0"
-   dLL dDF    pvalue
-1 0.31   3 0.8939139
-[1] "Testing H3 vs H1"
-   dLL dDF    pvalue
-1 2.43   4 0.3011761
-[1] "Testing H3 vs H2"
-   dLL dDF     pvalue
-1 3.96   2 0.01909913
-
-
 
 ## Summary stats for the field 
 
@@ -622,35 +592,6 @@ plot_WL_Eimeria <- bananaPlot(mod = fitWL_Eimeria$H0,
 plot_WL_Eimeria
 
 ```
-  dLL dDF     pvalue
-1 1.51   1 0.08179395
-[1] "Testing H1 no alpha vs alpha"
-   dLL dDF    pvalue
-1 1.07   1 0.1434471
-[1] "Testing H2 groupA no alpha vs alpha"
-   dLL dDF    pvalue
-1 1.32   1 0.1046118
-[1] "Testing H2 groupB no alpha vs alpha"
-   dLL dDF    pvalue
-1 0.02   1 0.8530121
-[1] "Testing H3 groupA no alpha vs alpha"
-   dLL dDF    pvalue
-1 1.12   1 0.1345719
-[1] "Testing H3 groupB no alpha vs alpha"
-   dLL dDF    pvalue
-1 0.01   1 0.8721156
-[1] "Testing H1 vs H0"
-   dLL dDF     pvalue
-1 1.69   1 0.06625789
-[1] "Testing H2 vs H0"
-   dLL dDF     pvalue
-1 4.03   3 0.04480045
-[1] "Testing H3 vs H1"
-   dLL dDF    pvalue
-1 2.91   4 0.2130876
-[1] "Testing H3 vs H2"
-   dLL dDF    pvalue
-1 0.57   2 0.5675372
 
 
 
@@ -675,6 +616,7 @@ Field <- cbind(Field, predictions_mc_field)
 # the predictions
 Field$predictions_mc_field <- 
   as.factor(as.character(Field$predictions_mc_field))
+
 Field$MC.Eimeria <- 
   as.factor(as.character(Field$MC.Eimeria))
 
@@ -713,21 +655,24 @@ ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
 ```{r }
 load("r_scripts/models/predict_infecting_parasite.RData")
 
-Field_Eim <- Field %>% 
-  drop_na(eimeriaSpecies)
-
-Field_Eim$eimeriaSpecies <- gsub("Negative", "uninfected", Field_Eim$eimeriaSpecies)
-
-Field_Eim <- as.factor(Field_Eim$eimeriaSpecies)
-
-#The predict() function in R is used to predict the values based on the input data.
+#The predict() function in R is used to predict the values based on 
+# the input data.
 predictions_parasite_field <- predict(model_Parasite, completeField)
 
+# edit the infecting parasite names to correspond the parasite names in the 
+# model
+Field$eimeriaSpecies <- 
+  gsub("Negative", "uninfected", Field$eimeriaSpecies)
+
+
+Field$eimeriaSpecies <- as.factor(Field$eimeriaSpecies)
 
 #add the new variable of predictions to the result object
 Field_Eim <- cbind(Field, predictions_parasite_field)
 
-
+# drop the rows with nas in the parasite 
+Field_Eim <- Field_Eim %>% 
+  drop_na(eimeriaSpecies)
 
 
 ```
@@ -741,7 +686,9 @@ Field_Eim <- cbind(Field, predictions_parasite_field)
 
 ```{r }
 
-conf_matrix_parasite <- confusionMatrix(Field_Eim$predictions_parasite_field, reference = Field_Eim$eimeriaSpecies)
+conf_matrix_parasite <- 
+  confusionMatrix(Field_Eim$predictions_parasite_field, 
+                  reference = Field_Eim$eimeriaSpecies)
 
 print(conf_matrix_parasite)
 
@@ -756,174 +703,5 @@ ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
         labs(x = "Predictions",y = "Reference") 
 
 ```
-## Next steps
 
-Question the removal of CXCL3, maybe it exists in the wild and we need to rename
-How to deal with the delta ct?
-
-#what about instead of classifying testing with random forest for infection intensity?
-
-
-
-
-##########################################################
-### Let's test if we can predict infection intensity according to gene expression
-## Splitting data into training and testing sets 
-# Using lab data first
-Splitting between training and testing:
-- Assess model performance on unseen data
-- Avoid over-fitting 
-
-
-
-```{r }
-#select the relevant columns:
-g.imputed <- g.imputed_full %>%
-    dplyr::select(c(delta, all_of(Genes))) %>%
-    drop_na(delta)
-
-g.imputed <- g.imputed %>%
-    rename(CXCR3 = CXCR3_bio)
-
-# split data into training and test
-
-set.seed(123) # this will help us reproduce this random assignment
-
-# in this way we can pick the random numbers
-
-training.samples <- g.imputed$delta%>%
-  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
-                      list = FALSE) # we don't want to get a list in return
-
-train.data <- g.imputed[training.samples, ] #include all the randomly selected rows
-test.data <- g.imputed[-training.samples, ] 
-
-
-```
-
-
-
-## Building the model
-
-```{r }
-#train the model
-model_delta <- randomForest(delta ~., data = train.data, proximity = TRUE,
-                      ntree = 1000) # number of trees
-                      
-
-print(model_delta)
-```
-
-Plotting the model will illustrate the error rate as we average across more trees and shows that our error rate stabalizes with around 200 trees.
-
-
-
-```{r}
-plot(model_delta)
-```
-
-
-## Making predictions
-
-
-```{r }
-#The predict() function in R is used to predict the values based on the input data.
-predictions <- predict(model_delta, test.data)
-
-# assign test.data to a new object, so that we can make changes
-result <- test.data
-
-#add the new variable of predictions to the result object
-result <- cbind(result, predictions)
-
-
-Parasite_challenge <- g.imputed_full %>% slice(as.numeric(row.names(result)))
-
-Parasite_challenge <- Parasite_challenge %>% 
-    dplyr::select(Parasite_challenge)
-
-result <- cbind(result, Parasite_challenge)
-
-
-
-```
-
-
-
-
-## Visualizations
-
-
-
-```{r }
-result %>%
-  ggplot() +
-  geom_point(aes(x = predictions, y = delta, color = Parasite_challenge)) +
-  geom_abline() +
-  labs(x = "Predictions: Infection intensity", y = "Infection intensity") +
-    theme_bw()
-
-```
-
-```{r}
-cor(result$predictions, result$delta)
-```
-
-  Okay! Now let's test it on the field
-  
-  ## Applying the model for predicting weight loss to our imputed data set
-
-Start by making the predictions for the field data. 
-
-
-```{r }
-# Start by selecting the columns that appear in both the training data set and the 
-# field data set
-
-#Now we can get back the completed dataset using the complete()
-completeField <- complete(igf, 1)
-
-completeField <- completeField %>%
-  dplyr::select(intersect(colnames(completeField), colnames(train.data)))
-
-set.seed(333)
-
-#The predict() function in R is used to predict the values based on the input data.
-predictions_field <- predict(model_delta, completeField)
-
-# assign test.data to a new object, so that we can make changes
-result_field <- completeField
-
-#add the new variable of predictions to the result object
-result_field <- cbind(result_field, predictions_field)
-
-#add the results to a data frame containing test data and the prediction
-delta_field <- f %>% dplyr::select(delta_ct_cewe_MminusE)
-
-result_field <- cbind(delta_field, result_field)
-
-result_field <- result_field %>%
-    drop_na(delta_ct_cewe_MminusE)
-```
-
-
-Visualize the predictions for the field
-## Visualizations
-
-
-
-```{r }
-glimpse(result_field)
-result_field %>%
-  ggplot() +
-  geom_point(aes(x = result_field$predictions_field, y = result_field$delta_ct_cewe_MminusE))+
-  geom_abline() +
-  labs(x = "Predictions: Infection intensity", y = "Infection intensity") +
-    theme_bw()
-
-```
-
-```{r}
-cor(result_field$predictions_field, result_field$delta_ct_cewe_MminusE)
-```
 
