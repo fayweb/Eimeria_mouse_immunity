@@ -185,6 +185,10 @@ Genes <- c("IFNy",  "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN",
 
 g.imputed_full <- g.imputed
 
+write.csv(g.imputed_full, 
+          "output_data/gene_expression/data_products/lab_imputed_gene_expression.csv", 
+          row.names = FALSE)
+
 #select the relevant columns:
 g.imputed <- g.imputed %>%
   dplyr::select(c(max_WL, all_of(Genes))) 
