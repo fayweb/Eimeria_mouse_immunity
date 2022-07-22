@@ -296,8 +296,17 @@ Start by making the predictions for the field data.
 
 
 ```{r predicting_field }
-# Start by selecting the columns that appear in both the training data set and  
-# the field data set
+#merge the imputations with the field data and save the output file
+Field_imputed <- Field %>%
+  dplyr::select(-colnames(completeField))
+
+Field_imputed <- cbind(Field_imputed, completeField)
+
+write.csv(Field_imputed, 
+          "output_data/gene_expression/data_products/field_imputed_gene_expression.csv", 
+          row.names = FALSE)
+
+
 completeField <- completeField %>%
   dplyr::select(intersect(colnames(completeField), c("IFNy", "IL.6", "IL.10", 
                                                      "IL.13", "IL1RN", "CASP1",

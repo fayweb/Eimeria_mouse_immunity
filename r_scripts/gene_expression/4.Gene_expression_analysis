@@ -1,0 +1,19 @@
+---
+title: "3.Gene_expressions_analysis -  Analyzing differences between field and 
+lab gene expression data"
+author: "Fay Webster"
+date: '2022-07-18'
+geometry: margin=2cm
+output:
+  pdf_document: default
+  theme: journal
+  toc: yes
+  toc_float: yes
+  html_document: null
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
