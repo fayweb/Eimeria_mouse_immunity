@@ -19,6 +19,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Aims:
 - Compare immune gene expression between lab and field data
+- How do eimeria infections affect the expression of various immune genes?
+- Does the expression vary between lab and field data? 
 
 # load libraries
 ```{r}
@@ -65,8 +67,47 @@ lab <- lab %>%
            case_when(delta > -5 ~ "infected",
                      delta < -5 ~ "uninfected"))
 
+
 ```
- 
+
+# Compare the differences in uninfected and infected data and field / lab
+
+## Write a function which does a t test to quantify the differences of gene
+## expression between uninfected and infected mice in the lab and field infections
+## and also compares the uninfected lab and field and the infected lab and field 
+
+```{r}
+eimeria_t.test <- function(x, y) {
+# select the uninfected (delta ct under -5 mice)  
+  lab_uni <- lab %>%
+    dplyr::filter(infected_eimeria == "uninfected")
+# select the infected lab mice
+  lab_inf <- lab %>% 
+    dplyr::filter(infected_eimeria == "infected") 
+# select the uninfected field mice (delta ct under -5 mice)  
+  field_uni <- field %>%
+    dplyr::filter(infected_eimeria == "uninfected")
+# select the infected lab mice
+  field_inf <- field %>% 
+    dplyr::filter(infected_eimeria == "infected") 
+
+print(c("Testing differences in expression in uninfected and infected lab mice. Gene:", toString(x)))
+print(t.test(lab_uni %>% dplyr::select(all_of(x)), lab_inf %>% dplyr::select(all_of(x))))
+
+print(c("Testing differences in expression in uninfected and infected field mice. Gene:", toString(x)))
+print(t.test(field_uni %>% dplyr::select(all_of(x)), field_inf %>% dplyr::select(all_of(x))))
+
+print(c("Testing differences in expression in uninfected lab vs field mice. Gene:", toString(x)))
+print(t.test(lab_uni %>% dplyr::select(all_of(x)), field_uni %>% dplyr::select(all_of(x))))
+
+print(c("Testing differences in expression in infected lab vs field mice. Gene:", toString(x)))
+print(t.test(lab_inf %>% dplyr::select(all_of(x)), field_inf %>% dplyr::select(all_of(x))))
+
+}
+
+
+```
+
 ## 1. IFNy
 
 ```{r}
@@ -108,6 +149,8 @@ ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IFNy,
   theme_bw()
 
 ```
+
+
 ## 2. CXCR3
 
 ```{r}
@@ -909,3 +952,47 @@ ggplot(field, aes(x = delta_ct_cewe_MminusE, y = TNF,
   theme_bw()
 
 ```
+
+# Compare the differences in uninfected and infected data and field / lab
+
+## Write a function which does a t test to quantify the differences of gene
+## expression between uninfected and infected mice in the lab and field infections
+## and also compares the uninfected lab and field and the infected lab and field 
+
+```{r}
+eimeria_t.test <- function(x) {
+# select the uninfected (delta ct under -5 mice)  
+  lab_uni <- lab %>%
+    dplyr::filter(infected_eimeria == "uninfected")
+# select the infected lab mice
+  lab_inf <- lab %>% 
+    dplyr::filter(infected_eimeria == "infected") 
+# select the uninfected field mice (delta ct under -5 mice)  
+  field_uni <- field %>%
+    dplyr::filter(infected_eimeria == "uninfected")
+# select the infected lab mice
+  field_inf <- field %>% 
+    dplyr::filter(infected_eimeria == "infected") 
+
+print(c("Testing differences in expression in uninfected and infected lab mice. Gene:", toString(x)))
+print(t.test(lab_uni %>% dplyr::select(all_of(x)), lab_inf %>% dplyr::select(all_of(x))))
+
+print(c("Testing differences in expression in uninfected and infected field mice. Gene:", toString(x)))
+print(t.test(field_uni %>% dplyr::select(all_of(x)), field_inf %>% dplyr::select(all_of(x))))
+
+print(c("Testing differences in expression in uninfected lab vs field mice. Gene:", toString(x)))
+print(t.test(lab_uni %>% dplyr::select(all_of(x)), field_uni %>% dplyr::select(all_of(x))))
+
+print(c("Testing differences in expression in infected lab vs field mice. Gene:", toString(x)))
+print(t.test(lab_inf %>% dplyr::select(all_of(x)), field_inf %>% dplyr::select(all_of(x))))
+
+}
+
+
+```
+
+```{r}
+lapply(intersect(Genes_field, Genes_lab), eimeria_t.test)
+```
+
+
