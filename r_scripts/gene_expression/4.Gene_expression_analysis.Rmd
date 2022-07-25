@@ -40,7 +40,7 @@ field <- read.csv("output_data/gene_expression/data_products/field_imputed_gene_
 # Selecting genes
 ```{r}
 # vectors for selecting gene columns 
-Genes_lab <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL1RN", "CASP1", 
+Genes_lab <- c("IFNy", "CXCR3", "IL.6", "IL.10", "IL.13", "IL1RN", "CASP1", 
                "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", 
            "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
 
@@ -992,7 +992,56 @@ print(t.test(lab_inf %>% dplyr::select(all_of(x)), field_inf %>% dplyr::select(a
 ```
 
 ```{r}
-print(lapply(intersect(Genes_field, Genes_lab), eimeria_t.test))
+lapply(intersect(Genes_field, Genes_lab), eimeria_t.test)
 ```
+
+# Function to print the p values for each t tet
+```{r}
+eimeria_t_test_pvalue <- function(x) {
+  # select the uninfected (delta ct under -5 mice)  
+  lab_uni <- lab %>%
+    dplyr::filter(infected_eimeria == "uninfected")
+# select the infected lab mice
+  lab_inf <- lab %>% 
+    dplyr::filter(infected_eimeria == "infected") 
+# select the uninfected field mice (delta ct under -5 mice)  
+  field_uni <- field %>%
+    dplyr::filter(infected_eimeria == "uninfected")
+# select the infected lab mice
+  field_inf <- field %>% 
+    dplyr::filter(infected_eimeria == "infected") 
+  
+lab.uni_lab.inf <- t.test(lab_uni %>% dplyr::select(all_of(x)), 
+                          lab_inf %>% dplyr::select(all_of(x)))$p.value
+
+field.uni_field.inf <- t.test(field_uni %>% dplyr::select(all_of(x)), 
+                              field_inf %>% dplyr::select(all_of(x)))$p.value
+
+lab.uni_field_uni <- t.test(lab_uni %>% dplyr::select(all_of(x)), 
+                            field_uni %>% dplyr::select(all_of(x)))$p.value
+
+lab.inf_field.inf <- t.test(lab_inf %>% dplyr::select(all_of(x)), 
+                            field_inf %>% dplyr::select(all_of(x)))$p.value
+
+
+A <- data.frame(lab.uni_lab.inf,field.uni_field.inf,lab.uni_field_uni, 
+                   lab.inf_field.inf)
+
+rownames(A) <- toString(x)
+
+print(A)
+}
+
+
+P <- lapply(intersect(Genes_field, Genes_lab), eimeria_t_test_pvalue)
+
+t.test.p.value <- reduce(P, rbind)
+
+write.csv(t.test.p.value,
+          "output_data/gene_expression/data_products/t.test.p.values_gene_exp.csv",
+          row.names = FALSE)
+
+```
+
 
 
