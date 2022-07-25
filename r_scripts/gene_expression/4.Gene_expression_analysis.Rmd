@@ -992,7 +992,7 @@ print(t.test(lab_inf %>% dplyr::select(all_of(x)), field_inf %>% dplyr::select(a
 ```
 
 ```{r}
-lapply(intersect(Genes_field, Genes_lab), eimeria_t.test)
+print(lapply(intersect(Genes_field, Genes_lab), eimeria_t.test))
 ```
 
 
