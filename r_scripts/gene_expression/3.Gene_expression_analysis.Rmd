@@ -724,5 +724,58 @@ ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
         labs(x = "Predictions",y = "Reference") 
 
 ```
+# Re-testing infection intensities across the hybrid zone
 
+```{r}
+Field_delta <- Field %>% 
+    drop_na("delta_ct_cewe_MminusE")
+
+x <- Field_delta$delta_ct_cewe_MminusE
+
+tryDistrib(x, "normal")
+tryDistrib(x, "binomial")
+tryDistrib(x, "student")
+tryDistrib(x, "weibull")
+tryDistrib(x, "weibullshifted")
+
+```
+We have a normal distribution.
+
+
+```{r}
+
+parasiteLoad::getParamBounds("normal", data = Field_delta, 
+                             response = "delta_ct_cewe_MminusE")
+
+
+speparam <- c(L1start = -9,
+                     L1LB = -14,
+                     L1UB = 4,
+                     L2start = -9,
+                     L2LB = -14,
+                     L2UB = 4,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 10)
+
+
+##All
+fit_delta <- parasiteLoad::analyse(data = Field_delta,
+                        response = "delta_ct_cewe_MminusE",
+                        model = "normal",
+                        group = "Sex")
+fit_delta
+
+plot_delta <- bananaPlot(mod = fit_delta$H0,
+             data = Field_delta,
+             response = "delta_ct_cewe_MminusE",
+             islog10 = FALSE, group = "Sex") +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_bw() 
+
+
+
+plot_delta
+
+```
 
