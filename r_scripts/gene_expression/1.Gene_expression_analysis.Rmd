@@ -3,10 +3,10 @@ title: "Gene_expression_analysis"
 author: "Fay"
 date: '2022-05-18'
 output:
-  html_document: default
   pdf_document: 
     fig_width: 12
     fig_height: 8
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -826,6 +826,64 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 ```
 
 
+
+### repeating the heatmap on the significant genes imputed data
+```{r}
+
+gene <- imputed_expr %>% dplyr::select(c(EH_ID, c("IFNy", "IL.13", "PRF1", 
+                                                  "TICAM1")))
+ 
+ # turn the data frame into a matrix and transpose it. We want to have each cell 
+ # type as a row name 
+ gene <- t(as.matrix(gene))
+ 
+ #switch the matrix back to a data frame format
+ gene <- as.data.frame(gene)
+ 
+ # turn the first row into column names
+ gene %>%
+     row_to_names(row_number = 1) -> heatmap_data
+ 
+ 
+ table(rowSums(is.na(heatmap_data)) == nrow(heatmap_data))
+
+ 
+ # turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != nrow(heatmap_data)]
+
+  
+annotation_df <- as_tibble(Challenge) %>%
+  dplyr::filter(infection == "challenge", dpi == dpi_max) %>%
+  dplyr::group_by(EH_ID) %>%
+  dplyr::select(c("EH_ID", "Parasite_challenge",
+                  "hybrid_status")) %>%
+  dplyr::filter(EH_ID %in% colnames(heatmap_data))
+  
+annotation_df <- unique(annotation_df)
+ 
+
+annotation_df <- as.data.frame(unique(annotation_df)) %>%
+  dplyr::select(-EH_ID)
+
+### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$EH_ID
+
+rownames(annotation_df) <- colnames(heatmap_data)
+```
+
+
+Heatmap on gene expression data: 
+
+
+```{r, echo = FALSE}
+pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+```
 
 
 
