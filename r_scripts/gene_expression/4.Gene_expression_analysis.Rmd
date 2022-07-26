@@ -67,7 +67,8 @@ lab <- lab %>%
            case_when(delta > -5 ~ "infected",
                      delta < -5 ~ "uninfected"))
 
-
+field$MC.Eimeria
+lab$Eim_MC
 ```
 
 # Compare the differences in uninfected and infected data and field / lab
@@ -960,10 +961,15 @@ ggplot(field, aes(x = delta_ct_cewe_MminusE, y = TNF,
 ## and also compares the uninfected lab and field and the infected lab and field 
 
 ```{r, include=FALSE}
+
+field$MC.Eimeria
+lab$Eim_MC
+
+
 eimeria_t.test <- function(x) {
 # select the uninfected (delta ct under -5 mice)  
   lab_uni <- lab %>%
-    dplyr::filter(infected_eimeria == "uninfected")
+    dplyr::filter( == "uninfected")
 # select the infected lab mice
   lab_inf <- lab %>% 
     dplyr::filter(infected_eimeria == "infected") 
