@@ -1,0 +1,363 @@
+---
+title: "1.2_Gene_expression_analysis"
+author: "Fay"
+date: '2022-07-27'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1.  Gene expression in the laboratory infections - Heatmap
+
+```{r load_libraries, echo=FALSE, include = FALSE}
+library(pheatmap)
+library(tidyverse)
+library(matrixStats)
+library(tidyr)
+library(janitor)
+library(tibble)
+library(corrplot)
+library(RColorBrewer)
+library(ggplot2)
+library(dplyr)
+library(missMDA) 
+library(FactoMineR)
+library(PerformanceAnalytics)
+library(factoextra)
+library(MASS)
+library(reshape2)
+library(cowplot)
+library(lmtest)
+if(any(grepl("package:plyr", search()))) detach("package:plyr") else message("plyr not loaded")
+```
+
+```{r}
+field <- read.csv("output_data/gene_expression/data_products/field_imputed_gene_expression.csv")
+
+Genes_field   <- c("IFNy",  "CXCR3", "IL.6", #"GBP2", "IL.12", "IRG6",
+                     "IL.10", "IL.13", "IL1RN",
+                     "CXCR3", "CASP1", "CXCL9", 
+                     "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
+                     "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+```
+
+```{r}
+#filter out weird ifn y values
+field <- field %>% 
+  filter(!IFNy >=40)
+
+# turn the data frame into a matrix and transpose it. We want to have each cell 
+ # type as a row name 
+ gene <- t(as.matrix(field %>% dplyr::select(c(Mouse_ID, all_of(Genes_field)))))
+ 
+ #switch the matrix back to a data frame format
+ gene <- as.data.frame(gene)
+ 
+ # turn the first row into column names
+ gene %>%
+     row_to_names(row_number = 1) -> heatmap_data
+ 
+ table(rowSums(is.na(heatmap_data)) == nrow(heatmap_data))
+ 
+ # turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+ 
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != 
+                                 nrow(heatmap_data)]
+ 
+ ### Prepare the annotation data frame for the heatmap
+ 
+annotation_df <- as_tibble(field) %>%
+  dplyr::group_by(Mouse_ID) %>%
+  dplyr::select(c("Mouse_ID", "Sex", "HI")) %>%
+  dplyr::filter(Mouse_ID %in% colnames(heatmap_data))
+  
+annotation_df <- unique(annotation_df)
+ 
+annotation_df <- as.data.frame(unique(annotation_df)) %>%
+  dplyr::select(-Mouse_ID)
+
+
+### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$Mouse_ID
+# Match the row names to the heatmap data frame
+rownames(annotation_df) <- colnames(heatmap_data)
+
+heatmap_data <- as.matrix(heatmap_data)
+```
+
+
+Heatmap on gene expression data: 
+
+```{r pheatmap_genes, echo = FALSE}
+
+
+pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+```
+
+# Heatmap with EIm mc
+```{r}
+
+
+# turn the data frame into a matrix and transpose it. We want to have each cell 
+ # type as a row name 
+ gene <- t(as.matrix(field %>% 
+                       filter(!MC.Eimeria == "NA") %>%
+                       dplyr::select(c(Mouse_ID, all_of(Genes_field)))))
+ 
+ #switch the matrix back to a data frame format
+ gene <- as.data.frame(gene)
+ 
+ # turn the first row into column names
+ gene %>%
+     row_to_names(row_number = 1) -> heatmap_data
+ 
+ table(rowSums(is.na(heatmap_data)) == nrow(heatmap_data))
+ 
+ # turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+ 
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != 
+                                 nrow(heatmap_data)]
+ 
+ ### Prepare the annotation data frame for the heatmap
+ field$MC.Eimeria <- as.character(field$MC.Eimeria)
+
+ annotation_df <- as_tibble(field) %>%
+  filter(!MC.Eimeria == "NA") %>%
+  dplyr::group_by(Mouse_ID) %>%
+  dplyr::select(c("Mouse_ID", "MC.Eimeria")) %>%
+  dplyr::filter(Mouse_ID %in% colnames(heatmap_data))
+  
+annotation_df <- unique(annotation_df)
+ 
+annotation_df <- as.data.frame(unique(annotation_df)) %>%
+  dplyr::select(-Mouse_ID)
+
+
+### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$Mouse_ID
+# Match the row names to the heatmap data frame
+rownames(annotation_df) <- colnames(heatmap_data)
+
+
+heatmap_data <- as.data.frame(heatmap_data)
+
+
+
+```
+
+```{r}
+
+pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+```
+# Heatmap with eimeria species
+```{r}
+
+# turn the data frame into a matrix and transpose it. We want to have each cell 
+ # type as a row name 
+ gene <- t(as.matrix(field %>% 
+                       filter(!eimeriaSpecies == "NA") %>%
+                       dplyr::select(c(Mouse_ID, all_of(Genes_field)))))
+ 
+ #switch the matrix back to a data frame format
+ gene <- as.data.frame(gene)
+ 
+ # turn the first row into column names
+ gene %>%
+     row_to_names(row_number = 1) -> heatmap_data
+ 
+ table(rowSums(is.na(heatmap_data)) == nrow(heatmap_data))
+ 
+ # turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+ 
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != 
+                                 nrow(heatmap_data)]
+ 
+ annotation_df <- as_tibble(field) %>%
+  filter(!MC.Eimeria == "NA") %>%
+  dplyr::group_by(Mouse_ID) %>%
+  dplyr::select(c("Mouse_ID", "eimeriaSpecies")) %>%
+  dplyr::filter(Mouse_ID %in% colnames(heatmap_data))
+  
+annotation_df <- unique(annotation_df)
+ 
+annotation_df <- as.data.frame(unique(annotation_df)) %>%
+  dplyr::select(-Mouse_ID)
+
+
+### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$Mouse_ID
+# Match the row names to the heatmap data frame
+rownames(annotation_df) <- colnames(heatmap_data)
+
+
+heatmap_data <- as.data.frame(heatmap_data)
+
+
+```
+```{r}
+
+pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+```
+
+```{r histogram_genes, echo = FALSE, message=FALSE}
+f <- field %>%
+  pivot_longer(cols=  all_of(Genes_field), names_to = "Genes", 
+               values_to = "expression")
+
+f %>% 
+  filter(!expression >= 40) %>%
+  ggplot(aes(x = expression, color = eimeriaSpecies)) + 
+  geom_histogram(echo = FALSE)
+```
+
+```{r gene_correlations, echo = FALSE}
+gene_correlation <- field %>% 
+  ungroup() %>%
+  dplyr::select(all_of(Genes_field))
+
+# draw correlation between the genes
+gene_correlation <- as.matrix(cor(gene_correlation, use="pairwise.complete.obs"))
+# load the function to calculate the p value for correlations
+source("r_scripts/functions/p_value_for_correlations.R")
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(gene_correlation)
+```
+
+
+## Corrplot of correlations 
+
+Here is a corrplot of the correlations between the genes.
+I am using the non-normalized genes
+
+```{r corrplot_correlations_genes, echo = FALSE}
+corrplot(gene_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black',
+         number.cex=0.5) #Add significance level to the correlogram
+#remove the values that are insignificant
+```
+```{r}
+res.pca <- PCA(field[,all_of(Genes_field)], scale.unit = TRUE, graph = FALSE)
+
+```
+
+```{r, echo = FALSE}
+# extract pc scores for first two component and add to dat dataframe
+
+  
+field$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+field$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+
+
+#We also need to extract the data for the variable contributions to each of the pc axes.
+pca.vars <- res.pca$var$coord %>% data.frame
+pca.vars$vars <- rownames(pca.vars)
+pca.vars.m <- melt(pca.vars, id.vars = "vars")
+source("r_scripts/functions/circle_fun.R")
+circ <- circleFun(c(0,0),2,npoints = 500)
+```
+
+
+Biplot of the  gene pca
+
+
+```{r biplot_pca_genes}
+#Now we can make our initial plot of the PCA.
+field %>% 
+  pivot_longer(cols = all_of(Genes_field), names_to = "Gene", values_to = "gene_expression")  %>%
+  ggplot(aes(x = pc1, y = pc2, color = eimeriaSpecies, shape = eimeriaSpecies)) +
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_vline(xintercept = 0, lty = 2) +
+  geom_point(alpha = 0.8) +
+  stat_ellipse(geom="polygon", aes(fill = eimeriaSpecies), alpha = 0.2, show.legend = FALSE,
+               level = 0.95) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(), panel.border = element_rect(fill= "transparent")) 
+  
+```
+
+
+```{r correlations_genes_dimensions, echo = FALSE}
+#It’s possible to use the function corrplot() [corrplot package] to highlight the most contributing variables for each dimension:
+var.contrib <- res.pca$var$contrib
+corrplot(var.contrib, is.corr=FALSE) 
+```
+
+The function fviz_contrib() [factoextra package] can be used to draw a bar plot of variable contributions. If your data contains many variables, you can decide to show only the top contributing variables. The R code below shows the top 10 variables contributing to the principal components:
+
+
+```{r contr_var_pc_genes, echo = FALSE}
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
+```
+
+
+```{r}
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
+```
+
+
+```{r contr_var_pc1_2_genes, echo = FALSE}
+fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 18)
+```
+The red dashed line on the graph above indicates the expected average contribution. If the contribution of the variables were uniform, the expected value would be 1/length(variables) = 1/10 = 10%. For a given component, a variable with a contribution larger than this cutoff could be considered as important in contributing to the component.
+
+Note that, the total contribution of a given variable, on explaining the variations retained by two principal components, say PC1 and PC2, is calculated as contrib = [(C1 * Eig1) + (C2 * Eig2)]/(Eig1 + Eig2), where
+
+C1 and C2 are the contributions of the variable on PC1 and PC2, respectively
+Eig1 and Eig2 are the eigenvalues of PC1 and PC2, respectively. Recall that eigenvalues measure the amount of variation retained by each PC.
+In this case, the expected average contribution (cutoff) is calculated as follow: As mentioned above, if the contributions of the 10 variables were uniform, the expected average contribution on a given PC would be 1/10 = 10%. The expected average contribution of a variable for PC1 and PC2 is : [(10* Eig1) + (10 * Eig2)]/(Eig1 + Eig2)
+
+
+
+```{r pca_contribution_genes, echo = FALSE}
+#The most important (or, contributing) variables can be highlighted on the correlation plot as follow:
+fviz_pca_var(res.pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+             )
+```
+
+To visualize the contribution of individuals to the first two principal components:
+
+```{r contr_individuals_genes, echo = FALSE}
+# Total contribution on PC1 and PC2
+fviz_contrib(res.pca, choice = "ind", axes = 1:2)
+```
+
+PCA + Biplot combination
+
+```{r pca_biplot_genes, echo = FALSE}
+fviz_pca_biplot(res.pca, 
+                col.ind = field$eimeriaSpecies, palette = "jco", 
+                addEllipses = TRUE, label = "var",
+                col.var = "black", repel = TRUE,
+                legend.title = "Parasite in the challenge infection") 
+```
+ In the following example, we want to color both individuals and variables by groups. The trick is to use pointshape = 21 for individual points. This particular point shape can be filled by a color using the argument fill.ind. The border line color of individual points is set to “black” using col.ind. To color variable by groups, the argument col.var will be used.
+
+
+
