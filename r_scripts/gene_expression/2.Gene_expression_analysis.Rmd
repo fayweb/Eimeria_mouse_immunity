@@ -534,7 +534,7 @@ ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
 ```{r splitting_data}
 #select the relevant columns:
 g.imputed_mc <- g.imputed_full %>%
-  dplyr::select(c(Eim_MC, c("IFNy", "IL.13", "CXCL9", "IRGM1")))
+  dplyr::select(c(Eim_MC, all_of(Genes)))
 
 
 # split data into training and test
