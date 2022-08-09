@@ -1,6 +1,5 @@
 ---
-title: "4.Gene_expressions_analysis -  Analyzing differences between field and 
-lab gene expression data"
+title: "4.Gene_expressions_analysis -  Analyzing differences between field and lab"
 author: "Fay Webster"
 date: '2022-07-18'
 geometry: margin=2cm
@@ -26,6 +25,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(ggplot2)
 library(tidyverse)
+library(optimx)
 ```
 
 
@@ -1103,92 +1103,6 @@ library(parasiteLoad)
 ```
 
 
-Applying Alice's package on every gene 
 
 
-
-#### Functions for testing distributions
-```{r}
-x <- field$IDO1
-
-
-
-# Define function to be used to test, get the log lik and aic
-tryDistrib <- function(x, distrib){
-  # deals with fitdistr error:
-  fit <- tryCatch(MASS::fitdistr(x, distrib), error=function(err) "fit failed")
-  return(list(fit = fit,
-              loglik = tryCatch(fit$loglik, error=function(err) "no loglik computed"), 
-              AIC = tryCatch(fit$aic, error=function(err) "no aic computed")))
-}
-
-
-
-findGoodDist <- function(x, distribs, distribs2){
-  l =lapply(distribs, function(i) tryDistrib(x, i))
-  names(l) <- distribs
-  print(l)
-  listDistr <- lapply(distribs2, function(i){
-    if (i %in% "t"){
-      fitdistrplus::fitdist(x, i, start = list(df =2))
-    } else {
-      fitdistrplus::fitdist(x,i)
-    }}
-  ) 
-  par(mfrow=c(2,2))
-  denscomp(listDistr, legendtext=distribs2)
-  cdfcomp(listDistr, legendtext=distribs2)
-  qqcomp(listDistr, legendtext=distribs2)
-  ppcomp(listDistr, legendtext=distribs2)
-  par(mfrow=c(1,1))
-}
-```
-
-
-```{r}
-tryDistrib(x, "normal")
-tryDistrib(x, "binomial")
-tryDistrib(x, "student")
-tryDistrib(x, "weibull")
-tryDistrib(x, "weibullshifted")
-
-```
-
-```{r}
-findGoodDist(x, "normal", "weibull")
-```
-
-```{r normal}
-plot(normal_)
-summary(normal_)
-plot(gamma_)
-summary(gamma_)
-plot(weibull_)
-summary(weibull_)
-```
-Write a function to apply alice's package on each gene to test for hybrid differences
-```{r}
-
-parasite_load_genes <- function(x) {
-  field$Sex <- as.factor(field$Sex)
-
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = toString(x))
-
-
-##All
-print(parasiteLoad::analyse(data = field,
-                        response = toString(x),
-                        model = "weibull",
-                        group = "Sex"))
-  
-}
-
-```
-
-
-
-
-```{r include = FALSE}
-lapply(Genes_field, parasite_load_genes)
-```
 
