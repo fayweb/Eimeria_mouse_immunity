@@ -24,6 +24,9 @@ Here, we have the experimental / field data, inlcuding imputed data
 ```{r}
 lab <- read.csv("output_data/gene_expression/data_products/lab_imputed_gene_expression.csv")
 field <- read.csv("output_data/gene_expression/data_products/field_imputed_gene_expression.csv")
+
+
+field <- field %>% filter(MC.Eimeria == "TRUE")
 ```
 
 # Selecting genes
@@ -628,44 +631,3 @@ bananaPlot(mod = TNF$H0,
 
 
 
-```{r }
-
-field_intensity <- field %>%
-  filter(!delta_ct_cewe_MminusE == "NA")
-
-x <- field_intensity$delta_ct_cewe_MminusE
-
-tryDistrib(x, "normal")
-tryDistrib(x, "binomial")
-tryDistrib(x, "student")
-tryDistrib(x, "weibull")
-tryDistrib(x, "weibullshifted")
-tryDistrib(x, "gamma")
-
-
-
-
-speparam <-    
-parasiteLoad::getParamBounds("normal", data = field_intensity, response = "delta_ct_cewe_MminusE")
-
-
-
-
-Intensity_eimeria <- parasiteLoad::analyse(data = field_intensity,
-                        response = "delta_ct_cewe_MminusE",
-                        model = "normal",
-                        group = "Sex")
-##All
-print(TICAM1)
-
-
-bananaPlot(mod = Intensity_eimeria$H0,
-             data = field_intensity,
-             response = "delta_ct_cewe_MminusE",
-             group = "Sex") +
-  scale_fill_manual(values = c("blue", "red")) +
-  scale_color_manual(values = c("blue", "red")) +
-  theme_bw()
-
-  
-```
