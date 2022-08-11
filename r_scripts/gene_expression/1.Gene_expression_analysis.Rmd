@@ -49,7 +49,7 @@ IL-10
 
 
 ## 1.  Gene expression in the laboratory infections - Heatmap
-
+00
 ```{r load_libraries, echo=FALSE, include = FALSE}
 library(pheatmap)
 library(tidyverse)
@@ -802,7 +802,7 @@ HIs ranged from 0 to 1, HI of 0 indicating a pure Mmd and HI of 1 a pure Mmm (Ba
 
 ```{r}
 #create a new variable for a hybrid index
-g2 <- g2 %>% 
+g3 <- g2 %>% 
   mutate(HI = case_when(
     hybrid_status == "F1 hybrid" ~ 0.5,
     hybrid_status == "F0 M. m. domesticus" ~ 0,
@@ -814,11 +814,11 @@ g2 <- g2 %>%
   ))
 
 #filter out the nmri mice
-g2 <- g2 %>%
+g3 <- g3 %>%
   filter(!HI == 100) %>% 
   dplyr::mutate(max_WL = 100 - max_WL) 
 
-g2 <- g2 %>% 
+g3 <- g3 %>% 
   mutate(hybrid_status = case_when(
     HI == 0.5 ~ "F1_hybrid",
     HI == 0 ~"M.m.domesticus",
@@ -827,14 +827,14 @@ g2 <- g2 %>%
 
 
 
-g2 <- g2 %>%
+g3 <- g3 %>%
   mutate(Eim_MC = case_when(
     Eim_MC == "TRUE" ~ "infected",
     Eim_MC == "FALSE" ~ "uninfected"
   ))
 
 
-g2$Eim_MC <- as.factor(g2$Eim_MC)
+g3$Eim_MC <- as.factor(g3$Eim_MC)
 
 
 require(devtools)
@@ -843,9 +843,9 @@ devtools::install_github("alicebalard/parasiteLoad@v2.0", force = TRUE)
 
 library(parasiteLoad)
 
-str(g2$max_WL)
+str(g3$max_WL)
 
-parasiteLoad::getParamBounds("weibull", data = g2, response = "max_WL")
+parasiteLoad::getParamBounds("weibull", data = g3, response = "max_WL")
 
 speparam <- c(L1start = 7.158694975,
                      L1LB = 0.000000001,
@@ -876,18 +876,18 @@ speparam <- c(L1start = 7.158694975,
 
 
 
-HI_weight <- lm(max_WL ~ hybrid_status, data = g2)
+HI_weight <- lm(max_WL ~ hybrid_status, data = g3)
 summary(HI_weight)
 HI_weight$coefficients
 
-ggplot(data = g2, aes(x = hybrid_status, y = max_WL, color = hybrid_status)) +
+ggplot(data = g3, aes(x = hybrid_status, y = max_WL, color = hybrid_status)) +
   geom_boxplot()
 
 AIC(HI_weight)
 
 
 
-one.way <- aov(max_WL ~ hybrid_status, data = g2)
+one.way <- aov(max_WL ~ hybrid_status, data = g3)
 
 summary(one.way)
 ```

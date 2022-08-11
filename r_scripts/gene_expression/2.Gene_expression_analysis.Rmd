@@ -472,10 +472,10 @@ par(mfrow=c(1,2))
   plot(model_Parasite_cv, type = "model", main = "Model producers accuracy")
 
   # Plot cross validation versus model oob
-par(mfrow=c(1,2)) 
-  plot(model_Parasite_cv, type = "cv", stat = "oob", main = "CV oob error")
-  plot(model_Parasite_cv, type = "model", stat = "oob", 
-       main = "Model oob error")	  
+#par(mfrow=c(1,2)) 
+ # plot(model_Parasite_cv, type = "cv", stat = "oob", main = "CV oob error")
+  #plot(model_Parasite_cv, type = "model", stat = "oob", 
+   #    main = "Model oob error")	  
 
 ```
 

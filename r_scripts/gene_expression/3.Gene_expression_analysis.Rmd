@@ -629,8 +629,19 @@ load("r_scripts/models/predicting_mc.RData")
 # data.
 predictions_mc_field <- predict(model_mc, completeField)
 
+
+# assign test.data to a new object, so that we can make changes
+result_field_mc <- completeField
+
 #add the new variable of predictions to the result object
-Field <- cbind(Field, predictions_mc_field)
+result_field_mc <- cbind(result_field_mc, predictions_mc_field)
+
+# add it to the field data 
+Field <- cbind(Field, result_field_mc)
+
+
+
+levels(Field$predictions_mc_field) <- c("TRUE", "FALSE")
 
 
 #turn the variable of melting curve into a factor so that you can compare to 
@@ -649,8 +660,14 @@ Field$MC.Eimeria <-
 ### Confusion matrix
 
 ```{r }
-Field_mc <- Field %>% 
-  filter(!MC.Eimeria == "NA")
+
+
+# model
+Field$predictions_mc_field <- 
+  gsub("uninfected", FALSE, Field$eimeriaSpecies)
+
+
+
 
 conf_matrix_mc <- 
   confusionMatrix(Field_mc$predictions_mc_field, 
