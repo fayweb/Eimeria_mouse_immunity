@@ -621,36 +621,36 @@ plot_WL_Eimeria
 
 ### Predicting melting curve
 ```{r }
-
+#
 # load model
-load("r_scripts/models/predicting_mc.RData")
+#load("r_scripts/models/predicting_mc.RData")
 
 #The predict() function in R is used to predict the values based on the input 
 # data.
-predictions_mc_field <- predict(model_mc, completeField)
+#predictions_mc_field <- predict(model_mc, completeField)
 
 
 # assign test.data to a new object, so that we can make changes
-result_field_mc <- completeField
+#result_field_mc <- completeField
 
 #add the new variable of predictions to the result object
-result_field_mc <- cbind(result_field_mc, predictions_mc_field)
+#result_field_mc <- cbind(result_field_mc, predictions_mc_field)
 
 # add it to the field data 
-Field <- cbind(Field, result_field_mc)
+#Field <- cbind(Field, result_field_mc)
 
 
 
-levels(Field$predictions_mc_field) <- c("TRUE", "FALSE")
+#levels(Field$predictions_mc_field) <- c("TRUE", "FALSE")
 
 
 #turn the variable of melting curve into a factor so that you can compare to 
 # the predictions
-Field$predictions_mc_field <- 
-  as.factor(as.character(Field$predictions_mc_field))
+#Field$predictions_mc_field <- 
+ # as.factor(as.character(Field$predictions_mc_field))
 
-Field$MC.Eimeria <- 
-  as.factor(as.character(Field$MC.Eimeria))
+#Field$MC.Eimeria <- 
+ # as.factor(as.character(Field$MC.Eimeria))
 
 ```
 
@@ -659,31 +659,31 @@ Field$MC.Eimeria <-
 
 ### Confusion matrix
 
-```{r }
+```{r include = FALSE }
 
 
 # model
-Field$predictions_mc_field <- 
-  gsub("uninfected", FALSE, Field$eimeriaSpecies)
+#Field$predictions_mc_field <- 
+ # gsub("uninfected", FALSE, Field$eimeriaSpecies)
 
 
 
 
-conf_matrix_mc <- 
-  confusionMatrix(Field_mc$predictions_mc_field, 
-                  reference = Field_mc$MC.Eimeria)
+#conf_matrix_mc <- 
+#  confusionMatrix(Field_mc$predictions_mc_field, 
+ #                 reference = Field_mc$MC.Eimeria)
 
-print(conf_matrix_mc)
+#print(conf_matrix_mc)
 
-conf_matrix_mc$table
+#conf_matrix_mc$table
 
-plt <- as.data.frame(conf_matrix_mc$table)
+#plt <- as.data.frame(conf_matrix_mc$table)
 
-plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
-ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
-        geom_tile() + geom_text(aes(label=Freq)) +
-        scale_fill_gradient(low="white", high="forestgreen") +
-        labs(x = "Predictions",y = "Reference") 
+#plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+#ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+ #       geom_tile() + geom_text(aes(label=Freq)) +
+  #      scale_fill_gradient(low="white", high="forestgreen") +
+   #     labs(x = "Predictions",y = "Reference") 
 ```
 
 ## Test the other model for parasite species
