@@ -25,8 +25,6 @@ Here, we have the experimental / field data, inlcuding imputed data
 lab <- read.csv("output_data/gene_expression/data_products/lab_imputed_gene_expression.csv")
 field <- read.csv("output_data/gene_expression/data_products/field_imputed_gene_expression.csv")
 
-
-field <- field %>% filter(MC.Eimeria == "TRUE")
 ```
 
 # Selecting genes
