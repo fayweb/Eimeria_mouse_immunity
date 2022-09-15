@@ -310,15 +310,15 @@ CI %>%
 Patency in primary infections - experiments
 ```{r}
 CI %>%
+    mutate(Parasite = Parasite_primary) %>%
   group_by("EH_ID") %>%
-  filter(infection == "primary") %>%
-  ggplot(aes(x = dpi, y = OOC, color = Parasite_primary)) +
+  filter(infection == "primary", experiment == "E57", !dpi == "0") %>%
+  ggplot(aes(x = dpi, y = OOC, color = Parasite)) +
   geom_point(position = position_jitterdodge()) +
   labs(x = "Days Post Infection", y = "Oocysts per gram",
        title = "Oocyst shedding in primary infections during the 
        course of infection") +
     theme_bw() +
-    stat_smooth() +
     facet_wrap(~ experiment)
 ```
 Patency in primary infections - mouse strains
@@ -334,6 +334,24 @@ CI %>%
     theme_bw() +
     facet_wrap(~ hybrid_status)
 ```
+
+Patency in challenge infections
+
+```{r}
+CI %>%
+  group_by("EH_ID") %>%
+  filter(infection == "challenge") %>%
+  ggplot(aes(x = dpi, y = OOC, color = Parasite_challenge)) +
+  geom_point(position = position_jitterdodge()) +
+  labs(x = "Days Post Infection", y = "Oocysts per gram",
+       title = "Oocyst shedding in primary infections during the 
+       course of infection") +
+    theme_bw() 
+```
+
+
+
+
 Patency in challenge infections - experiments
 ```{r}
 CI %>%

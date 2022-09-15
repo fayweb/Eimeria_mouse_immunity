@@ -282,12 +282,15 @@ result <- result %>%
        TRUE ~ delta
     ))
 
+cor(result$predictions, result$max_WL)
+
 result   %>%
   ggplot() +
   geom_point(aes(x = predictions, y = max_WL, color = current_infection, size = delta2)) +
-  geom_abline() +
   labs(x = "Predictions: Maximum weight loss", y = "Observed: Maximum weight loss") +
     theme_bw()
+
+cor.test(result$predictions, result$max_WL, method = "spearman")
   
 ```
 
@@ -328,6 +331,8 @@ g.imputed_parasite$Parasite_challenge <- as.factor(g.imputed_parasite$Parasite_c
 g.imputed_parasite <- g.imputed_parasite %>%
   dplyr::select(c(Parasite_challenge, all_of(Genes)))
 
+g.imputed_parasite <- g.imputed_parasite %>%
+    dplyr::select(-CXCR3_bio)
 # split data into training and test
 set.seed(123) # this will help us reproduce this random assignment
 # in this way we can pick the random numbers
@@ -1006,14 +1011,30 @@ plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
              data = result_field,
              response = "WL",
              group = "Sex") +
-    scale_fill_manual(values = c("blue", "red")) +
-  scale_color_manual(values = c("blue", "red")) +
-  theme_bw()
-
+    scale_fill_manual(values = c("blueviolet", "chartreuse2")) +
+  scale_color_manual(values = c("blueviolet", "chartreuse2")) +
+  theme_bw() + 
+    xlab(label = "Hybrid Index") +
+    ylab(label = "Weight loss (Health impact)")
+ 
+    
+    
 plot_WL_Sex
 
+HIgradientBar <- ggplot(data.frame(hi = seq(0,1,0.0001)),
+                        aes(x=hi, y=1, fill = hi)) +
+  geom_tile() +
+  theme_void() +
+  scale_fill_gradient(low = "blue", high = "red")  + 
+  scale_x_continuous(expand=c(.01,0)) + 
+  scale_y_continuous(expand=c(0,0)) +
+  theme(legend.position = 'none')
 
-
+plot_grid(plot_WL_Sex + theme(legend.position = "none") , HIgradientBar,  
+                            nrow = 2, 
+                            rel_heights = c(1.5, 1/8),
+          align = "v")
+     
 ```
 
 
@@ -1132,16 +1153,24 @@ ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
 
 
 ```{r }
+result_field_par <- result_field %>%
+    drop_na(eimeriaSpecies) %>%
+    mutate(Parasite_challenge = case_when(
+        eimeriaSpecies == "Negative" ~ "uninfected",
+        eimeriaSpecies == "E_ferrisi" ~ "E_ferrisi",
+        eimeriaSpecies == "E_falciformis" ~ "E_falciformis",
+        TRUE ~ ""
+    ))  %>% 
+    drop_na(Parasite_challenge)
 
 #The predict() function in R is used to predict the values based on the input data.
-predictions_parasite_field <- predict(model_Parasite, result_field_mc)
+predictions_parasite_field <- predict(model_Parasite, result_field_par)
 
-# assign test.data to a new object, so that we can make changes
-result_parasite <- test.data_parasite
+
 #add the new variable of predictions to the result object
-result_parasite <- cbind(result_parasite, predictions_parasite)
-#add the results to a data frame containing test data and the prediction
-result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
+result_field_par <- cbind(result_field_par, predictions_parasite_field)
+
+
 ```
 
 
@@ -1152,8 +1181,11 @@ result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
 
 
 ```{r }
+result_field_par$Parasite_challenge <- as.factor(result_field_par$Parasite_challenge)
 
-conf_matrix_parasite <- confusionMatrix(result_parasite$predictions_parasite, reference = result_parasite$Parasite_challenge)
+conf_matrix_parasite <- confusionMatrix(result_field_par$predictions_parasite_field, reference = result_field_par$Parasite_challenge)
+
+
 
 print(conf_matrix_parasite)
 
@@ -1179,6 +1211,8 @@ How to deal with the delta ct?
 
 
 ##########################################################
+
+
 ### Let's test if we can predict infection intensity according to gene expression
 ## Splitting data into training and testing sets 
 Splitting between training and testing:
@@ -1315,4 +1349,70 @@ result_field <- cbind(delta_field, result_field)
 
 result_field <- result_field %>%
     drop_na(delta_ct_cewe_MminusE)
+
+# let's see wht the ratio between acutal data and predictions
+result_field <- result_field %>% 
+    mutate(ratio =  delta_ct_cewe_MminusE / predictions_field)
+
+summary(result_field$ratio)
+
+result_field %>% 
+    ggplot(aes(x = ratio)) +
+    geom_histogram()
+
+result_field2 <- result_field %>% 
+    dplyr::filter(!ratio >= 6) 
+
+result_field2 %>% 
+    ggplot(aes(x = ratio)) +
+    geom_histogram()
+
+
+summary(result_field2$ratio)
 ```
+
+
+
+## Visualizations
+
+
+
+```{r }
+
+
+result_field   %>%
+  ggplot(aes(x = predictions_field, y = delta_ct_cewe_MminusE)) +
+  geom_point() +
+  geom_abline() +
+  labs(x = "Predictions: Infection intensity", y = "Observed: Infection intensity") +
+    theme_bw()
+  
+```
+
+
+```{r}
+cor(result_field$predictions_field, result_field$delta_ct_cewe_MminusE)
+```
+# let's try using multiplying the predictions by the ratio of 2.5
+
+```{r}
+# adding the "normalization" 
+result_field2 <- result_field2 %>%
+    mutate(predictions_norm = predictions_field * 2.493)
+
+result_field2 <- result_field2  %>%
+    dplyr::select(c(delta_ct_cewe_MminusE, predictions_field, predictions_norm, ratio))
+
+cor(result_field2$predictions_norm, result_field2$delta_ct_cewe_MminusE)
+
+cor.test(result_field2$predictions_norm, result_field2$delta_ct_cewe_MminusE,
+                    method = "pearson")
+result_field2   %>%
+  ggplot(aes(x = predictions_norm, y = delta_ct_cewe_MminusE)) +
+  geom_point() +
+  labs(x = "Predictions: Infection intensity", y = "Observed: Infection intensity") +
+    theme_bw()
+```
+
+
+
