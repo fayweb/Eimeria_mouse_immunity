@@ -1,19 +1,36 @@
 ---
-title: "2.Gene_expresion"
-author: "Fay"
+title: '2.Gene expression anaylsis: Creating random forest models on lab data'
+author: "Fay Webster"
 date: '2022-05-27'
+geometry: margin=2cm
 output:
   pdf_document: default
+  theme: journal
+  toc: yes
+  toc_float: yes
+  html_document: null
   word_document: default
-  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,  warning = FALSE)
 ```
 
-Libraries:
-```{r libraries}
+
+# Aim: 
+- Predicting health impact of infections utilizing immune parameters as predictors 
+- Predicted variable: WL as a proxy of health 
+- To do that we are using immune data from experimental lab infections. 
+- We are training random forest models on the immune data from experimental lab infections 
+- And we test them on the field.
+- We then compare the differences in the predicted health impact among non-hybrid and hybrid mice. 
+
+
+In this document I am preparing the models using the lab data only. 
+
+#  Load necessary libraries:
+
+```{r libraries, message = FALSE, warnings = FALSE}
 #install.packages("optimx", version = "2021-10.12") # this package is required for 
 #the parasite load package to work
 library(tidyverse)
@@ -23,31 +40,35 @@ library(cowplot)
 library(randomForest)
 library(ggplot2)
 library(caret)
-library(VIM) # visualizing missing data
-library(mice) # imputing missing data without predictors
 library(ggpubr)
-library(optimx)
+library(rfUtilities) # Implements a permutation test cross-validation for 
+# Random Forests models
 ```
 
 
-## Import the data:
+# Laboratory data 
 
-```{r import}
+## Importing the data
+
+We start with the data from experimental lab infections. 
+
+```{r import_data,  message = FALSE, warnings = FALSE }
 # Here we import the cleaned data set from the previous script derived from the 
 # data set challenge infections 
-g <- read.csv("https://raw.githubusercontent.com/fayweb/Eimeria_mouse_immunity/main/output_data/gene_expression/data_products/clean_gene_expression.csv")
+g <- 
+  read.csv("https://raw.githubusercontent.com/fayweb/Eimeria_mouse_immunity/main/output_data/gene_expression/data_products/clean_gene_expression.csv")
 
 
 # vectors for selecting gene columns
-Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
-           "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
-           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", 
+           "IL1RN", "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", 
+           "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
 
 ```
 
 
 
-## Data cleaning
+## Data cleaning / preparation
 
 ```{r cleaning}
 # we need to change the  in challenge infections to a factor
@@ -68,61 +89,73 @@ g <- g %>%
   ))
 
 
-# how to impute delta? Replacing with 0 the ones with negative melting curve
-# open for other solutions!
-g <- g %>%
-  dplyr::mutate(Intensity = case_when(
-    Eim_MC == "TRUE" ~ delta,
-    Eim_MC == "FALSE" ~ 0))
-
 # create variable maximum weight loss instead of maximum relative weight loss
 g <- g %>% dplyr::mutate(max_WL = 100 - max_WL)
 
 
 ```
 
-
-
+# Imputation of missing data 
 
 
 ## Imputing missing data + cleaning
+
+Here, I am using a function from the random forest package, 
+rfImpute which utilizes random forests to impute missing data in the other 
+variables. 
+
+The variables used for imputing mainly the immune gene expression are the 
+current infection, the state of Eimeria infection, oocysts and the non-missing 
+genes.
+
+
 ```{r imputing}
 #Start by selecting only the genes and the maximum weight loss for each mouse
 # Apparently the relative end weight doesn't work so well for predictions
 
-g.1 <- g %>%
-  dplyr::select(c(max_WL, all_of(Genes)))
+g.1 <- g %>% dplyr::select(c(all_of(Genes), max_WL,
+                             mouse_strain, CD4, Treg, Div_Treg, 
+                             Treg17, Th1, Div_Th1, Th17, Div_Th17, CD8, Act_CD8, 
+                             Div_Act_CD8, IFNy_CD4, IFNy_CD8,Treg_prop, 
+                             IL17A_CD4))
+
+sapply(g.1, function(x) sum(is.na(x)))
+
+g.1  <- g.1 %>% mutate_if(is.character, as.factor)
+g.1  <- g.1 %>% mutate_if(is.integer, as.numeric)
+
 
 # to get reproducible results we use a seed
 set.seed(42)
 
-# We want the maximum weight loss to be predicted by the data ina ll of the other columns
+# We want the maximum weight loss to be predicted by the data ina ll of 
+# the other columns
 
 # iter = how many random forests are needed, in theory 6 are enough
 g.imputed <- rfImpute(max_WL ~ ., data = g.1, iter = 6)
 
-g.imputed <- g.imputed %>% dplyr::select(-max_WL)
+
 
 g_minus <- g %>% 
-  dplyr::select(-all_of(Genes)) 
+  dplyr::select(-c(all_of(Genes), max_WL,
+                             mouse_strain, CD4, Treg, Div_Treg, 
+                             Treg17, Th1, Div_Th1, Th17, Div_Th17, CD8, Act_CD8, 
+                             Div_Act_CD8, IFNy_CD4, IFNy_CD8,Treg_prop, 
+                             IL17A_CD4))
 
 #full data set containing the imputed gene expression data
 g.imputed <- cbind(g_minus, g.imputed)
 
-
-
 ```
-
 
 
 How many mice are in the infection planning?
 ```{r infection_plan}
-g.imputed %>% 
-  filter(infection == "challenge") %>%
+g.imputed  %>%
   group_by(Parasite_challenge) %>%
   summarize(length(EH_ID))
   
-```
+``` 
 How many mice are indeed infected?
 
 ```{r infected}
@@ -140,14 +173,25 @@ Splitting between training and testing:
 - Avoid over-fitting 
 
 
+# Random forest for predicting percentage of maximum weight loss
 
-```{r }
+## Dividing data into training and testing 
+
+```{r Diving_testing_training}
+
+Genes <- c("IFNy",  "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
+           "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
+           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+
 g.imputed_full <- g.imputed
+
+write.csv(g.imputed_full, 
+          "output_data/gene_expression/data_products/lab_imputed_gene_expression.csv", 
+          row.names = FALSE)
 
 #select the relevant columns:
 g.imputed <- g.imputed %>%
-  dplyr::select(c(max_WL, all_of(Genes))) %>%
-  dplyr::select(- CXCR3_bio)
+  dplyr::select(c(max_WL, all_of(Genes))) 
 
 # split data into training and test
 
@@ -156,10 +200,14 @@ set.seed(123) # this will help us reproduce this random assignment
 # in this way we can pick the random numbers
 
 training.samples <- g.imputed$max_WL%>%
-  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
-                      list = FALSE) # we don't want to get a list in return
+  createDataPartition(p = .7, 
+                      list = FALSE) 
+# this is the partiicition! In this case 0.7 = training data and 0.3 = testing
+# we don't want to get a list in return
 
-train.data <- g.imputed[training.samples, ] #include all the randomly selected rows
+
+
+train.data <- g.imputed[training.samples, ] 
 test.data <- g.imputed[-training.samples, ] 
 
 
@@ -169,91 +217,142 @@ test.data <- g.imputed[-training.samples, ]
 
 ## Building the model
 
-```{r }
+```{r  predicting_weight_loss_model}
 #train the model
-model <- randomForest(max_WL ~., data = train.data, proximity = TRUE,
-                      ntree = 1000) # number of trees
-                      
+weight_loss_predict <- randomForest(max_WL ~., data = train.data, 
+                                    proximity = TRUE, ntree = 1000) 
+# ntree = number of trees     
 
-print(model)
+# save the model 
+save(weight_loss_predict, file =  "r_scripts/models/predict_weight_loss.RData")
+
+print(weight_loss_predict)
 ```
 
-Plotting the model will illustrate the error rate as we average across more trees and shows that our error rate stabalizes with around 200 trees.
+Plotting the weight_loss_predict will illustrate the error rate as we average 
+across more trees and shows that our error rate stabalizes with around 200 trees.
 
 
+## Model - quality testing
+
+### Cross-validation 
+
+MSE: As a brief explanation, mean squared error (MSE) is the average of the 
+summation of the squared difference between the actual output value and the 
+predicted output value. Our goal is to reduce the MSE as much as possible. 
+
+Variance explained: %explained variance is a measure of how well out-of-bag 
+predictions explain the target variance of the training set.
 
 ```{r}
-plot(model)
+predict_WL_cv <- rf.crossValidation(x = weight_loss_predict, xdata = train.data, 
+                                    p = 0.10, n = 99, ntree = 501)
+
+predict_WL_cv$fit.var.exp
+
+
+par(mfrow=c(2,2))
+
+plot(predict_WL_cv) 
+
+# Root Mean Squared Error (observed vs. predicted) from each Bootstrap 
+# iteration (cross-validation)
+plot(predict_WL_cv, stat = "mse")
+
+#Percent variance explained from specified fit model
+plot(predict_WL_cv, stat = "var.exp")
+
+#Mean Absolute Error from each Bootstrapped model
+plot(predict_WL_cv, stat = "mae")
+
 ```
-The plotted error rate above is based on the OOB sample error and can be accessed directly at m1$mse. Thus, we can find which number of trees providing the lowest error rate, which is 257 trees providing an weight error of 5.024738.
+
+```{r}
+plot(weight_loss_predict)
+```
+The plotted error rate above is based on the OOB sample error 
+and can be accessed directly at m1$mse. Thus, we can find which number of trees 
+providing the lowest error rate, which is 257 trees providing an weight 
+error of 5.024738.
 
 ```{r}
 # number of trees with lowest MSE
-which.min(model$mse)
+which.min(weight_loss_predict$mse)
 ## [1] 257
 
 # RMSE of this optimal random forest
-sqrt(model$mse[which.min(model$mse)])
+sqrt(weight_loss_predict$mse[which.min(weight_loss_predict$mse)])
 ## [1] 5.024738
 ```
 
 ### https://uc-r.github.io/s
-RandomForest also allows us to use a validation set to measure predictive accuracy if we did not want to use the OOB samples. 
+RandomForest also allows us to use a validation set to measure predictive
+accuracy if we did not want to use the OOB samples. 
 
 
 
-Tutorial: https://hackernoon.com/random-forest-regression-in-r-code-and-interpretation
-Random forest regression in R provides two outputs: decrease in mean square error (MSE) and node purity. Prediction error described as MSE is based on permuting out-of-bag sections of the data per individual tree and predictor, and the errors are then averaged. In the regression context, Node purity is the total decrease in residual sum of squares when splitting on a variable averaged over all trees (i.e. how well a predictor decreases variance). MSE is a more reliable measure of variable importance. If the two importance metrics show different results, listen to MSE. If all of your predictors are numerical, then it shouldn’t be too much of an issue
+Tutorial: 
+https://hackernoon.com/random-forest-regression-in-r-code-and-interpretation
+
+Random forest regression in R provides two outputs: decrease in mean square 
+error (MSE) and node purity. Prediction error described as MSE is based on 
+permuting out-of-bag sections of the data per individual tree and predictor, 
+and the errors are then averaged. In the regression context, Node purity is the 
+total decrease in residual sum of squares when splitting on a variable averaged 
+over all trees (i.e. how well a predictor decreases variance). MSE is a more 
+reliable measure of variable importance. If the two importance metrics show 
+different results, listen to MSE. If all of your predictors are numerical, then 
+it shouldn’t be too much of an issue
 
 
-Mean Decrease Gini (IncNodePurity) - This is a measure of variable importance based on the Gini impurity index used for the calculating the splits in trees.
+Mean Decrease Gini (IncNodePurity) - This is a measure of variable importance 
+based on the Gini impurity index used for the calculating the splits in trees.
 
 Improving Your Model
-Your model depends on the quality of your dataset and the type of Machine Learning algorithm used. Therefore, to improve the accuracy of your model, you should:
+Your model depends on the quality of your dataset and the type of Machine 
+Learning algorithm used. Therefore, to improve the accuracy of your model, 
+you should:
 
-Check what attributes affect our model the most and what variables to leave out in future analysis
-Find out what other attributes affect a person's wage; we can use as predictors in future analysis
+Check what attributes affect our model the most and what variables to leave out 
+in future analysis
+Find out what other attributes affect a person's wage; we can use as predictors 
+in future analysis
 Tweak the algorithm (e.g. change the ntree value)
 Use a different machine learning algorithm
-If any of these reduces the RMSE significantly, you have succeeded in improving your model!
+If any of these reduces the RMSE significantly, you have succeeded in improving 
+your model!
 
 ```{r include = FALSE, message = FALSE, echo = FALSE}
 ### Visualize variable importance ----------------------------------------------
 
-#Call importance() function on the model model to check how the attributes used as predictors affect our model
-importance(model)
+#Call importance() function on the model model to check how the attributes used 
+# as predictors affect our weight_loss_predict
+importance(weight_loss_predict)
 
-model$mse
+weight_loss_predict$mse
 ## S3 method for class 'randomForest'
-plot(model, type = "l", main=deparse(substitute(x)))
+plot(weight_loss_predict, type = "l", main=deparse(substitute(x)))
 
-varImpPlot(model)
+varImpPlot(weight_loss_predict)
 
-# Get variable importance from the model fit
-ImpData <- as.data.frame(importance(model))
+# Get variable importance from the weight_loss_predict fit
+ImpData <- as.data.frame(importance(weight_loss_predict))
 ImpData$Var.Names <- row.names(ImpData)
 
-#ggplot(ImpData, aes(x=Var.Names, y=`%IncMSE`)) +
- # geom_segment( aes(x=Var.Names, xend=Var.Names, y=0, yend=`%IncMSE`), color="skyblue") +
-  #geom_point(aes(size = IncNodePurity), color="blue", alpha=0.6) +
-  #theme_light() +
-  #coord_flip() +
-  #theme(
-   ## legend.position="bottom",
-    #panel.grid.major.y = element_blank(),
-    #panel.border = element_blank(),
-    #axis.ticks.y = element_blank()
-  #)
 ```
 
 
 
-## Making predictions
+# Application of weight_loss_predict
+## Using the testing data
+
+Let's now make some predictions using our test data.
 
 
 ```{r }
-#The predict() function in R is used to predict the values based on the input data.
-predictions <- predict(model, test.data)
+#The predict() function in R is used to predict the values based on the 
+# input data.
+predictions <- predict(weight_loss_predict, test.data)
 
 # assign test.data to a new object, so that we can make changes
 result <- test.data
@@ -264,21 +363,24 @@ result <- cbind(result, predictions)
 #add the results to a data frame containing test data and the prediction
 result <- cbind(g[row.names(result), ], predictions)
 
+
+# what is the correlation between predicted and actual data?
+cor(result$max_WL, result$predictions, 
+    method = c("pearson", "kendall", "spearman"))
 ```
 
 
 
-
-## Visualizations
-
+## Visualizing the predictions
 
 
-```{r }
+
+```{r predictions_weight_loss_predict_wL }
 # trying to find a way to represent the delta ct for the negative ones
 # please find a better way to do this
 result <- result %>% 
-    dplyr::mutate(delta2 = case_when(
-       current_infection == "uninfected" ~ -10,
+    dplyr::mutate(Infection_intensity = case_when(
+       Parasite_challenge == "uninfected" ~ -9,
        TRUE ~ delta
     ))
 
@@ -286,49 +388,44 @@ cor(result$predictions, result$max_WL)
 
 result   %>%
   ggplot() +
+<<<<<<< HEAD
   geom_point(aes(x = predictions, y = max_WL, color = current_infection, size = delta2)) +
   labs(x = "Predictions: Maximum weight loss", y = "Observed: Maximum weight loss") +
+=======
+  geom_point(aes(x = predictions, y = max_WL, 
+                 color = Parasite_challenge, size = Infection_intensity)) +
+  labs(x = "Predictions: Maximum weight loss", 
+       y = "Observed: Maximum weight loss") +
+>>>>>>> 9bce7f3bffa8a033f8b31bab042a0322618de2fc
     theme_bw()
 
 cor.test(result$predictions, result$max_WL, method = "spearman")
   
 ```
 
-## Predicting eimeria species according to gene expression
-```{r}
-g$Parasite_challenge <- as.factor(g$Parasite_challenge)
-
-#now select the genes and the actual infection of the mice in the new mutate column
-#infection
-g.2 <- g %>% 
-    dplyr::select(c(Parasite_challenge, delta, all_of(Genes)))
-
-# to get reproducible results we use a seed
-set.seed(42)
-# We want the current infection to be predicted by the data ina ll of the other columns
-# iter = how many random forests are needed, in theory 6 are enough
 
 
-#now we can impute our data
-g.imputed_parasite <- rfImpute(Parasite_challenge ~ ., data = g.2, iter = 6)
+# Using the same method to predict either Melting curve or infecting parasite 
+# (2nd validation)
 
-g.imputed_parasite <- g.imputed_parasite %>% dplyr::select(- Parasite_challenge)
-
-g_minus <- g %>% dplyr::select(-c((all_of(Genes)), delta))
-
-#full data set containing the imputed gene expression data
-g.imputed_parasite <- cbind(g_minus, g.imputed_parasite)
+As a second part I am using the same method to predict either infection with
+Eimeria in general or the species of eimeria. 
 
 
-```
 
-## Now split the data again into training and testing
+##  Predicting eimeria species
+
+
+
+### Predicing parasite: splliting into training and testing
+
 ```{r }
 
-g.imputed_parasite$Parasite_challenge <- as.factor(g.imputed_parasite$Parasite_challenge)
+g.imputed_full$Parasite_challenge <- 
+  as.factor(g.imputed_full$Parasite_challenge)
 
 #select the relevant columns:
-g.imputed_parasite <- g.imputed_parasite %>%
+g.imputed_parasite <- g.imputed_full %>%
   dplyr::select(c(Parasite_challenge, all_of(Genes)))
 
 g.imputed_parasite <- g.imputed_parasite %>%
@@ -337,39 +434,72 @@ g.imputed_parasite <- g.imputed_parasite %>%
 set.seed(123) # this will help us reproduce this random assignment
 # in this way we can pick the random numbers
 training.samples_parasite <- g.imputed_parasite$Parasite_challenge%>%
-  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
-                      list = FALSE) # we don't want to get a list in return
-train.data_parasite <- g.imputed_parasite[training.samples, ] #include all the randomly selected rows
+  createDataPartition(p = .7, list = FALSE) 
+train.data_parasite <- g.imputed_parasite[training.samples, ] 
 test.data_parasite <- g.imputed_parasite[-training.samples, ] 
 
 
 ```
 
-## Building the model
+### Building the model_Parasite
 
 ```{r }
 #train the model
-model_Parasite <- randomForest(Parasite_challenge ~., data = train.data_parasite, proximity = TRUE,
+model_Parasite <- randomForest(Parasite_challenge ~., 
+                               data = train.data_parasite, proximity = TRUE,
                       ntree = 1500) # number of trees
-                      
+
+# save the model 
+save(model_Parasite, file =  "r_scripts/models/predict_infecting_parasite.RData")
+
 print(model_Parasite)
 ```
 OOB = 46.43, this means that only 53 % of our predictions are accurate
 
 
+### Quality checks
+
+
+#### Cross-validation 
+
+MSE: As a brief explanation, mean squared error (MSE) is the average of the 
+summation of the squared difference between the actual output value and the 
+predicted output value. Our goal is to reduce the MSE as much as possible. 
+
+Variance explained: %explained variance is a measure of how well out-of-bag 
+predictions explain the target variance of the training set.
+
+```{r}
+model_Parasite_cv <- rf.crossValidation(x = model_Parasite, xdata =  
+                                          train.data_parasite, 
+                                    p = 0.10, n = 99, ntree = 501)
+
+model_Parasite_cv$fit.var.exp
+
+
+# Plot cross validation versus model producers accuracy
+par(mfrow=c(1,2)) 
+  plot(model_Parasite_cv, type = "cv", main = "CV producers accuracy")
+  plot(model_Parasite_cv, type = "model", main = "Model producers accuracy")
+
+  # Plot cross validation versus model oob
+#par(mfrow=c(1,2)) 
+ # plot(model_Parasite_cv, type = "cv", stat = "oob", main = "CV oob error")
+  #plot(model_Parasite_cv, type = "model", stat = "oob", 
+   #    main = "Model oob error")	  
+
+```
 
 ```{r}
 plot(model_Parasite)
 ```
 
-## Test the model
-
-
-## Making predictions
+### Testing the model: Predictions
 
 
 ```{r }
-#The predict() function in R is used to predict the values based on the input data.
+#The predict() function in R is used to predict the values based on the input 
+# data.
 predictions_parasite <- predict(model_Parasite, test.data_parasite)
 # assign test.data to a new object, so that we can make changes
 result_parasite <- test.data_parasite
@@ -380,106 +510,16 @@ result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
 ```
 
 
-
-
-## Predicting eimeria species according to gene expression
-
-```{r}
-g$Parasite_challenge <- as.factor(g$Parasite_challenge)
-
-#now select the genes and the actual infection of the mice in the new mutate column
-#infection
-g.2 <- g %>% 
-    dplyr::select(c(Parasite_challenge, delta, all_of(Genes)))
-
-# to get reproducible results we use a seed
-set.seed(42)
-# We want the current infection to be predicted by the data ina ll of the other columns
-# iter = how many random forests are needed, in theory 6 are enough
-
-
-#now we can impute our data
-g.imputed_parasite <- rfImpute(Parasite_challenge ~ ., data = g.2, iter = 6)
-
-g.imputed_parasite <- g.imputed_parasite %>% dplyr::select(- Parasite_challenge)
-
-g_minus <- g %>% dplyr::select(-c((all_of(Genes)), delta))
-
-#full data set containing the imputed gene expression data
-g.imputed_parasite <- cbind(g_minus, g.imputed_parasite)
-
-
-```
-
-## Now split the data again into training and testing
-```{r splitting_data}
-
-g.imputed_parasite$Parasite_challenge <- as.factor(g.imputed_parasite$Parasite_challenge)
-
-#select the relevant columns:
-g.imputed_parasite <- g.imputed_parasite %>%
-  dplyr::select(c(Parasite_challenge, Eim_MC, all_of(Genes)))
-
-# to use in the next model
-parasite_data <- g.imputed_parasite
-
-g.imputed_parasite <- g.imputed_parasite %>% 
-  dplyr::select(-Eim_MC)
-
-# split data into training and test
-set.seed(123) # this will help us reproduce this random assignment
-# in this way we can pick the random numbers
-training.samples_parasite <- g.imputed_parasite$Parasite_challenge%>%
-  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
-                      list = FALSE) # we don't want to get a list in return
-train.data_parasite <- g.imputed_parasite[training.samples, ] #include all the randomly selected rows
-test.data_parasite <- g.imputed_parasite[-training.samples, ] 
-```
-
-## Building the model
-
-```{r }
-#train the model
-model_Parasite <- randomForest(Parasite_challenge ~., data = train.data_parasite, proximity = TRUE,
-                      ntree = 1500) # number of trees
-                      
-print(model_Parasite)
-```
-OOB = 46.43, this means that only 53 % of our predictions are accurate
-
-
-
-```{r}
-plot(model_Parasite)
-```
-
-## Test the model
-
-
-## Making predictions
-
-
-```{r }
-#The predict() function in R is used to predict the values based on the input data.
-predictions_parasite <- predict(model_Parasite, test.data_parasite)
-# assign test.data to a new object, so that we can make changes
-result_parasite <- test.data_parasite
-#add the new variable of predictions to the result object
-result_parasite <- cbind(result_parasite, predictions_parasite)
-#add the results to a data frame containing test data and the prediction
-result_parasite <- cbind(g[row.names(result_parasite), ], predictions_parasite)
-```
-
-
-
-
-## Visualizations
+### Visualizing predictions_parasite
 
 
 
 ```{r }
 
-conf_matrix_parasite <- confusionMatrix(result_parasite$predictions_parasite, reference = result_parasite$Parasite_challenge)
+conf_matrix_parasite <- 
+  confusionMatrix(
+    result_parasite$predictions_parasite,
+    reference = result_parasite$Parasite_challenge)
 
 print(conf_matrix_parasite)
 
@@ -490,342 +530,116 @@ plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
 
 ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
         geom_tile() + geom_text(aes(label=Freq)) +
-        scale_fill_gradient(low="white", high="forestgreen") +
+        scale_fill_gradient(low="white", high="darkturquoise") +
         labs(x = "Predictions",y = "Reference") 
 
 ```
 
 
-```{r}
-train.data_parasite %>% 
-  group_by(Parasite_challenge) %>%
-  summarize(length(Parasite_challenge))
-```
+## Predicting for Melting curve
 
-### Repeat the previous model, this time testing for
-infected with Eimeria or not. ###
 
-```{r melting-curve - model}
 
-# to use in the next model
-parasite_data <- parasite_data %>%
-  dplyr::select(-Parasite_challenge)
+### Split the data again into training and testing
 
-parasite_data <- parasite_data %>%
-    dplyr::select(-CXCR3_bio)
+```{r splitting_data}
+#select the relevant columns:
+g.imputed_mc <- g.imputed_full %>%
+  dplyr::select(c(Eim_MC, all_of(Genes)))
 
 
 # split data into training and test
 set.seed(123) # this will help us reproduce this random assignment
 # in this way we can pick the random numbers
-training.samples_melting <- parasite_data$Eim_MC%>%
-  createDataPartition(p = .7, # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
-                      list = FALSE) # we don't want to get a list in return
-train.data_melting <- parasite_data[training.samples, ] #include all the randomly selected rows
-test.data_melting <- parasite_data[-training.samples, ] 
+training.samples_mc <- g.imputed_mc$Eim_MC %>%
+  createDataPartition(p = .7, list = FALSE)
+train.data_mc <- g.imputed_mc[training.samples, ] 
+test.data_mc <- g.imputed_mc[-training.samples, ] 
+```
+
+### Building the model
+
+```{r }
+#train the model
+model_mc <- randomForest(Eim_MC ~., data = train.data_mc, proximity = TRUE,
+                      ntree = 1500) # number of trees
+
+# save the model 
+save(model_mc, file =  "r_scripts/models/predicting_mc.RData")
+
+                      
+print(model_mc)
+```
+
+
+#### Cross-validation 
+
+MSE: As a brief explanation, mean squared error (MSE) is the average of the 
+summation of the squared difference between the actual output value 
+and the predicted output value. Our goal is to reduce the MSE as much as possible. 
+
+Variance explained: %explained variance is a measure of how well out-of-bag 
+predictions explain the target variance of the training set.
+
+```{r}
+model_mc_cv <- rf.crossValidation(x = model_mc, xdata =  train.data_mc, 
+                                    p = 0.10, n = 99, ntree = 501)
+
+model_mc_cv$fit.var.exp
+
+
+# Plot cross validation versus model producers accuracy
+par(mfrow=c(1,2)) 
+  plot(model_mc_cv, type = "cv", main = "CV producers accuracy")
+  plot(model_mc_cv, type = "model", main = "Model producers accuracy")
+
+  # Plot cross validation versus model oob
+par(mfrow=c(1,2)) 
+  plot(model_mc_cv, type = "cv", stat = "oob", main = "CV oob error")
+  plot(model_mc_cv, type = "model", stat = "oob", main = "Model oob error")	  
+
 ```
 
 
 
-## Building the model
-
-```{r }
-#train the model
-model_melting <- randomForest(Eim_MC ~., data = train.data_melting, proximity = TRUE,
-                      ntree = 1500) # number of trees
-                      
-print(model_melting)
+```{r}
+plot(model_mc)
 ```
 
 ## Test the model
 
 
-## Making predictions
+### Making predictions
 
 
 ```{r }
 #The predict() function in R is used to predict the values based on the input data.
-predictions_melting <- predict(model_melting, test.data_melting)
-
-
+predictions_mc <- predict(model_mc, test.data_mc)
 # assign test.data to a new object, so that we can make changes
-result_melting <- test.data_melting
+result_mc <- test.data_mc
 #add the new variable of predictions to the result object
-result_melting <- cbind(result_melting, predictions_melting)
+result_mc <- cbind(result_mc, predictions_mc)
 #add the results to a data frame containing test data and the prediction
-result_melting <- cbind(g[row.names(result_melting), ], predictions_melting)
+result_mc <- cbind(g[row.names(result_mc), ], predictions_mc)
+
 ```
 
 
+
+### Visualizations
 
 
 
 ```{r }
 
-conf_matrix_melting <- confusionMatrix(result_melting$predictions_melting, reference = result_melting$Eim_MC)
+conf_matrix_mc <- 
+  confusionMatrix(result_mc$predictions_mc, reference = result_mc$Eim_M)
 
-print(conf_matrix_melting)
+print(conf_matrix_mc)
 
-conf_matrix_melting$table
+conf_matrix_mc$table
 
-plt <- as.data.frame(conf_matrix_melting$table)
-plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
-
-ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
-        geom_tile() + geom_text(aes(label=Freq)) +
-        scale_fill_gradient(low="white", high="forestgreen") +
-        labs(x = "Predictions",y = "Reference") 
-
-```
-
-## Field data
-
-## Importing field data
-
-
-```{r}
-Field <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/master/data_products/SOTA_Data_Product.csv")
-
-```
-
-
-## Summary statistics for the field data
-
-```{r summary_stats_field}
-Field %>% summarise(length(Mouse_ID))
-```
-We have 1921 mice in total.
-
-
-
-```{r genes}
-EqPCR.cols      <- c("delta_ct_cewe_MminusE", "MC.Eimeria", "Ct.Eimeria") #,"Ct.Mus""delta_ct_ilwe_MminusE", )
-
-EimGeno.cols    <- c("n18S_Seq", "COI_Seq", "ORF470_Seq", "eimeriaSpecies")
-
-Gene.Exp.cols   <- c("IFNy",  "CXCR3", "IL.6", #"GBP2", "IL.12", "IRG6",
-                     "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN",
-                     "CXCR3", "CASP1", "CXCL9", 
-                     "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
-                     "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
-
-House.Keeping.cols <- c("GAPDH", "PPIB", "B.actin", "B-actin")
-```
-
-```{r}
-#which are the numbers of the columns of Field
-names <- data.frame(colnames(Field))
-
-f <- Field[ , c(76:78, 80:97)]
-
-#how many nas in each column
-sapply(f, function(x) sum(is.na(x)))
-
-#remove rows with only nas
-f <- f[rowSums(is.na(f)) != ncol(f), ]
-
-Field <- Field %>% 
-  dplyr::select(-c(76:78, 80:97))
-
-#merge the data frame to keep only the selected rows
-f <- merge(Field, f, by = "row.names") 
-
-```
-
-## Imputing missing data ###
-
-For the lab data I have used the function rfimpute from the package random forest. 
-I can't use the same function for our lab data as the function requires the data 
-set to contain predictor variable and response variables. 
-
-Therefore I will be using the package MICE (multivariate Imputation by chained 
-Equations) which only requires a data frame of missing observations.
-
-Description: *Multiple imputation using Fully Conditional Specification (FCS)*
-
-implemented by the MICE algorithm as described in Van Buuren and
-Groothuis-Oudshoorn (2011) <doi:10.18637/jss.v045.i03>. Each variable has
-its own imputation model. Built-in imputation models are provided for
-continuous data (predictive mean matching, normal), binary data (logistic
-regression), unordered categorical data (polytomous logistic regression)
-and ordered categorical data (proportional odds). MICE can also impute
-continuous two-level data (normal model, pan, second-level variables).
-Passive imputation can be used to maintain consistency between variables.
-Various diagnostic plots are available to inspect the quality of the
-imputations.
-
-https://www.jstatsoft.org/article/view/v045i03
-
-tutorial: https://www.youtube.com/watch?v=WPiYOS3qK70
-
-https://datascienceplus.com/imputing-missing-data-with-r-mice-package/
-
-
-https://datascienceplus.com/handling-missing-data-with-mice-package-a-simple-approach/
-
-
-
-### Missing data can be classified into three categories:
-## 1. Missing completely at random (MCAR)
-  
-  We can't probably predict that value from any other value in the data. MCAR implies the reason for the missingness of a field is completely random, and that we probably can't predict that value from any other value in the data. 
-  
-## 2. Missing at Random (MAR)
-
-  Missingess can be explained by other values in other columns, but not from that 
-  column.
-  
-## 3. Missing NOT at random (MNAR)
-
-
-The basic MICE assumption is that the data is missing at random, and that we can make a guess about its true value by looking at other data samples.
-
-
-
-## Let's start by cleaning and checking the missing data points in our field data. 
-
-```{r impute_missing}
-library(mice)
-
-f <- f %>% dplyr::select(-"Row.names")
-
-
-#turn the eimeria species into logical
-f$eimeriaSpecies <- as.factor(f$eimeriaSpecies)
-
-field_genes <- f %>% 
-  dplyr::select(Gene.Exp.cols)
-
-# check the data for missing values
-sapply(field_genes, function(x) sum(is.na(x)))
-
-field_genes %>%
-  aggr(col = c('navyblue', 'red'), numbers = TRUE, sortVars = TRUE, labels=names(field_genes), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
-       
-       
-marginplot(field_genes[c(1,2)])
-
-```
-
-
-## Now let's coninue by ussing the package MICE to impute the data
-
-```{r imputing_mice}
-
-# The frequency distribution of the missing cases per variable can be obtained as:
-init <- mice(field_genes, maxit = 0)
-
-# table of amount of variables with the amount of missing values 
-table(init$nmis)
-
-# which method is used for imputation? In this case the package mice 
-# uses the default method for continuous variable, 
-# which is pmm, or predictive mean matching
-
-meth <- init$method
-
-
-# now impute the immune gene expression for the field and save it as the oject: 
-# igf
-# m=5 refers to the number of imputed datasets. Five is the default value.
-igf <- mice(field_genes, method = meth, m = 5, seed = 500)
-summary(igf)
-
-# to check each column with imputed data
-## igf$imp$IFNy
-
-#Now we can get back the completed dataset using the complete()
-completeField <- complete(igf, 1)
-
-```
-
-Predictive mean matching with \(d = 5\) is the default in mice() for continuous data. The method is robust against misspecification of the imputation model, yet performs as well as theoretically superior methods. In the context of missing covariate data, Marshall, Altman, and Holder (2010) concluded that predictive mean matching “produced the least biased estimates and better model performance measures.” Another simulation study that addressed skewed data concluded that predictive mean matching “may be the preferred approach provided that less than 50% of the cases have missing data and the missing data are not MNAR” (Marshall et al. 2010). Kleinke (2017) found that the method works well across a wide variety of scenarios, but warned the default cannot address severe skewness or small samples.
-
-
-
-
-Let’s compare the distributions of original and imputed data using a some useful plots.
-First of all we can use a scatterplot and plot Ozone against all the other variables
-Let's first plot the variables for which we have few missing values
-```{r distr_orig_pred}
-
-xyplot(igf,IFNy ~ SOCS1 + IRGM1 + MUC2, pch=18,cex=1)
-```
-
-
-What we would like to see is that the shape of the magenta points (imputed) matches the shape of the blue ones (observed). The matching shape tells us that the imputed values are indeed “plausible values”.
-
-Now let's plot the variables with many missing data points.
-
-
-```{r distr_orig_pred2}
-
-xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
-```
-
-
-
-```{r densityplotfield}
-densityplot(igf)
-```
-
-The density of the imputed data for each imputed dataset is showed in magenta while the density of the observed data is showed in blue. Again, under our previous assumptions we expect the distributions to be similar.
-
-Another useful visual take on the distributions can be obtained using the stripplot() function that shows the distributions of the variables as individual points
-
-
-```{r strirrplot}
-stripplot(igf, pch = 20, cex = 1.2)
-```
-
-## Applying the model for predicting weight loss to our imputed data set
-
-Start by making the predictions for the field data. 
-
-
-```{r }
-# Start by selecting the columns that appear in both the training data set and the 
-# field data set
-completeField <- completeField %>%
-  dplyr::select(intersect(colnames(completeField), colnames(train.data)))
-
-set.seed(540)
-
-#The predict() function in R is used to predict the values based on the input data.
-predictions_field <- predict(model, completeField)
-
-# assign test.data to a new object, so that we can make changes
-result_field <- completeField
-
-#add the new variable of predictions to the result object
-result_field <- cbind(result_field, predictions_field)
-
-#add the results to a data frame containing test data and the prediction
-f <- f %>% 
-  dplyr::select(-intersect(colnames(result_field), colnames(f)))
-
-result_field <- cbind(f, result_field)
-```
-
-
-## It is time to apply the package of Alice Balard et al. on our predictions!
-
-
-Let's see if we indeed have differences across the hybrid index with our predicted 
-weight loss. 
-
-```{r, warning=FALSE, echo=FALSE, message=FALSE}
-require(devtools)
-
-devtools::install_github("alicebalard/parasiteLoad@v2.0", force = TRUE)
-
-#force = TRUE)
-
-library(parasiteLoad)
-```
-
-## Check the distribution 
-
+<<<<<<< HEAD
 ```{r}
 result_field %>% ggplot(aes(x = predictions_field)) +
   geom_histogram(binwidth = 1.5)
@@ -1192,14 +1006,18 @@ print(conf_matrix_parasite)
 conf_matrix_parasite$table
 
 plt <- as.data.frame(conf_matrix_parasite$table)
+=======
+plt <- as.data.frame(conf_matrix_mc$table)
+>>>>>>> 9bce7f3bffa8a033f8b31bab042a0322618de2fc
 plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
 
 ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
         geom_tile() + geom_text(aes(label=Freq)) +
-        scale_fill_gradient(low="white", high="forestgreen") +
+        scale_fill_gradient(low="white", high="darkturquoise") +
         labs(x = "Predictions",y = "Reference") 
 
 ```
+<<<<<<< HEAD
 ## Next steps
 
 Question the removal of CXCL3, maybe it exists in the wild and we need to rename
@@ -1247,106 +1065,12 @@ test.data <- g.imputed[-training.samples, ]
 ```
 
 
-
-## Building the model
-
-```{r }
-#train the model
-model_delta <- randomForest(delta ~., data = train.data, proximity = TRUE,
-                      ntree = 1000) # number of trees
-                      
-
-print(model_delta)
-```
-
-Plotting the model will illustrate the error rate as we average across more trees and shows that our error rate stabalizes with around 200 trees.
+=======
+>>>>>>> 9bce7f3bffa8a033f8b31bab042a0322618de2fc
 
 
 
-```{r}
-plot(model_delta)
-```
-
-
-## Making predictions
-
-
-```{r }
-#The predict() function in R is used to predict the values based on the input data.
-predictions <- predict(model_delta, test.data)
-
-# assign test.data to a new object, so that we can make changes
-result <- test.data
-
-#add the new variable of predictions to the result object
-result <- cbind(result, predictions)
-
-
-Parasite_challenge <- g.imputed_full %>% slice(as.numeric(row.names(result)))
-
-Parasite_challenge <- Parasite_challenge %>% 
-    dplyr::select(Parasite_challenge)
-
-result <- cbind(result, Parasite_challenge)
-
-
-
-```
-
-
-
-
-## Visualizations
-
-
-
-```{r }
-result %>%
-  ggplot() +
-  geom_point(aes(x = predictions, y = delta, color = Parasite_challenge)) +
-  geom_abline() +
-  labs(x = "Predictions: Infection intensity", y = "Infection intensity") +
-    theme_bw()
-
-```
-
-```{r}
-cor(result$predictions, result$delta)
-```
-
-  Okay! Now let's test it on the field
-  
-  ## Applying the model for predicting weight loss to our imputed data set
-
-Start by making the predictions for the field data. 
-
-
-```{r }
-# Start by selecting the columns that appear in both the training data set and the 
-# field data set
-
-#Now we can get back the completed dataset using the complete()
-completeField <- complete(igf, 1)
-
-completeField <- completeField %>%
-  dplyr::select(intersect(colnames(completeField), colnames(train.data)))
-
-set.seed(333)
-
-#The predict() function in R is used to predict the values based on the input data.
-predictions_field <- predict(model_delta, completeField)
-
-# assign test.data to a new object, so that we can make changes
-result_field <- completeField
-
-#add the new variable of predictions to the result object
-result_field <- cbind(result_field, predictions_field)
-
-#add the results to a data frame containing test data and the prediction
-delta_field <- f %>% dplyr::select(delta_ct_cewe_MminusE)
-
-result_field <- cbind(delta_field, result_field)
-
+<<<<<<< HEAD
 result_field <- result_field %>%
     drop_na(delta_ct_cewe_MminusE)
 
@@ -1416,3 +1140,5 @@ result_field2   %>%
 
 
 
+=======
+>>>>>>> 9bce7f3bffa8a033f8b31bab042a0322618de2fc

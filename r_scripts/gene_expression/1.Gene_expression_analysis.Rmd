@@ -3,7 +3,6 @@ title: "Gene_expression_analysis"
 author: "Fay"
 date: '2022-05-18'
 output:
-  html_document: default
   pdf_document: 
     fig_width: 12
     fig_height: 8
@@ -13,14 +12,13 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 
 ```
-
 GAPDH	HKG				
 B-actin	HKG				
 Ppia	HKG				
 Ppip	HKG				
 CDC42	HKG	susceptible to DNA contamination			
 					
-					
+Housekeeping genes selected: GAPDH and PPIB					
 					
 Relm-b	mucosal defense factor (goblet cells)				
 Muc2	the major secretory mucin within the gastrointestinal tract				
@@ -51,8 +49,8 @@ IL-10
 
 
 ## 1.  Gene expression in the laboratory infections - Heatmap
-
-```{r, echo=FALSE, include = FALSE}
+00
+```{r load_libraries, echo=FALSE, include = FALSE}
 library(pheatmap)
 library(tidyverse)
 library(matrixStats)
@@ -71,16 +69,32 @@ library(MASS)
 library(reshape2)
 library(cowplot)
 library(lmtest)
+library(optimx)
 if(any(grepl("package:plyr", search()))) detach("package:plyr") else message("plyr not loaded")
+
 ```
+
+
+#document gene normalization
+https://www.youtube.com/watch?v=tgp4bbnj-ng
+paper: Licak Analysis of relative gene expression data using real time quantitative
+Add the normalized Gene expression to the rest of the data 
+
 
 ```{r Data_preparation_heatmap, echo=FALSE, iclude = FALSE, message=FALSE}
 ### Import the data
 Challenge <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
 
-Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL.10", "IL.13", "IL1RN", 
+# Vector for selecting genes
+Genes <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13","IL1RN", 
            "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
            "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+
+Genes_refe <- c("IFNy", "CXCR3_bio", "IL.6", "IL.10", "IL.13", "IL1RN", 
+           "CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
+           "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF", "PPIB")
+
+
 
 Challenge <- Challenge %>%
     dplyr::mutate(Parasite_primary = case_when(
@@ -145,12 +159,14 @@ prim <- prim[prim$dpi == prim$dpi_max, ]
 
 #now we can easily add the variable end weight to each mouse (which in now equal
 #to the weight on the dpi = dpi_max)
-prim <- prim %>% dplyr::mutate(end_rel_weight = (weight/weight_dpi0) * 100)
+prim <- prim %>% 
+  dplyr::mutate(end_rel_weight = (weight/weight_dpi0) * 100)
 
 c <- rbind(chal, prim)
 
 #now jon it to the challenge infections
-c %>% dplyr::select(EH_ID, end_rel_weight) %>%
+c %>% 
+  dplyr::select(EH_ID, end_rel_weight) %>%
   right_join(Challenge) -> Challenge
 
 Challenge <- unique(Challenge)
@@ -158,14 +174,80 @@ Challenge <- unique(Challenge)
 gene <- as_tibble(Challenge) %>%
   dplyr::filter(infection == "challenge", dpi == dpi_max) %>%
   dplyr::group_by(EH_ID) %>%
-  dplyr::select(all_of(Genes))
-
+  dplyr::select(c(EH_ID, Eim_MC, all_of(Genes_refe)))
 
 gene <- unique(gene)
- 
- # turn the data frame into a matrix and transpose it. We want to have each cell 
+
+gene1 <- gene
+
+```
+
+https://www.youtube.com/watch?v=tgp4bbnj-ng
+
+If you don't need a graph with absolute values of expressions and just relative comparison then you can choose one of the samples as a calibrator (control sample). This control sample will have the value of 1 and the rest of the samples will be compared relative to this one. I would choose as control the sample with the lowest expression.
+
+https://www.researchgate.net/post/How-can-I-analyze-qPCR-data-without-control-sample
+
+```{r normalize_gene_expression}
+#create calibrator samples for the analysis
+# create new columns with the minimum of each gene
+# which I will use as the calibrator sample
+#create a function which gives you the PPIB value for the minimum value of a gene
+Dct_Calibrator <- function(x) {
+ h <-  gene[which(gene[[x]] == min(gene[[x]], na.rm = TRUE)), ][,c(x, "PPIB")]
+ h[[x]] - h[["PPIB"]]
+}
+
+
+#Apply the function to all genes
+Calibrator_values <- as.data.frame(unlist(lapply(Genes, Dct_Calibrator)))
+
+Calibrator_values <- cbind(Calibrator_values, as.data.frame(Genes))
+
+
+Calibrator_values <- Calibrator_values %>%
+  rename(Dct.calibrator = "unlist(lapply(Genes, Dct_Calibrator))")
+
+Calibrator_values <- Calibrator_values %>% pivot_wider(names_from = Genes, values_from = Dct.calibrator)
+
+
+
+gene <- gene %>%
+  dplyr::mutate(IFNy_N = 2^- ((IFNy - PPIB) - Calibrator_values[["IFNy"]]),
+                CXCR3_bio_N  = 2^- ((CXCR3_bio - PPIB)- Calibrator_values[["CXCR3_bio"]]),
+                IL.6_N = 2^-((IL.6 - PPIB)- Calibrator_values[["IL.6"]]),
+                IL.10_N = 2^-((IL.10 - PPIB)- Calibrator_values[["IL.10"]]),
+                IL.13_N = 2^-((IL.13 - PPIB)- Calibrator_values[["IL.13"]]),
+                IL1RN_N = 2^-((IL1RN - PPIB)- Calibrator_values[["IL1RN"]]),
+                CASP1_N = 2^-((CASP1 - PPIB)- Calibrator_values[["CASP1"]]),
+                CXCL9_N  = 2^-((CXCL9 - PPIB)- Calibrator_values[["CXCL9"]]),
+                IDO1_N = 2^-((IDO1 - PPIB)- Calibrator_values[["IDO1"]]),
+                IRGM1_N = 2^-(( IRGM1 - PPIB)- Calibrator_values[["IRGM1"]]),
+                MPO_N  =  2^-((MPO - PPIB) - Calibrator_values[["MPO"]]),
+                MUC2_N = 2^-((MUC2 - PPIB)- Calibrator_values[["MUC2"]]),
+                MUC5AC_N = 2^-((MUC5AC - PPIB)- Calibrator_values[["MUC5AC"]]),
+                MYD88_N  = 2^-((MYD88 - PPIB)- Calibrator_values[["MYD88"]]),
+                NCR1_N  = 2^-((NCR1 - PPIB)- Calibrator_values[["NCR1"]]),
+                PRF1_N = 2^-((PRF1 - PPIB)- Calibrator_values[["PRF1"]]),
+                RETNLB_N =  2^-((RETNLB - PPIB)- Calibrator_values[["RETNLB"]]),
+                SOCS1_N = 2^-((SOCS1 - PPIB)- Calibrator_values[["SOCS1"]]),
+                TICAM1_N  = 2^-((TICAM1 - PPIB)- Calibrator_values[["TICAM1"]]),
+                TNF_N = 2^-((TNF - PPIB) - Calibrator_values[["TNF"]]))
+           
+
+#create a new vector for selecting genes
+genes_N <- c("IFNy_N", "CXCR3_bio_N", "IL.6_N", "IL.10_N", "IL.13_N", "IL1RN_N", 
+           "CASP1_N", "CXCL9_N", "IDO1_N", "IRGM1_N", "MPO_N", "MUC2_N", "MUC5AC_N", "MYD88_N", 
+           "NCR1_N", "PRF1_N", "RETNLB_N", "SOCS1_N", "TICAM1_N", "TNF_N")
+
+
+```
+
+```{r}
+
+# turn the data frame into a matrix and transpose it. We want to have each cell 
  # type as a row name 
- gene <- t(as.matrix(gene %>% dplyr::select(c(EH_ID, all_of(Genes)))))
+ gene <- t(as.matrix(gene1 %>% dplyr::select(c(EH_ID, all_of(Genes)))))
  
  #switch the matrix back to a data frame format
  gene <- as.data.frame(gene)
@@ -211,7 +293,6 @@ rownames(annotation_df) <- colnames(heatmap_data)
 
 ```
 
-
 Heatmap on gene expression data: 
 
 ```{r pheatmap_genes, echo = FALSE}
@@ -224,7 +305,7 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 
 
 ```{r gene_correlations, echo = FALSE}
-gene_correlation <- Challenge %>% 
+gene_correlation <- gene1 %>% 
   ungroup() %>%
   dplyr::select(all_of(Genes))
 
@@ -256,100 +337,6 @@ corrplot(gene_correlation,
          number.cex=0.5) #Add significance level to the correlogram
 #remove the values that are insignificant
 ```
-
-*Group 1:*
-
-Muc2	the major secretory mucin within the gastrointestinal tract	
-Mucin 2 is particularly prominent in the gut where it is secreted from goblet cells in the epithelial lining into the lumen of the large intestine. There, mucin 2, along with small amounts of related-mucin proteins, polymerizes into a gel of which 80% by weight is oligosaccharide side-chains that are added as post-translational modifications to the mucin proteins. This gel provides an insoluble mucous barrier that serves to protect the intestinal epithelium.
-
-
-
-IRGM: Immunity-related GTPase family M protein (IRGM), also known as interferon-inducible protein 1 (IFI1), is an enzyme that in humans is IRGM gene.[5]
-
-IRGM is a member of the interferon-inducible GTPase family. The encoded protein may play a role in the innate immune response by regulating autophagy formation in response to intracellular pathogens.
-
-SOCS1: Suppressor of cytokine signaling 1 is a protein. SSI family members are cytokine-inducible negative regulators of cytokine signaling. The expression of this gene can be induced by a subset of cytokines, including IL2, IL3 erythropoietin (EPO), GM-CSF, and interferon-gamma (IFN-γ). The protein encoded by this gene functions downstream of cytokine receptors, and takes part in a negative feedback loop to attenuate cytokine signaling. Knockout studies in mice suggested the role of this gene as a modulator of IFN-γ action, which is required for normal postnatal growth and survival.[8] JAK/STAT signaling pathway, proinflammatory regulating + T-cell differentiation, could explain severity			
-
-*Group 2:*
-IFNy: IFN-γ, or type II interferon, is a cytokine that is critical for innate and adaptive immunity against viral, some bacterial and protozoan infections. IFN-γ is an important activator of macrophages and inducer of major histocompatibility complex class II molecule expression. Aberrant IFN-γ expression is associated with a number of autoinflammatory and autoimmune diseases. The importance of IFN-γ in the immune system stems in part from its ability to inhibit viral replication directly, and most importantly from its immunostimulatory and immunomodulatory effects. IFN-γ is produced predominantly by natural killer cells (NK) and natural killer T cells (NKT) as part of the innate immune response, and by CD4 Th1 and CD8 cytotoxic T lymphocyte (CTL) effector T cells once antigen-specific immunity develops[11][12] as part of the adaptive immune response. IFN-γ is also produced by non-cytotoxic innate lymphoid cells (ILC), a family of immune cells first discovered in the early 2010s.[13]
-
-IL10: IL-10 is a cytokine with multiple, pleiotropic, effects in immunoregulation and inflammation. It downregulates the expression of Th1 cytokines, MHC class II antigens, and co-stimulatory molecules on macrophages. It also enhances B cell survival, proliferation, and antibody production. IL-10 can block NF-κB activity, and is involved in the regulation of the JAK-STAT signaling pathway.
-Further investigation has shown that IL-10 predominantly inhibits lipopolysaccharide (LPS) and bacterial product mediated induction of the pro-inflammatory cytokines TNFα,[24] IL-1β,[24] IL-12,[25] and IFNγ[26] secretion from Toll-Like Receptor (TLR) triggered myeloid lineage cells.
-IL-10 is capable of inhibiting synthesis of pro-inflammatory cytokines such as IFN-γ, IL-2, IL-3, TNFα and GM-CSF made by cells such as macrophages and Th1 T cells. It also displays a potent ability to suppress the antigen-presentation capacity of antigen presenting cells; however, it is also stimulatory towards certain T cells (Th2) and mast cells and stimulates B cell maturation and antibody production.
-
-CXCL9: Chemokine (C-X-C motif) ligand 9 (CXCL9) is a small cytokine belonging to the CXC chemokine family that is also known as monokine induced by gamma interferon (MIG). The CXCL9 is one of the chemokine which plays role to induce chemotaxis, promote differentiation and multiplication of leukocytes, and cause tissue extravasation.[3]
-
-The CXCL9/CXCR3 receptor regulates immune cell migration, differentiation, and activation. Immune reactivity occurs through recruitment of immune cells, such as cytotoxic lymphocytes (CTLs), natural killer (NK) cells, NKT cells, and macrophages. Th1 polarization also activates the immune cells in response to IFN-γ.[4] Tumor-infiltrating lymphocytes are a key for clinical outcomes and prediction of the response to checkpoint inhibitors.[5] In vivo studies suggest the axis plays a tumorigenic role by increasing tumor proliferation and metastasis.[citation needed] CXCL9 predominantly mediates lymphocytic infiltration to the focal sites and suppresses tumor growth.[6]
-
-For immune cell differentiation, some reports show that CXCL9 lead to Th1 polarization through CXCR3.[15] In vivo model by Zohar et al. showed that CXCL9, drove increased transcription of T-bet and RORγ, leading to the polarization of Foxp3− type 1 regulatory (Tr1) cells or T helper 17 (Th17) from naive T cells via STAT1, STAT4, and STAT5 phosphorylation.[15]
-
-Several studies have shown that tumor associated macrophages (TAMs) play modulatory activities in the TME, and the CXCL9/CXCR3 axis impacts TAMs polarization. The TAMs have opposite effects; M1 for anti-tumor activities, and M2 for pro-tumor activities. Oghumu et al clarified that CXCR3 deficient mice displayed increased IL-4 production and M2 polarization in a murine breast cancer model, and decreased innate and immune cell-mediated anti-tumor responses.[16]
-
-For immune cell activation, CXCL9 stimulate immune cells through Th1 polarization and activation. Th1 cells produce IFN-γ, TNF-α, IL-2 and enhance anti-tumor immunity by stimulating CTLs, NK cells and macrophages.[17] The IFN-γ-dependent immune activation loop also promotes CXCL9 release.[3]
-
-IDO1: 
-Indoleamine-pyrrole 2,3-dioxygenase (IDO or INDO EC 1.13.11.52) is a heme-containing enzyme physiologically expressed in a number of tissues and cells, such as the small intestine, lungs
-IDO is an important molecule in the mechanisms of tolerance and its physiological functions include the suppression of potentially dangerous inflammatory processes in the body.[15] IDO also plays a role in natural defense against microorganisms. Expression of IDO is induced by interferon-gamma, which explains why the expression increases during inflammatory diseases
-
-IL.13: nterleukin 13 (IL-13) is a protein that in humans is encoded by the IL13 gene.[4][5][6] IL-13 was first cloned in 1993 and is located on chromosome 5q31 with a length of 1.4kb.[4] It has a mass of 13 kDa and folds into 4 alpha helical bundles.[7] The secondary structural features of IL-13 are similar to that of Interleukin 4 (IL-4); however it only has 25% sequence identity to IL-4 and is capable of IL-4 independent signaling.[7][4][8] IL-13 is a cytokine secreted by T helper type 2 (Th2) cells, CD4 cells, natural killer T cell, mast cells, basophils, eosinophils and nuocytes.[7] Interleukin-13 is a central regulator in IgE synthesis, goblet cell hyperplasia, mucus hypersecretion, airway hyperresponsiveness, fibrosis and chitinase up-regulation.[7] It is a mediator of allergic inflammation and different diseases including asthma.[7]
-IL-13 specifically induces physiological changes in parasitized organs that are required to expel the offending organisms or their products. For example, expulsion from the gut of a variety of mouse helminths requires IL-13 secreted by Th2 cells. IL-13 induces several changes in the gut that create an environment hostile to the parasite, including enhanced contractions and glycoprotein hyper-secretion from gut epithelial cells, that ultimately lead to detachment of the organism from the gut wall and their removal.[13]
-
-TNF: Tumor necrosis factor (TNF, cachexin, or cachectin; often called tumor necrosis factor alpha or TNF-α) is an adipokine and a cytokine. TNF is a member of the TNF superfamily, which consists of various transmembrane proteins with a homologous TNF domain. The primary role of TNF is in the regulation of immune cells. TNF, as an endogenous pyrogen, is able to induce fever, apoptotic cell death, cachexia, and inflammation, inhibit tumorigenesis and viral replication, and respond to sepsis via IL-1 and IL-6-producing cells. Dysregulation of TNF production has been implicated in a variety of human diseases including Alzheimer's disease,[12] cancer,[13] major depression,[14] psoriasis[15] and inflammatory bowel disease (IBD).[16] Though controversial, some studies have linked depression and IBD to increased levels of TNF.[17][18]
-it is produced also by a broad variety of cell types including lymphoid cells, mast cells, endothelial cells, cardiac myocytes, adipose tissue, fibroblasts, and neurons.[51][unreliable medical source?] Large amounts of TNF are released in response to lipopolysaccharide, other bacterial products, and interleukin-1 (IL-1). In the skin, mast cells appear to be the predominant source of pre-formed TNF, which can be released upon inflammatory stimulus (e.g., LPS).[52]
-
-TNF promotes the inflammatory response, which, in turn, causes many of the clinical problems associated with autoimmune disorders such as rheumatoid arthritis, ankylosing spondylitis, inflammatory bowel disease, psoriasis, hidradenitis suppurativa and refractory asthma. These disorders are sometimes treated by using a TNF inhibitor. 
-
-*Group 3:* IL1 RN:  interleukin 1 receptor antagonist 
-The interleukin-1 receptor antagonist (IL-1RA) is a protein that in humans is encoded by the IL1RN gene.[
-IL-1RA is a member of the interleukin 1 cytokine family. IL1Ra is secreted by various types of cells including immune cells, epithelial cells, and adipocytes, and is a natural inhibitor of the pro-inflammatory effect of IL1β.[8] This protein inhibits the activities of interleukin 1, alpha (IL1A) and interleukin 1, beta (IL1B), and modulates a variety of interleukin 1 related immune and inflammatory responses. 
-
-MPO: Myeloperoxidase (MPO) is a peroxidase enzyme that in humans is encoded by the MPO gene on chromosome 17.[5] MPO is most abundantly expressed in neutrophil granulocytes (a subtype of white blood cells), and produces hypohalous acids to carry out their antimicrobial activity, including hypochlorous acid, the sodium salt of which is the chemical in bleach.[5][6] It is a lysosomal protein stored in azurophilic granules of the neutrophil and released into the extracellular space during degranulation.[7] Neutrophil myeloperoxidase has a heme pigment, which causes its green color in secretions rich in neutrophils, such as mucus and sputum.[8] The green color contributed to its outdated name verdoperoxidase.
-
-MPO is a member of the XPO subfamily of peroxidases and produces hypochlorous acid (HOCl) from hydrogen peroxide (H2O2) and chloride anion (Cl−) (or hypobromous acid if Br- is present) during the neutrophil's respiratory burst. It requires heme as a cofactor. Furthermore, it oxidizes tyrosine to tyrosyl radical using hydrogen peroxide as an oxidizing agent.[10][14] Hypochlorous acid and tyrosyl radical are cytotoxic, so they are used by the neutrophil to kill bacteria and other pathogens.[15] However, this hypochlorous acid may also cause oxidative damage in host tissue. Moreover, MPO oxidation of apoA-I reduces HDL-mediated inhibition of apoptosis and inflammation.[16] In addition, MPO mediates protein nitrosylation and the formation of 3-chlorotyrosine and dityrosine crosslinks.[10]
-
-
-*Group 4:* 
-CASP1: Caspase-1/Interleukin-1 converting enzyme (ICE) is an evolutionarily conserved enzyme that proteolytically cleaves other proteins, such as the precursors of the inflammatory cytokines interleukin 1β and interleukin 18 as well as the pyroptosis inducer Gasdermin D, into active mature peptides.[5][6][7] It plays a central role in cell immunity as an inflammatory response initiator. Once activated through formation of an inflammasome complex, it initiates a proinflammatory response through the cleavage and thus activation of the two inflammatory cytokines, interleukin 1β (IL-1β) and interleukin 18 (IL-18) as well as pyroptosis, a programmed lytic cell death pathway, through cleavage of Gasdermin D.[8] The two inflammatory cytokines activated by Caspase-1 are excreted from the cell to further induce the inflammatory response in neighboring cells.[9]
-
-
-MUC5AC: Mucin 5AC (Muc5AC) is a protein that in humans is encoded by the MUC5AC gene.[5][6][7]
-
-Muc5AC is a large gel-forming glycoprotein. In the respiratory tract it protects against infection by binding to inhaled pathogens that are subsequently removed by mucociliary clearance. Overproduction of Muc5AC can contribute to diseases such as asthma and chronic obstructive pulmonary disease,[8] and has also been associated with greater protection against influenza infection.[9]
-
-
-*Group 5:* 
-PRF1: Perforin-1 is a protein that in humans is encoded by the PRF1 gene and the Prf1 gene in mice.
-Perforin is a pore forming cytolytic protein found in the granules of cytotoxic T lymphocytes (CTLs) and natural killer cells (NK cells). Upon degranulation, perforin molecules translocate to the target cell with the help of calreticulin, which works as a chaperone protein to prevent perforin from degrading. Perforin then binds to the target cell's plasma membrane via membrane phospholipids while phosphatidylcholine binds calcium ions to increase perforin's affinity to the membrane.[8] Perforin oligomerises in a Ca2+ dependent manner to form pores on the target cell. The pore formed allows for the passive diffusion of a family of pro-apoptotic proteases, known as the granzymes, into the target cell.[9] The lytic membrane-inserting part of perforin is the MACPF domain.[10] This region shares homology with cholesterol-dependent cytolysins from Gram-positive bacteria.[11]
-
-Perforin has structural and functional similarities to complement component 9 (C9). Like C9, this protein creates transmembrane tubules and is capable of lysing non-specifically a variety of target cells. This protein is one of the main cytolytic proteins of cytolytic granules, and it is known to be a key effector molecule for T-cell- and natural killer-cell-mediated cytolysis.[7] Perforin is thought to act by creating holes in the plasma membrane which triggers an influx of calcium and initiates membrane repair mechanisms. These repair mechanisms bring perforin and granzymes into early endosomes.[12]
-
-CXCR3: Chemokine receptor CXCR3 is a Gαi protein-coupled receptor in the CXC chemokine receptor family. Other names for CXCR3 are G protein-coupled receptor 9 (GPR9) and CD183. There are three isoforms of CXCR3 in humans: CXCR3-A, CXCR3-B and chemokine receptor 3-alternative (CXCR3-alt).[5] CXCR3-A binds to the CXC chemokines CXCL9 (MIG), CXCL10 (IP-10), and CXCL11 (I-TAC)[6] whereas CXCR3-B can also bind to CXCL4 in addition to CXCL9, CXCL10, and CXCL11.[7]
-CXCR3 is expressed primarily on activated T lymphocytes and NK cells,[8] and some epithelial cells. CXCR3 and CCR5 are preferentially expressed on Th1 cells, whereas Th2 cells favor the expression of CCR3 and CCR4. CXCR3 ligands that attract Th1 cells can concomitantly block the migration of Th2 cells in response to CCR3 ligands, thus enhancing the polarization of effector T cell recruitment.
-
-MYD88: Myeloid differentiation primary response 88 (MYD88) is a protein that, in humans, is encoded by the MYD88 gene.
-Model organisms have been used in the study of MYD88 function. The gene was originally discovered and cloned by Dan Liebermann and Barbara Hoffman in mice.[7] In that species it is a universal adapter protein as it is used by almost all TLRs (except TLR 3) to activate the transcription factor NF-κB. Mal (also known as TIRAP) is necessary to recruit Myd88 to TLR 2 and TLR 4, and MyD88 then signals through IRAK.[8] It also interacts functionally with amyloid formation and behavior in a transgenic mouse model of Alzheimer's disease.[9]
-
-Myd88 knockout mouse phenotype 
-A conditional knockout mouse line, called Myd88tm1a(EUCOMM)Wtsi[13][14] was generated as part of the International Knockout Mouse Consortium program — a high-throughput mutagenesis project to generate and distribute animal models of disease to interested scientists.[15][16][17] Male and female animals underwent a standardized phenotypic screen to determine the effects of deletion.[11][18] Twenty-one tests were carried out on homozygous mutant animals, revealing one abnormality: male mutants had an increased susceptibility to bacterial infection.
-The MYD88 gene provides instructions for making a protein involved in signaling within immune cells. The MyD88 protein acts as an adapter, connecting proteins that receive signals from outside the cell to the proteins that relay signals inside the cell.
-In innate immunity, the MyD88 plays a pivotal role in immune cell activation through Toll-like receptors (TLRs), which belong to large group of pattern recognition receptors (PRR). In general, these receptors sense common patterns which are shared by various pathogens – Pathogen-associated molecular pattern (PAMPs), or which are produced/released during cellular damage – damage-associated molecular patterns (DAMPs).[19]
- 
-IL.6: Interleukin 6 (IL-6) is an interleukin that acts as both a pro-inflammatory cytokine and an anti-inflammatory myokine. In humans, it is encoded by the IL6 gene.[5]
-
-In addition, osteoblasts secrete IL-6 to stimulate osteoclast formation. Smooth muscle cells in the tunica media of many blood vessels also produce IL-6 as a pro-inflammatory cytokine. IL-6's role as an anti-inflammatory myokine is mediated through its inhibitory effects on TNF-alpha and IL-1 and its activation of IL-1ra and IL-10.
-
-Immune system
-IL-6 is secreted by macrophages in response to specific microbial molecules, referred to as pathogen-associated molecular patterns (PAMPs). These PAMPs bind to an important group of detection molecules of the innate immune system, called pattern recognition receptors (PRRs), including Toll-like receptors (TLRs). These are present on the cell surface and intracellular compartments and induce intracellular signaling cascades that give rise to inflammatory cytokine production. IL-6 is an important mediator of fever and of the acute phase response.
-
-IL-6 is responsible for stimulating acute phase protein synthesis, as well as the production of neutrophils in the bone marrow. It supports the growth of B cells and is antagonistic to regulatory T cells.
-
-
-NCR1:  Natural cytotoxicity triggering receptor 1 is a protein that in humans is encoded by the NCR1 gene.[
-
-RETNL:
-
-
-TICAM1: TIRP is a Toll/interleukin-1 receptor (IL1R; MIM 147810) (TIR) domain-containing adaptor protein involved in Toll receptor signaling
 
 ```{r gene_expression_intensity, echo = FALSE, message = FALSE}
 
@@ -751,7 +738,165 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 
 
 
+### repeating the heatmap on the significant genes imputed data
+```{r}
 
+gene <- imputed_expr %>% dplyr::select(c(EH_ID, c("IFNy", "IL.13", "PRF1", 
+                                                  "TICAM1")))
+ 
+ # turn the data frame into a matrix and transpose it. We want to have each cell 
+ # type as a row name 
+ gene <- t(as.matrix(gene))
+ 
+ #switch the matrix back to a data frame format
+ gene <- as.data.frame(gene)
+ 
+ # turn the first row into column names
+ gene %>%
+     row_to_names(row_number = 1) -> heatmap_data
+ 
+ 
+ table(rowSums(is.na(heatmap_data)) == nrow(heatmap_data))
+
+ 
+ # turn the columns to numeric other wise the heatmap function will not work
+ heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != nrow(heatmap_data)]
+
+  
+annotation_df <- as_tibble(Challenge) %>%
+  dplyr::filter(infection == "challenge", dpi == dpi_max) %>%
+  dplyr::group_by(EH_ID) %>%
+  dplyr::select(c("EH_ID", "Parasite_challenge",
+                  "hybrid_status")) %>%
+  dplyr::filter(EH_ID %in% colnames(heatmap_data))
+  
+annotation_df <- unique(annotation_df)
+ 
+
+annotation_df <- as.data.frame(unique(annotation_df)) %>%
+  dplyr::select(-EH_ID)
+
+### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$EH_ID
+
+rownames(annotation_df) <- colnames(heatmap_data)
+```
+
+
+Heatmap on gene expression data: 
+
+
+```{r, echo = FALSE}
+pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+```
+
+# Testing alice's Balard package
+
+HIs ranged from 0 to 1, HI of 0 indicating a pure Mmd and HI of 1 a pure Mmm (Baird et al., 2012; Macholán et al., 2007).
+
+```{r}
+#create a new variable for a hybrid index
+g3 <- g2 %>% 
+  mutate(HI = case_when(
+    hybrid_status == "F1 hybrid" ~ 0.5,
+    hybrid_status == "F0 M. m. domesticus" ~ 0,
+    hybrid_status == "F1 M. m. domesticus" ~ 0,
+    hybrid_status == "F1 M. m. musculus" ~ 1,
+    hybrid_status == "F0 M. m. musculus" ~ 1,
+    hybrid_status == "other" ~ 100,
+    TRUE ~ 100
+  ))
+
+#filter out the nmri mice
+g3 <- g3 %>%
+  filter(!HI == 100) %>% 
+  dplyr::mutate(max_WL = 100 - max_WL) 
+
+g3 <- g3 %>% 
+  mutate(hybrid_status = case_when(
+    HI == 0.5 ~ "F1_hybrid",
+    HI == 0 ~"M.m.domesticus",
+    HI == 1 ~ "M.m.musculus"
+  ))
+
+
+
+g3 <- g3 %>%
+  mutate(Eim_MC = case_when(
+    Eim_MC == "TRUE" ~ "infected",
+    Eim_MC == "FALSE" ~ "uninfected"
+  ))
+
+
+g3$Eim_MC <- as.factor(g3$Eim_MC)
+
+
+require(devtools)
+devtools::install_github("alicebalard/parasiteLoad@v2.0", force = TRUE)
+
+
+library(parasiteLoad)
+
+str(g3$max_WL)
+
+parasiteLoad::getParamBounds("weibull", data = g3, response = "max_WL")
+
+speparam <- c(L1start = 7.158694975,
+                     L1LB = 0.000000001,
+                     L1UB = 26.554054054,
+                     L2start = 7.158694975,
+                     L2LB = 0.000000001,
+                     L2UB = 26.554054054,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 0.000000001, myshapeUB = 5)
+##All
+#fitWL_MC <- parasiteLoad::analyse(data = g2,
+                       # response = "max_WL",
+                       # model = "weibull",
+                       # group = "Eim_MC")
+
+##fitWL_MC
+
+
+#plot_WL_MC<- bananaPlot(mod = fitWL_MC$H3,
+       #      data = g2,
+     #        response = "max_WL",
+    #         group = "Eim_MC") +
+  #  scale_fill_manual(values = c("blue", "red")) +
+#  scale_color_manual(values = c("blue", "red")) +
+#  theme_bw()
+#plot_WL_MC
+
+
+
+
+HI_weight <- lm(max_WL ~ hybrid_status, data = g3)
+summary(HI_weight)
+HI_weight$coefficients
+
+ggplot(data = g3, aes(x = hybrid_status, y = max_WL, color = hybrid_status)) +
+  geom_boxplot()
+
+AIC(HI_weight)
+
+
+
+one.way <- aov(max_WL ~ hybrid_status, data = g3)
+
+summary(one.way)
+```
+The Df column displays the degrees of freedom for the independent variable (the number of levels in the variable minus 1), and the degrees of freedom for the residuals (the total number of observations minus one and minus the number of levels in the independent variables).
+The Sum Sq column displays the sum of squares (a.k.a. the total variation between the group means and the overall mean).
+The Mean Sq column is the mean of the sum of squares, calculated by dividing the sum of squares by the degrees of freedom for each parameter.
+The F-value column is the test statistic from the F test. This is the mean square of each independent variable divided by the mean square of the residuals. The larger the F value, the more likely it is that the variation caused by the independent variable is real and not due to chance.
+The Pr(>F) column is the p-value of the F-statistic. This shows how likely it is that the F-value calculated from the test would have occurred if the null hypothesis of no difference among group means were true.
+The p-value of the fertilizer variable is low (p < 0.001), so it appears that the type of fertilizer used has a real impact on the final crop yield.
 
 ```{r}
 write.csv(imputed_expr, "output_data/gene_expression/data_products/imputed_gene_expression.csv", row.names = FALSE)

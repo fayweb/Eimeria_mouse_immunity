@@ -1,0 +1,1108 @@
+---
+title: "4.Gene_expressions_analysis -  Analyzing differences between field and lab"
+author: "Fay Webster"
+date: '2022-07-18'
+geometry: margin=2cm
+output:
+  pdf_document: default
+  theme: journal
+  toc: yes
+  toc_float: yes
+  html_document: null
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Aims:
+- Compare immune gene expression between lab and field data
+- How do eimeria infections affect the expression of various immune genes?
+- Does the expression vary between lab and field data? 
+
+# load libraries
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(optimx)
+```
+
+
+# Import data:
+Here, we have the experimental / field data, inlcuding imputed data
+
+```{r}
+lab <- read.csv("output_data/gene_expression/data_products/lab_imputed_gene_expression.csv")
+field <- read.csv("output_data/gene_expression/data_products/field_imputed_gene_expression.csv")
+```
+
+# Selecting genes
+```{r}
+# vectors for selecting gene columns 
+Genes_lab <- c("IFNy", "CXCR3", "IL.6", "IL.10", "IL.13", "IL1RN", "CASP1", 
+               "CXCL9", "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", 
+           "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+
+Genes_field   <- c("IFNy",  "CXCR3", "IL.6", #"GBP2", "IL.12", "IRG6",
+                     "IL.10", "IL.13", "IL1RN",
+                     "CXCR3", "CASP1", "CXCL9", 
+                     "IDO1", "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", 
+                     "NCR1", "PRF1", "RETNLB", "SOCS1", "TICAM1", "TNF")
+```
+
+## 1. IFNy
+
+```{r}
+ggplot(lab, aes(x = delta, y = IFNy, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IFNy, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+```{r}
+ggplot(lab, aes(x = delta, y = IFNy, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IFNy, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+## 2. CXCR3
+
+```{r}
+ggplot(lab, aes(x = delta, y = CXCR3_bio, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", y = "CXCR3",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = CXCR3, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in 
+       field samples") +
+  theme_bw()
+
+
+```
+
+```{r}
+ggplot(lab, aes(x = delta, y = CXCR3, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = CXCR3, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+## 3. IL.6
+
+```{r}
+ggplot(lab, aes(x = delta, y = IL.6, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IL.6, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+
+```
+
+## 4. IL.10
+
+```{r}
+ggplot(lab, aes(x = delta, y = IL.10, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IL.10, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+
+```
+
+
+```{r}
+ggplot(lab, aes(x = delta, y = IL.10, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IL.10, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+## 5. IL.13
+
+```{r}
+ggplot(lab, aes(x = delta, y = IL.13, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IL.13, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+
+```
+
+
+```{r}
+ggplot(lab, aes(x = delta, y = IL.13, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IL.13, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 6. IL1RN
+
+```{r}
+ggplot(lab, aes(x = delta, y = IL1RN, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IL1RN, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+```{r}
+ggplot(lab, aes(x = delta, y = IL1RN, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IL1RN, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 7. CASP1
+
+```{r}
+ggplot(lab, aes(x = delta, y = CASP1, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = CASP1, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+```{r}
+ggplot(lab, aes(x = delta, y = CASP1, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = CASP1, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 8. CXCL9
+
+```{r}
+ggplot(lab, aes(x = delta, y = CXCL9, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = CXCL9, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+```{r}
+ggplot(lab, aes(x = delta, y = CXCL9, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = CXCL9, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 9. IDO1
+
+```{r}
+ggplot(lab, aes(x = delta, y = IDO1, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IDO1, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+```{r}
+ggplot(lab, aes(x = delta, y = IDO1, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IDO1, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 10. IRGM1
+
+```{r}
+ggplot(lab, aes(x = delta, y = IRGM1, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IRGM1, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+```{r}
+ggplot(lab, aes(x = delta, y = IRGM1, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = IRGM1, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 11. MPO
+
+```{r}
+ggplot(lab, aes(x = delta, y = MPO, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = MPO, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+```{r}
+ggplot(lab, aes(x = delta, y = MPO, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = MPO, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 12. MUC2
+
+```{r}
+ggplot(lab, aes(x = delta, y = MUC2, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = MUC2, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+```{r}
+ggplot(lab, aes(x = delta, y = MUC2, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = MUC2, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 13. MUC5AC
+```{r}
+ggplot(lab, aes(x = delta, y = MUC5AC, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = MUC5AC, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+```{r}
+ggplot(lab, aes(x = delta, y = MUC5AC, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = MUC5AC, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 14. MYD88
+```{r}
+ggplot(lab, aes(x = delta, y = MYD88, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = MYD88, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+```{r}
+ggplot(lab, aes(x = delta, y = MYD88, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = MYD88, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+## 15. NCR1
+```{r}
+ggplot(lab, aes(x = delta, y = NCR1, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = NCR1, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+```{r}
+ggplot(lab, aes(x = delta, y = NCR1, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = NCR1, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 16. PRF1
+```{r}
+ggplot(lab, aes(x = delta, y = PRF1, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = PRF1, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+```{r}
+ggplot(lab, aes(x = delta, y = PRF1, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = PRF1, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 17. RETNLB
+```{r}
+ggplot(lab, aes(x = delta, y = RETNLB, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = RETNLB, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+```{r}
+ggplot(lab, aes(x = delta, y = RETNLB, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = RETNLB, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 18. SOCS1
+```{r}
+ggplot(lab, aes(x = delta, y = SOCS1, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = SOCS1, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+```{r}
+ggplot(lab, aes(x = delta, y = SOCS1, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = SOCS1, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 19. TICAM1
+```{r}
+ggplot(lab, aes(x = delta, y = TICAM1, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = TICAM1, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+```{r}
+ggplot(lab, aes(x = delta, y = TICAM1, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = TICAM1, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+## 20. TNF
+```{r}
+ggplot(lab, aes(x = delta, y = TNF, color = Parasite_challenge)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct", 
+       title ="Immune gene expression against infection intensity 
+       in lab infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = TNF, color = eimeriaSpecies)) +
+  geom_jitter() +
+  geom_abline() + 
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+
+```{r}
+ggplot(lab, aes(x = delta, y = TNF, color = Eim_MC)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in lab 
+       infections") +
+  theme_bw()
+
+
+
+ggplot(field, aes(x = delta_ct_cewe_MminusE, y = TNF, 
+                  color = MC.Eimeria)) +
+  geom_boxplot() +
+  labs(x = "Infection intensity, dct",
+       title ="Immune gene expression against infection intensity in field 
+       samples") +
+  theme_bw()
+
+```
+
+# Compare the differences in uninfected and infected data and field / lab
+
+## Write a function which does a t test to quantify the differences of gene
+## expression between uninfected and infected mice in the lab and field infections
+## and also compares the uninfected lab and field and the infected lab and field 
+
+```{r, include=FALSE}
+
+field$MC.Eimeria
+lab$Eim_MC
+
+
+eimeria_t.test <- function(x) {
+# select the uninfected (delta ct under -5 mice)  
+  lab_uni <- lab %>%
+    dplyr::filter(Eim_MC == "FALSE")
+# select the infected lab mice
+  lab_inf <- lab %>% 
+    dplyr::filter(Eim_MC == "TRUE") 
+# select the uninfected field mice (delta ct under -5 mice)  
+  field_uni <- field %>%
+    dplyr::filter(MC.Eimeria == "FALSE")
+# select the infected lab mice
+  field_inf <- field %>% 
+    dplyr::filter(MC.Eimeria == "TRUE") 
+
+print(c("Testing differences in expression in uninfected and infected lab mice. Gene:", toString(x)))
+print(t.test(lab_uni %>% dplyr::select(all_of(x)), lab_inf %>% dplyr::select(all_of(x))))
+
+print(c("Testing differences in expression in uninfected and infected field mice. Gene:", toString(x)))
+print(t.test(field_uni %>% dplyr::select(all_of(x)), field_inf %>% dplyr::select(all_of(x))))
+
+print(c("Testing differences in expression in uninfected lab vs field mice. Gene:", toString(x)))
+print(t.test(lab_uni %>% dplyr::select(all_of(x)), field_uni %>% dplyr::select(all_of(x))))
+
+print(c("Testing differences in expression in infected lab vs field mice. Gene:", toString(x)))
+print(t.test(lab_inf %>% dplyr::select(all_of(x)), field_inf %>% dplyr::select(all_of(x))))
+
+}
+
+
+```
+
+```{r include = FALSE}
+lapply(intersect(Genes_field, Genes_lab), eimeria_t.test)
+```
+
+# Function to print the p values for each t tet
+```{r}
+eimeria_t_test_pvalue <- function(x) {
+ # select the uninfected (delta ct under -5 mice)  
+  lab_uni <- lab %>%
+    dplyr::filter(Eim_MC == "FALSE")
+# select the infected lab mice
+  lab_inf <- lab %>% 
+    dplyr::filter(Eim_MC == "TRUE") 
+# select the uninfected field mice (delta ct under -5 mice)  
+  field_uni <- field %>%
+    dplyr::filter(MC.Eimeria == "FALSE")
+# select the infected lab mice
+  field_inf <- field %>% 
+    dplyr::filter(MC.Eimeria == "TRUE") 
+  
+lab.uni_lab.inf <- t.test(lab_uni %>% dplyr::select(all_of(x)), 
+                          lab_inf %>% dplyr::select(all_of(x)))$p.value
+
+field.uni_field.inf <- t.test(field_uni %>% dplyr::select(all_of(x)), 
+                              field_inf %>% dplyr::select(all_of(x)))$p.value
+
+lab.uni_field_uni <- t.test(lab_uni %>% dplyr::select(all_of(x)), 
+                            field_uni %>% dplyr::select(all_of(x)))$p.value
+
+lab.inf_field.inf <- t.test(lab_inf %>% dplyr::select(all_of(x)), 
+                            field_inf %>% dplyr::select(all_of(x)))$p.value
+
+
+A <- data.frame(lab.uni_lab.inf,field.uni_field.inf,lab.uni_field_uni, 
+                   lab.inf_field.inf)
+
+rownames(A) <- toString(x)
+
+print(A)
+}
+
+
+P <- lapply(intersect(Genes_field, Genes_lab), eimeria_t_test_pvalue)
+
+t.test.p.value <- reduce(P, rbind)
+
+t.test.p.value <- tibble::rownames_to_column(t.test.p.value, "Genes")
+
+write.csv(t.test.p.value,
+          "output_data/gene_expression/data_products/t.test.p.values_gene_exp.csv",
+          row.names = FALSE)
+
+```
+Which genes are significant to predict weight loss?
+```{r}
+
+
+Lab_wl <- lm(formula = max_WL ~ IFNy + CXCR3 + IL.6 + IL.10 + IL.13 + IL1RN + 
+               CXCR3 + CASP1 + CXCL9 + IDO1 + IRGM1 + MPO + MUC2 + MUC5AC + 
+               MYD88 + NCR1 + PRF1 + RETNLB + SOCS1 + TICAM1 + TNF, data = lab)
+
+summary(Lab_wl)
+AIC(Lab_wl)
+
+Lab_MC <- lm(formula = Eim_MC ~ IFNy + CXCR3 + IL.6 + IL.10 + IL.13 + IL1RN + 
+               CXCR3 + CASP1 + CXCL9 + IDO1 + IRGM1 + MPO + MUC2 + MUC5AC + 
+               MYD88 + NCR1 + PRF1 + RETNLB + SOCS1 + TICAM1 + TNF, data = lab)
+
+summary(Lab_MC)
+AIC(Lab_MC)
+```
+
+# Results
+
+1. Significant difference between means of lab uni and lab inf:
+- IFNy
+- IL.13
+- PRF1
+- TICAM1
+
+2. Significant difference between means of field uni and field inf:
+- IFNy
+- IL.6
+- IL.13
+- IL1RN
+- CXCL9
+- MPO
+- MUC5AC
+- PRF1
+- TICAM1
+- TNF
+
+3. Significant difference between means of lab uni and field uni:
+IFNy
+CXCR3
+IL.6
+IL.10
+IL.13
+IL1RN
+CXCL9
+IDO1
+IRGM1
+MPO
+MUC2
+MUC5AC
+NCR1
+PRF1
+RETNLB
+SOCS1
+TICAM1
+
+4. No Significant difference between means of lab uni and field uni:
+- CASP1
+- MYD88
+-TNF
+
+5.  Significant difference between means of lab inf and field inf:
+IFNy
+CXCR3
+IL.13
+IRGM1
+MUC2
+MYD88
+PRF1
+SOCS1
+
+6. No Significant difference between means of lab inf and field inf:
+IL.6
+IL.10
+IL1RN
+CASP1
+CXCL9
+IDO1
+MPO
+MUC5AC
+NCR1
+RETNLB
+TICAM1
+TNF
+
+https://docs.google.com/spreadsheets/d/1JWjsyzlQxWlSttZ5KwxYSsZapjZCgMCO1OcF0Yz9_ZQ/edit?usp=sharing
+
+
+
+# It is time to apply the package of Alice Balard et al. on our predictions!
+
+
+Let's see if we indeed have differences across the hybrid index with our predicted 
+weight loss. 
+
+
+## Install the package
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+require(devtools)
+
+devtools::install_github("alicebalard/parasiteLoad@v2.0", force = TRUE)
+
+#force = TRUE)
+
+library(parasiteLoad)
+```
+
+
+
+
+
