@@ -1,5 +1,5 @@
 ---
-title: "1. Analysis"
+title: "1. Merging_cleaning_heatmap_gene_expression"
 author: "Fay"
 date: '2022-09-15'
 output:
