@@ -68,10 +68,10 @@ Challenge = experimental challenge infection data
 SOTA = State of the Art, of wild data
 
 ```{r}
-Challenge <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
+Challenge <- read.csv("input_data/Challenge_infections.csv")
 
 
-SOTA <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/master/data_products/SOTA_Data_Product.csv")
+SOTA <- read.csv("input_data/SOTA_Data_Product.csv")
 
 # Vectors for selecting genes
 
