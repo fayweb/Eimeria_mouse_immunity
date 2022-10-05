@@ -56,7 +56,6 @@ library(tidyr)
 library(dplyr)
 library(janitor)
 library(visdat)
-devtools::install_github('cran/ggplot2')
 ```
 
 
@@ -237,6 +236,8 @@ Challenge <- Challenge %>%
 data <- full_join(Challenge, SOTA, 
                   by = intersect(colnames(SOTA), colnames(Challenge)))
 
+write.csv(data, "output_data/MICE.csv", row.names = FALSE)
+
 
 ```
 
@@ -355,7 +356,8 @@ gene <- gene %>% drop_na(MYD88)
 annotation_df <- as_tibble(data) %>%
     dplyr::filter(origin == "Field")%>%
     dplyr::group_by(Mouse_ID) %>%
-    dplyr::select(c("Mouse_ID", "Sex", "HI")) 
+    dplyr::select(c("Mouse_ID", "Sex", "HI")) %>% 
+  drop_na()
   
 annotation_df <- unique(annotation_df) %>%
     dplyr::filter(Mouse_ID %in% colnames(heatmap_data))
