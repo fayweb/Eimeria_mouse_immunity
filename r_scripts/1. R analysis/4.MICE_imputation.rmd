@@ -20,6 +20,7 @@ library(tidyr)
 library(tidyverse)
 library(VIM)
 library(fitdistrplus)
+library(fitur)
 ```
 
 # Import data
@@ -80,13 +81,14 @@ facs_variable <- facs_variable %>% drop_na()
 x <- facs_variable$CD4
 
 # gene_variable 
-y <- hm %>%
+gene_variable <- hm %>%
   filter(origin == "Lab", dpi == max_dpi, infection == "challenge") %>% 
   dplyr::select(MYD88)
 
-y <- y %>% 
+gene_variable <- gene_variable %>% 
   drop_na()
 
+y <- gene_variable$MYD88
 ```
 
 # Fucntions to test distributions
@@ -128,91 +130,106 @@ findGoodDist <- function(x, distribs, distribs2){
 # For the facs data
 ```{r}
 
-ggplot(x, aes(CD4)) +
+ggplot(facs_variable, aes(CD4)) +
   geom_histogram()
 
-glimpse(x)
 
 set.seed(333)
-descdist(data = x, discrete = FALSE)
+descdist(data = x, discrete = FALSE, boot = 1000)
 
 ```
 
-The facs data don't fit a beta distribution.
 
-```{r}
-normal_ <- fitdist(x, "norm")
-weibull_ <- fitdist(x, "weibull")
-gamma_ <- fitdist(x, "gamma")
-lognormal_ <- fitdist(x, "lnorm")
-exponential_ <- fitdist(x, "exp")
+```{r warning=FALSE, message=FALSE}
+
+fitur::fit_dist_addin()
 ```
-
-```{r}
-plot(normal_)
-print(normal_)
-```
-```{r}
-plot(weibull_)
-print(weibull_)
-```
-
-
-```{r}
-plot(gamma_)
-print(gamma_)
-```
-
-
-```{r}
-plot(lognormal_)
-print(lognormal_)
-```
-
-
-```{r}
-plot(exponential_)
-print(exponential_)
-```
+According to interface, I can visually identify a cauchy distribution.
 
 
 
 ```{r}
-fitdist(x, "beta") # doesn't work
-#fitdist(x, "pois") # ain't working as well
+tryDistrib(x, "normal") #yes
+tryDistrib(x, "binomial") #nope
+tryDistrib(x, "student") #nope
+tryDistrib(x, "weibull") #yes
+tryDistrib(x, "weibullshifted") #nope
+tryDistrib(x, "gamma") #nope
+tryDistrib(x, "cauchy") #yes
+tryDistrib(x, "exp") #nope
+tryDistrib(x, "log") #nope
+tryDistrib(x, "t")
 
-set.seed(24)
-descdist(data = x, discrete = FALSE, boot = 100)
+```
 
-library(fitur)
+FACS data --> cauchy?
+
+
+################
+
+Gene data
+
+```{r}
+
+ggplot(gene_variable, aes(MYD88)) +
+  geom_histogram()
+
+
+set.seed(66)
+descdist(data = y, discrete = FALSE, boot = 1000)
+
+```
+
+
+```{r warning=FALSE, message=FALSE}
+
 fitur::fit_dist_addin()
 ```
 
 
-
-```{r}
-
-
-
-tryDistrib(x, "normal")
-tryDistrib(x, "binomial")
-tryDistrib(x, "student")
-tryDistrib(x, "weibull")
-tryDistrib(x, "weibullshifted")
-tryDistrib(x, "weibullshifted")
-tryDistrib(x, "gamma")
-```
-
-
 # For the gene data
-```{r}
-tryDistrib(y, "normal")
-tryDistrib(y, "binomial")
-tryDistrib(y, "student")
-tryDistrib(y, "weibull")
-tryDistrib(y, "weibullshifted")
 
+
+```{r}
+tryDistrib(y, "normal") #yes
+tryDistrib(y, "binomial") #nope
+tryDistrib(y, "student") #nope
+tryDistrib(y, "weibull") #yes
+tryDistrib(y, "weibullshifted") #nope
+tryDistrib(y, "gamma") #yes
+tryDistrib(y, "cauchy") #yes
+tryDistrib(y, "exp") #nope
+tryDistrib(y, "log") #nope
+tryDistrib(y, "t") #nope
 ```
+```{r}
+findGoodDist(y, "normal",  "weibull")
+findGoodDist(y, "normal",  "cauchy")
+```
+Cauchy? 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Imputing missing data 
 I will be using the package MICE (multivariate Imputation by chained 
 Equations) which only requires a data frame of missing observations.
