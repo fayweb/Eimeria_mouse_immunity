@@ -21,6 +21,7 @@ library(tidyverse)
 library(VIM)
 library(fitdistrplus)
 library(fitur)
+library(visdat)
 ```
 
 # Import data
@@ -45,7 +46,7 @@ Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
                   "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                   "TICAM1", "TNF") #, "IL.12", "IRG6")
 
-Facs_lab <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+Facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
                     "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
                     "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
                     "IL17A_CD4")  
@@ -129,20 +130,15 @@ findGoodDist <- function(x, distribs, distribs2){
 
 # For the facs data
 ```{r}
-
-ggplot(facs_variable, aes(CD4)) +
-  geom_histogram()
-
-
 set.seed(333)
 descdist(data = x, discrete = FALSE, boot = 1000)
 
 ```
-
+Interface for looking at distributions
 
 ```{r warning=FALSE, message=FALSE}
 
-fitur::fit_dist_addin()
+# fitur::fit_dist_addin()
 ```
 According to interface, I can visually identify a cauchy distribution.
 
@@ -181,9 +177,11 @@ descdist(data = y, discrete = FALSE, boot = 1000)
 ```
 
 
+Interface for looking at the distributions. #really cool
+
 ```{r warning=FALSE, message=FALSE}
 
-fitur::fit_dist_addin()
+#fitur::fit_dist_addin()
 ```
 
 
@@ -208,25 +206,50 @@ findGoodDist(y, "normal",  "cauchy")
 ```
 Cauchy? 
 
+https://stefvanbuuren.name/fimd/sec-toomany.html
+
+# Standardization
+
+Transforming the features to have the properties of a standard normal distribu-
+tion with mean = 0 and standard deviation = 1
+
+```{r}
+
+# function to standardize data
+standardize <- function(x) {
+  return ((x - mean(x, na.rm = TRUE)) /
+            sd(x, na.rm = TRUE))
+}
 
 
+summary(x) # facs
+summary(y) # gene
 
+#testing the function
+x_stand <- standardize(x)
 
+#fitur::fit_dist_addin()
 
+summary(x_stand)
 
+# create a data frame with only the variables to standardize
+genes_facs_df <- hm %>% 
+  dplyr::select(all_of(c(Facs_lab, Gene_lab, Facs_wild, Genes_wild)))
 
+# apply the standardize function on all the numeric variables 
+std_data <- as.data.frame(lapply(genes_facs_df, standardize))
 
+colnames(std_data) <- paste(colnames(std_data), "std", sep = "_")
 
+# join the standardized data to our data set
+hm <- cbind(hm, std_data)
 
+#remove the non-standardized data
 
+hm <- hm %>%
+  dplyr::select(-all_of(c(Facs_lab, Gene_lab, Facs_wild, Genes_wild)))
 
-
-
-
-
-
-
-
+```
 
 
 
@@ -301,6 +324,20 @@ marginplot(hm[c(1,2)])
 # as:
 init <- mice(hm, maxit = 0)
 
+
+#we want to impute only the specific variables
+meth <- init$method
+
+#select all the colnames ending in std (the standardized ones)
+std <- colnames(hm %>% dplyr::select(ends_with("_std"))) 
+
+# set every variable that is not one of your variables of interest to ""
+#You can supply a vector to the method argument of mice::mice. This vector should contain the methods that you want to use to impute the variables you want to impute. In the example they first do a dry-run 
+meth[!(names(meth) %in% all_of(std))] <- ""
+
+# repeat the imputation only for the specific variables
+init <- mice(hm, maxit = 0, method = meth)
+
 # table of amount of variables with the amount of missing values 
 table(init$nmis)
 
@@ -308,10 +345,9 @@ table(init$nmis)
 # uses the default method for continuous variable, 
 # which is pmm, or predictive mean matching
 
-meth <- init$method
 
 
-# now impute the immune gene expression for the field and save it as the oject: 
+# now impute the data and save it as the oject: 
 # igf
 # m=5 refers to the number of imputed datasets. Five is the default value.
 igf <- mice(hm, method = meth, m = 5, seed = 500)
@@ -321,6 +357,69 @@ summary(igf)
 ## igf$imp$IFNy
 
 #Now we can get back the completed dataset using the complete()
-completeField <- complete(igf, 1)
+complete_hm <- complete(igf, 1)
 
+#visualize missingness
+vis_miss(complete_hm)
+
+```
+
+
+
+Predictive mean matching with \(d = 5\) is the default in mice() for continuous 
+data. The method is robust against misspecification of the imputation model, 
+yet performs as well as theoretically superior methods. In the context of missing 
+covariate data, Marshall, Altman, and Holder (2010) concluded that predictive 
+mean matching “produced the least biased estimates and better model performance 
+measures.” Another simulation study that addressed skewed data concluded that 
+predictive mean matching “may be the preferred approach provided that less than 
+50% of the cases have missing data and the missing data are not MNAR” 
+(Marshall et al. 2010). Kleinke (2017) found that the method works well across a 
+wide variety of scenarios, but warned the default cannot address severe 
+skewness or small samples.
+
+
+Let’s compare the distributions of original and imputed data using a some useful 
+plots.First of all we can use a scatterplot and plot Ozone against all the other 
+variables. Let's first plot the variables for which we have few missing values.
+
+
+
+```{r distr_orig_pred}
+
+xyplot(igf, IFNy_std ~ SOCS1_std + IRGM1_std + MUC2_std, pch=18,cex=1)
+
+
+```
+
+
+What we would like to see is that the shape of the magenta points (imputed) 
+matches the shape of the blue ones (observed). The matching shape tells us that 
+the imputed values are indeed “plausible values”.
+
+Now let's plot the variables with many missing data points.
+
+
+```{r distr_orig_pred2}
+
+xyplot(igf,IFNy_std ~ IL.10_std + PRF1_std + CASP1_std, pch=18,cex=1)
+```
+
+
+
+```{r densityplotfield}
+densityplot(igf)
+```
+
+The density of the imputed data for each imputed dataset is showed in magenta 
+while the density of the observed data is showed in blue. Again, under our 
+previous assumptions we expect the distributions to be similar.
+
+Another useful visual take on the distributions can be obtained using the 
+stripplot() function that shows the distributions of the variables as individual 
+points
+
+
+```{r strirrplot}
+stripplot(igf, pch = 20, cex = 1.2)
 ```
