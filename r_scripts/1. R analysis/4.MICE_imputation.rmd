@@ -138,7 +138,7 @@ Interface for looking at distributions
 
 ```{r warning=FALSE, message=FALSE}
 
-# fitur::fit_dist_addin()
+#fitur::fit_dist_addin()
 ```
 According to interface, I can visually identify a cauchy distribution.
 
@@ -213,41 +213,44 @@ https://stefvanbuuren.name/fimd/sec-toomany.html
 Transforming the features to have the properties of a standard normal distribu-
 tion with mean = 0 and standard deviation = 1
 
+I have tried the imputations with the standardized and non-standardized data 
+and I am getting the same results. Therefore I am ditching this "standardization".
+
 ```{r}
 
 # function to standardize data
-standardize <- function(x) {
-  return ((x - mean(x, na.rm = TRUE)) /
+#standardize <- function(x) {
+#  return ((x - mean(x, na.rm = TRUE)) /
             sd(x, na.rm = TRUE))
-}
+#}
 
 
-summary(x) # facs
-summary(y) # gene
+#summary(x) # facs
+#summary(y) # gene
 
 #testing the function
-x_stand <- standardize(x)
+#x_stand <- standardize(x)
 
 #fitur::fit_dist_addin()
 
-summary(x_stand)
+#summary(x_stand)
 
 # create a data frame with only the variables to standardize
-genes_facs_df <- hm %>% 
-  dplyr::select(all_of(c(Facs_lab, Gene_lab, Facs_wild, Genes_wild)))
+#genes_facs_df <- hm %>% 
+#  dplyr::select(all_of(c(Facs_lab, Gene_lab, Facs_wild, Genes_wild)))
 
 # apply the standardize function on all the numeric variables 
-std_data <- as.data.frame(lapply(genes_facs_df, standardize))
+#std_data <- as.data.frame(lapply(genes_facs_df, standardize))
 
-colnames(std_data) <- paste(colnames(std_data), "std", sep = "_")
+#colnames(std_data) <- paste(colnames(std_data), "std", sep = "_")
 
 # join the standardized data to our data set
-hm <- cbind(hm, std_data)
+#hm <- cbind(hm, std_data)
 
 #remove the non-standardized data
 
-hm <- hm %>%
-  dplyr::select(-all_of(c(Facs_lab, Gene_lab, Facs_wild, Genes_wild)))
+#hm <- hm %>%
+ # dplyr::select(-all_of(c(Facs_lab, Gene_lab, Facs_wild, Genes_wild)))
 
 ```
 
@@ -311,56 +314,114 @@ hm %>%
        ylab=c("Histogram of missing data","Pattern"))
        
        
-marginplot(hm[c(1,2)])
+marginplot(hm[c(35,38)])
 
 ```
 
 
 ## Now let's coninue by ussing the package MICE to impute the data
+# Lab
 
+I first used standardized data. Now, i added # to remove these steps.
 ```{r imputing_mice}
+
+# lab samples
+lab <- hm %>%
+  filter(origin == "Lab", infection == "challenge", dpi == dpi_max)
+
+gf_lab <- lab %>% 
+  dplyr::select(all_of(c(Facs_lab, Facs_wild, Gene_lab, Genes_wild)))
+
+#remove rows with only nas
+gf_lab <- gf_lab[,colSums(is.na(gf_lab))<nrow(gf_lab)]
+
+#remove colums with only nas 
+gf_lab[rowSums(is.na(gf_lab)) != ncol(gf_lab), ]
+
+#select same rows in the first table
+row.names(lab) <- row.names(gf_lab)
+
+#remove wrongly normalized genes
+lab <- lab %>%
+  dplyr::select(-ends_with("_N"))
+
+
+lab[rowSums(is.na(lab)) != ncol(lab), ]
+
+# really removing empty columns
+lab <- lab %>% 
+  discard(~all(is.na(.) | . ==""))
+
+
+# looking at patterns of nas
+pattern_na <-as.data.frame(md.pattern(lab))
+
+#select the relevant columns to use for the imputation
+lab <- lab %>%
+  dplyr::select(c(experiment, primary_infection, challenge_infection, 
+                  mouse_strain, weight, weight_dpi0, relative_weight, 
+                  oocyst_sq1, oocyst_sq2, oocyst_sq3, oocyst_sq4, OO4sq, OOC, 
+                  MC.Eimeria, delta_ct_cewe_MminusE, IFNy_CEWE, IFNy_MES, 
+                  all_of(c(Facs_lab, Facs_wild, Gene_lab, Genes_wild))))
+
 
 # The frequency distribution of the missing cases per variable can be obtained 
 # as:
-init <- mice(hm, maxit = 0)
+init <- mice(lab, maxit = 0)
 
 
 #we want to impute only the specific variables
 meth <- init$method
 
 #select all the colnames ending in std (the standardized ones)
-std <- colnames(hm %>% dplyr::select(ends_with("_std"))) 
+#std <- colnames(lab %>% dplyr::select(ends_with("_std"))) 
 
 # set every variable that is not one of your variables of interest to ""
 #You can supply a vector to the method argument of mice::mice. This vector should contain the methods that you want to use to impute the variables you want to impute. In the example they first do a dry-run 
-meth[!(names(meth) %in% all_of(std))] <- ""
+#meth[!(names(meth) %in% all_of(std))] <- ""
 
 # repeat the imputation only for the specific variables
-init <- mice(hm, maxit = 0, method = meth)
+#init <- mice(lab, maxit = 0, method = meth)
 
 # table of amount of variables with the amount of missing values 
-table(init$nmis)
+#table(init$nmis)
 
 # which method is used for imputation? In this case the package mice 
 # uses the default method for continuous variable, 
 # which is pmm, or predictive mean matching
 
-
-
 # now impute the data and save it as the oject: 
 # igf
+
+vis_miss(lab)
+
+#sapply(lab, function(x) sum(is.na(x)))
+
+# will have to remove treg_prop and ooc, as they cause problems with the further
+# imputation
+lab <- lab %>% 
+  dplyr::select(-c(OOC, IFNy_MES, Treg_prop))
+
+# which column numbers end in Std 
+#grep("_std", colnames(lab) )
+
+#imp <- mice(lab, print = FALSE)
+
+
 # m=5 refers to the number of imputed datasets. Five is the default value.
-igf <- mice(hm, method = meth, m = 5, seed = 500)
+igf <- mice(lab, m = 5, seed = 500) # method = meth,
 summary(igf)
 
 # to check each column with imputed data
 ## igf$imp$IFNy
 
 #Now we can get back the completed dataset using the complete()
-complete_hm <- complete(igf, 1)
+complete_lab <- complete(igf, 1)
 
 #visualize missingness
-vis_miss(complete_hm)
+vis_miss(complete_lab)
+
+#sapply(complete_lab, function(x) sum(is.na(x)))
 
 ```
 
@@ -387,7 +448,7 @@ variables. Let's first plot the variables for which we have few missing values.
 
 ```{r distr_orig_pred}
 
-xyplot(igf, IFNy_std ~ SOCS1_std + IRGM1_std + MUC2_std, pch=18,cex=1)
+xyplot(igf, IFNy ~ IL.13 + IRGM1 + MUC2, pch=18,cex=1)
 
 
 ```
@@ -402,7 +463,7 @@ Now let's plot the variables with many missing data points.
 
 ```{r distr_orig_pred2}
 
-xyplot(igf,IFNy_std ~ IL.10_std + PRF1_std + CASP1_std, pch=18,cex=1)
+xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
 ```
 
 
