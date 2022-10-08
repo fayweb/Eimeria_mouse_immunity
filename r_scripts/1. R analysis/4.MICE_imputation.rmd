@@ -56,7 +56,9 @@ Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
 
 ```
 
+
 # How do the variables look like? 
+
 1. cleaning 
 ```{r}
 
@@ -70,29 +72,51 @@ hm <- hm %>% mutate_if(is.integer, as.numeric)
 ```
 
 
-## Test different distributions
+## Test different distributions 
+
+After talking with Dan and some reading, I found out that many machine learning 
+models / packages require data following a normal distribution. I am hear trying 
+to standardize my data to a normal distribution. After testing the MICE package 
+on my standardized and on the raw data, I realized there was no difference in 
+my end results. 
+
+I would like to further question if normalization / scaling of the data is necessary. 
+
+I am here using the laboratory infections, as we have more measures and I am 
+randomly selecting a variable to represent the facs measures and another gene 
+for the gene expression data. In some papers it is mentioned that facs / genes 
+may each follow different distribution (adding to my confusion).
 
 ```{r}
+
+# I am here selecting CD4 to represent the facs datta
 facs_variable <- hm %>% 
   filter(origin == "Lab", dpi == max_dpi, infection == "challenge") %>% 
   dplyr::select(CD4) 
 
+# we don't want any nas as these will disrupt the distribution tests by different 
+# packages
 facs_variable <- facs_variable %>% drop_na()
 
-x <- facs_variable$CD4
+#here is our facs variabls
+a <- facs_variable$CD4
 
-# gene_variable 
+# gene_variable, another random gene (MYD88), chosen due to abundancy in measures
 gene_variable <- hm %>%
   filter(origin == "Lab", dpi == max_dpi, infection == "challenge") %>% 
   dplyr::select(MYD88)
 
+# Let's drop the nas again
 gene_variable <- gene_variable %>% 
   drop_na()
 
-y <- gene_variable$MYD88
+#s and hurray here is our gene variable
+b <- gene_variable$MYD88
 ```
 
 # Fucntions to test distributions
+
+I think I got these from Alice's package ParasiteLoad (Have to check again)
 
 ```{r}
 
@@ -128,33 +152,42 @@ findGoodDist <- function(x, distribs, distribs2){
 
 ```
 
+
 # For the facs data
+
+Testing our CD4s distributions
+
 ```{r}
 set.seed(333)
-descdist(data = x, discrete = FALSE, boot = 1000)
+descdist(data = a, discrete = FALSE, boot = 1000)
 
 ```
+
+So seeing this graph, I understand we could be having a beta distribution.. 
+But what happens next, shows something different. 
+
 Interface for looking at distributions
 
 ```{r warning=FALSE, message=FALSE}
 
 #fitur::fit_dist_addin()
 ```
+
 According to interface, I can visually identify a cauchy distribution.
 
 
 
 ```{r}
-tryDistrib(x, "normal") #yes
-tryDistrib(x, "binomial") #nope
-tryDistrib(x, "student") #nope
-tryDistrib(x, "weibull") #yes
-tryDistrib(x, "weibullshifted") #nope
-tryDistrib(x, "gamma") #nope
-tryDistrib(x, "cauchy") #yes
-tryDistrib(x, "exp") #nope
-tryDistrib(x, "log") #nope
-tryDistrib(x, "t")
+tryDistrib(a, "normal") #yes
+tryDistrib(a, "binomial") #nope
+tryDistrib(a, "student") #nope
+tryDistrib(a, "weibull") #yes
+tryDistrib(a, "weibullshifted") #nope
+tryDistrib(a, "gamma") #nope
+tryDistrib(a, "cauchy") #yes
+tryDistrib(a, "exp") #nope
+tryDistrib(a, "log") #nope
+tryDistrib(a, "t")
 
 ```
 
@@ -172,7 +205,7 @@ ggplot(gene_variable, aes(MYD88)) +
 
 
 set.seed(66)
-descdist(data = y, discrete = FALSE, boot = 1000)
+descdist(data = b, discrete = FALSE, boot = 1000)
 
 ```
 
@@ -189,26 +222,32 @@ Interface for looking at the distributions. #really cool
 
 
 ```{r}
-tryDistrib(y, "normal") #yes
-tryDistrib(y, "binomial") #nope
-tryDistrib(y, "student") #nope
-tryDistrib(y, "weibull") #yes
-tryDistrib(y, "weibullshifted") #nope
-tryDistrib(y, "gamma") #yes
-tryDistrib(y, "cauchy") #yes
-tryDistrib(y, "exp") #nope
-tryDistrib(y, "log") #nope
-tryDistrib(y, "t") #nope
+tryDistrib(b, "normal") #yes
+tryDistrib(b, "binomial") #nope
+tryDistrib(b, "student") #nope
+tryDistrib(b, "weibull") #yes
+tryDistrib(b, "weibullshifted") #nope
+tryDistrib(b, "gamma") #yes
+tryDistrib(b, "cauchy") #yes
+tryDistrib(b, "exp") #nope
+tryDistrib(b, "log") #nope
+tryDistrib(b, "t") #nope
 ```
 ```{r}
-findGoodDist(y, "normal",  "weibull")
-findGoodDist(y, "normal",  "cauchy")
+findGoodDist(b, "normal",  "weibull")
+findGoodDist(b, "normal",  "cauchy")
 ```
 Cauchy? 
 
-https://stefvanbuuren.name/fimd/sec-toomany.html
+
+For some reason I am seeing Cauchy distributions everywhere. Please help me. 
+
+
 
 # Standardization
+
+I am now ignoring this part as the standardization didn't have much of an impact 
+in my imputations.
 
 Transforming the features to have the properties of a standard normal distribu-
 tion with mean = 0 and standard deviation = 1
@@ -257,6 +296,13 @@ and I am getting the same results. Therefore I am ditching this "standardization
 
 
 ## Imputing missing data 
+
+
+Here is a beautiful graphic guide for my imputations. 
+https://stefvanbuuren.name/fimd/sec-toomany.html
+
+
+
 I will be using the package MICE (multivariate Imputation by chained 
 Equations) which only requires a data frame of missing observations.
 
@@ -285,6 +331,7 @@ https://datascienceplus.com/handling-missing-data-with-mice-package-a-simple-app
 
 
 ### Missing data can be classified into three categories:
+
 #### 1. Missing completely at random (MCAR)
   
 We can't probably predict that value from any other value in the data. 
@@ -323,6 +370,19 @@ marginplot(hm[c(35,38)])
 # Lab
 
 I first used standardized data. Now, i added # to remove these steps.
+
+*Now using raw data!*
+
+Stef Van Buuren advises of using up to 15 - 20 predictor variables. I have tried 
+using the whole data set, which created chaos. 
+
+I am now using everything possible to use, even the variables that I will use in 
+my further analysis. 
+
+- Further reading required here.
+
+
+I devided the data into lab and field again, as it is only adding to the con
 ```{r imputing_mice}
 
 # lab samples
@@ -357,7 +417,7 @@ lab <- lab %>%
 pattern_na <-as.data.frame(md.pattern(lab))
 
 #select the relevant columns to use for the imputation
-lab <- lab %>%
+lab_sel <- lab %>%
   dplyr::select(c(Mouse_ID, experiment, primary_infection, challenge_infection, 
                   mouse_strain, weight, weight_dpi0, relative_weight, 
                   oocyst_sq1, oocyst_sq2, oocyst_sq3, oocyst_sq4, OO4sq, OOC, 
@@ -367,7 +427,7 @@ lab <- lab %>%
 
 # The frequency distribution of the missing cases per variable can be obtained 
 # as:
-init <- mice(lab, maxit = 0)
+init <- mice(lab_sel, maxit = 0)
 
 
 #we want to impute only the specific variables
@@ -399,7 +459,7 @@ meth <- init$method
 
 # will have to remove treg_prop and ooc, as they cause problems with the further
 # imputation
-lab <- lab %>% 
+lab_sel <- lab_sel %>% 
   dplyr::select(-c(OOC, Treg_prop))
 
 # which column numbers end in Std 
@@ -409,7 +469,7 @@ lab <- lab %>%
 
 
 # m=5 refers to the number of imputed datasets. Five is the default value.
-igf <- mice(lab, m = 5, seed = 500) # method = meth,
+igf <- mice(lab_sel[, -1], m = 5, seed = 500) # method = meth,
 summary(igf)
 
 # to check each column with imputed data
@@ -428,6 +488,12 @@ imp_lab <- complete_lab %>%
                     "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
                     "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8",
                     "IL17A_CD4", all_of(Gene_lab))
+
+#add an ending to the imputed columns
+colnames(imp_lab) <- paste(colnames(imp_lab), "imp", sep = "_")
+
+#now join it to the full data set of the laboratory infections
+lab <- cbind(lab, imp_lab)
 
 ```
 
@@ -597,7 +663,7 @@ vis_miss(field)
 
 
 # m=5 refers to the number of imputed datasets. Five is the default value.
-igf <- mice(field, m = 5, seed = 500) # method = meth,
+igf <- mice(field[, -1], m = 5, seed = 500) # method = meth,
 summary(igf)
 
 # to check each column with imputed data
@@ -615,6 +681,15 @@ vis_miss(complete_field)
 # select the required columns
 imp_field <- complete_field %>%
   dplyr::select(all_of(c(Facs_wild, Genes_wild)))
+
+
+#add an ending to the imputed columns
+colnames(imp_field) <- paste(colnames(imp_field), "imp", sep = "_")
+
+#now join it to the full data set of the laboratory infections
+field <- cbind(field, imp_field)
+
+
 ```
 
 
@@ -647,6 +722,12 @@ xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
 
 
 
+```{r strirrplot}
+stripplot(igf, pch = 20, cex = 1.2)
+```
+
+
+
 ```{r densityplotfield}
 #densityplot(igf)
 ```
@@ -660,6 +741,19 @@ stripplot() function that shows the distributions of the variables as individual
 points
 
 
-```{r strirrplot}
-stripplot(igf, pch = 20, cex = 1.2)
+
+
+# Joining the two data frames for further analysis
+```{r}
+# now join the two data sets
+imputed_hm <- full_join(field, lab, 
+                  by = intersect(colnames(field), colnames(lab)))
+
+imputed_hm <- unique(imputed_hm)
+
+##save the imputed data 
+write.csv(imputed_hm, "output_data/imputed_MICE.csv", row.names = FALSE)
+
+
 ```
+
