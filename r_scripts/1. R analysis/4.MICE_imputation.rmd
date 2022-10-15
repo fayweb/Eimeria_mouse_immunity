@@ -383,7 +383,7 @@ my further analysis.
 
 
 I devided the data into lab and field again, as it is only adding to the con
-```{r imputing_mice}
+```{r }
 
 # lab samples
 lab <- hm %>%
@@ -518,7 +518,7 @@ variables. Let's first plot the variables for which we have few missing values.
 
 
 
-```{r distr_orig_pred}
+```{r }
 
 xyplot(igf, IFNy ~ IL.13 + IRGM1 + MUC2, pch=18,cex=1)
 
@@ -533,14 +533,14 @@ the imputed values are indeed “plausible values”.
 Now let's plot the variables with many missing data points.
 
 
-```{r distr_orig_pred2}
+```{r }
 
 xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
 ```
 
 
 
-```{r densityplotfield}
+```{r }
 densityplot(igf)
 ```
 
@@ -722,7 +722,7 @@ xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
 
 
 
-```{r strirrplot}
+```{r }
 stripplot(igf, pch = 20, cex = 1.2)
 ```
 

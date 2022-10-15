@@ -1,0 +1,62 @@
+---
+title: "5. PCA genes"
+author: "Fay"
+date: "2022-10-08"
+output:
+  pdf_document: 
+    fig_width: 12
+    fig_height: 8
+---
+
+# Load libraries
+
+```{r}
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+```
+
+
+# Load data
+```{r}
+hm <- read.csv("output_data/imputed_MICE.csv")
+```
+
+# vectors for selecting
+
+```{r}
+Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF") #"IL.12", "IRG6")
+
+#add a suffix to represent changes in data file
+Gene_lab <- paste(Gene_lab, "imp", sep = "_")
+
+Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF") #, "IL.12", "IRG6")
+
+Genes_wild <- paste(Genes_wild, "imp", sep = "_")
+
+Facs_lab <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
+                    "IL17A_CD4")  
+
+Facs_lab <- paste(Facs_lab, "imp", sep = "_")
+
+Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
+                     "Act_CD8", "IFNy_CD4", "IL17A_CD4", "IFNy_CD8")
+
+Facs_wild <- paste(Facs_wild, "imp", sep = "_")
+```
+
+# PCA on the lab genes
+```{r}
+lab_genes <- 
+# we can now run a normal pca on the complete data set
+res.pca <- PCA(comp$completeObs)
+```
+
