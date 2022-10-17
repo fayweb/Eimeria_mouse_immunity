@@ -1,0 +1,114 @@
+---
+title: "parasite_load_on_lab"
+author: "Fay"
+date: "2022-10-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+# Testing alice's Balard package
+
+HIs ranged from 0 to 1, HI of 0 indicating a pure Mmd and HI of 1 a pure Mmm (Baird et al., 2012; Macholán et al., 2007).
+
+```{r}
+#create a new variable for a hybrid index
+lab <- lab %>% 
+  mutate(HI = case_when(
+    hybrid_status == "F1 hybrid" ~ 0.5,
+    hybrid_status == "F0 M. m. domesticus" ~ 0,
+    hybrid_status == "F1 M. m. domesticus" ~ 0,
+    hybrid_status == "F1 M. m. musculus" ~ 1,
+    hybrid_status == "F0 M. m. musculus" ~ 1,
+    hybrid_status == "other" ~ 100,
+    TRUE ~ 100
+  ))
+
+#filter out the nmri mice
+lab <- lab %>%
+  filter(!HI == 100) %>% 
+  dplyr::mutate(max_WL = 100 - max_WL) 
+
+lab <- lab %>% 
+  mutate(hybrid_status = case_when(
+    HI == 0.5 ~ "F1_hybrid",
+    HI == 0 ~"M.m.domesticus",
+    HI == 1 ~ "M.m.musculus"
+  ))
+
+
+
+lab <- lab %>%
+  mutate(eimeria_infected = case_when(
+    MC.Eimeria == "TRUE" ~ "infected",
+    MC.Eimeria == "FALSE" ~ "uninfected"
+  ))
+
+
+lab$eimeria_infected <- as.factor(lab$eimeria_infected )
+
+
+require(devtools)
+devtools::install_github("alicebalard/parasiteLoad@v2.0", force = TRUE)
+
+
+library(parasiteLoad)
+
+
+parasiteLoad::getParamBounds("weibull", data = lab, response = "max_WL")
+
+speparam <- c(L1start = 7.158694975,
+                     L1LB = 0.000000001,
+                     L1UB = 26.554054054,
+                     L2start = 7.158694975,
+                     L2LB = 0.000000001,
+                     L2UB = 26.554054054,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 0.000000001, myshapeUB = 5)
+##All
+#fitWL_MC <- parasiteLoad::analyse(data = g2,
+                       # response = "max_WL",
+                       # model = "weibull",
+                       # group = "Eim_MC")
+
+##fitWL_MC
+
+
+#plot_WL_MC<- bananaPlot(mod = fitWL_MC$H3,
+       #      data = g2,
+     #        response = "max_WL",
+    #         group = "Eim_MC") +
+  #  scale_fill_manual(values = c("blue", "red")) +
+#  scale_color_manual(values = c("blue", "red")) +
+#  theme_bw()
+#plot_WL_MC
+
+
+
+
+HI_weight <- lm(max_WL ~ hybrid_status, data = lab)
+summary(HI_weight)
+HI_weight$coefficients
+
+ggplot(data = lab, aes(x = hybrid_status, y = max_WL, color = hybrid_status)) +
+  geom_boxplot()
+
+AIC(HI_weight)
+
+
+
+one.way <- aov(max_WL ~ hybrid_status, data = lab)
+
+summary(one.way)
+```
+The Df column displays the degrees of freedom for the independent variable (the number of levels in the variable minus 1), and the degrees of freedom for the residuals (the total number of observations minus one and minus the number of levels in the independent variables).
+The Sum Sq column displays the sum of squares (a.k.a. the total variation between the group means and the overall mean).
+The Mean Sq column is the mean of the sum of squares, calculated by dividing the sum of squares by the degrees of freedom for each parameter.
+The F-value column is the test statistic from the F test. This is the mean square of each independent variable divided by the mean square of the residuals. The larger the F value, the more likely it is that the variation caused by the independent variable is real and not due to chance.
+The Pr(>F) column is the p-value of the F-statistic. This shows how likely it is that the F-value calculated from the test would have occurred if the null hypothesis of no difference among group means were true.
+The p-value of the fertilizer variable is low (p < 0.001), so it appears that the type of fertilizer used has a real impact on the final crop yield.
