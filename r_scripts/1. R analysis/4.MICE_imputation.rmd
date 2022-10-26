@@ -586,6 +586,7 @@ gf_field <- gf_field[rowSums(is.na(gf_field)) != ncol(gf_field), ]
 field <- field[row.names(gf_field), ]
 
 
+
 #remove wrongly normalized genes
 field <- field %>%
   dplyr::select(-ends_with("_N"))
@@ -593,6 +594,10 @@ field <- field %>%
 # really removing empty columns
 field <- field %>% 
   discard(~all(is.na(.) | . ==""))
+
+
+# make a second data frame to keep this data frame at this point
+f1 <- field 
 
 
 # looking at patterns of nas
@@ -662,6 +667,10 @@ vis_miss(field)
 #imp <- mice(field, print = FALSE)
 
 
+```
+
+
+```{r}
 # m=5 refers to the number of imputed datasets. Five is the default value.
 igf <- mice(field[, -1], m = 5, seed = 500) # method = meth,
 summary(igf)
@@ -687,11 +696,9 @@ imp_field <- complete_field %>%
 colnames(imp_field) <- paste(colnames(imp_field), "imp", sep = "_")
 
 #now join it to the full data set of the laboratory infections
-field <- cbind(field, imp_field)
-
+field <- cbind(f1, imp_field)
 
 ```
-
 
 
 Let’s compare the distributions of original and imputed data using a some useful 
@@ -743,11 +750,14 @@ points
 
 
 
+
 # Joining the two data frames for further analysis
 ```{r}
-# now join the two data sets
-imputed_hm <- full_join(field, lab, 
-                  by = intersect(colnames(field), colnames(lab)))
+
+
+# ow join the two data sets
+imputed_hm <- full_join(f1, lab, 
+                  by = intersect(colnames(f1), colnames(lab)))
 
 imputed_hm <- unique(imputed_hm)
 
