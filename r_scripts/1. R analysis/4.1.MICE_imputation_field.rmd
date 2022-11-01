@@ -224,7 +224,7 @@ points
 
 # FACS
 
-```{r imputing_mice}
+```{r }
 
 gf_field <- field %>% 
   dplyr::select(all_of(c(Facs_wild)))
@@ -258,7 +258,7 @@ field_facs <- field_facs %>%
 ```{r}
 
 ##save the imputed data 
-write.csv(imputed_hm, "output_data/imputed_MICE.csv", row.names = FALSE)
+#write.csv(imputed_hm, "output_data/imputed_MICE.csv", row.names = FALSE)
 
 
 ```
