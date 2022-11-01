@@ -655,7 +655,7 @@ xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
 
 
 ```{r }
-densityplot(igf)
+#densityplot(igf)
 ```
 
 The density of the imputed data for each imputed dataset is showed in magenta 
