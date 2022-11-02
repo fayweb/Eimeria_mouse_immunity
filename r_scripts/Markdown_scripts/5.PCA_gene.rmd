@@ -10,9 +10,10 @@ output:
     df_print: paged
 ---
 
+Always change the knitting directory to the working directory!
 # Load libraries
 
-```{r}
+```{r message = FALSE, warnings = FALSE}
 library(tidyverse)
 library(dplyr)
 library(stringr)
@@ -28,9 +29,11 @@ library(pheatmap)
 
 
 # Load data
+
 ```{r}
-hm <- read.csv("output_data/imputed_MICE.csv")
+hm <- read.csv("output_data/imputed_mice.csv")
 ```
+
 
 # vectors for selecting
 
@@ -38,7 +41,7 @@ hm <- read.csv("output_data/imputed_MICE.csv")
 Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
                 "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
-                "TICAM1", "TNF") #"IL.12", "IRG6")
+                "TICAM1", "TNF") # "IL.12", "IRG6")
 
 #add a suffix to represent changes in data file
 Gene_lab_imp <- paste(Gene_lab, "imp", sep = "_")
@@ -46,7 +49,7 @@ Gene_lab_imp <- paste(Gene_lab, "imp", sep = "_")
 Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
                   "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                   "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
-                  "TICAM1", "TNF") #, "IL.12", "IRG6")
+                  "TICAM1", "TNF", "IL.12", "IRG6")
 
 Genes_wild_imp <- paste(Genes_wild, "imp", sep = "_")
 
@@ -72,11 +75,26 @@ lab <- hm %>%
 
 lab <- unique(lab)
 
-genes <- lab %>%
-  dplyr::select(Gene_lab_imp) %>%
+gene <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab_imp))) %>%
   rename_with(~str_remove(., '_imp'))
 
-genes <- unique(genes)
+genes <- unique(gene)
+
+genes <- genes[, -1]
+
+#remove rows with only nas
+genes <- genes[,colSums(is.na(genes))<nrow(genes)]
+
+#remove colums with only nas 
+genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
+
+vis_dat(genes)
+
+
+#select same rows in the first table
+gene <- gene[row.names(genes), ]
+
 
 # we can now run a normal pca on the complete data set
 res.pca <- PCA(genes)
@@ -110,18 +128,24 @@ str(res.pca)
 ```{r, echo = FALSE}
 
  #add an ending to the imputed columns
-colnames(genes) <- paste(colnames(genes), "imp", sep = "_")
+#colnames(gene) <- paste(colnames(gene[, 2:21]), "imp", sep = "_")
+
+mouse_id <- as.data.frame(gene$Mouse_ID)
+
+mouse_id <- mouse_id %>%
+  rename(Mouse_ID = "gene$Mouse_ID")
+
+mouse_id$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+
+mouse_id$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
 
 
-genes$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
-
-genes$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
 
 
-#join to the data frame to have the data together
-lab <- hm %>%
-  dplyr::filter(origin == "Lab", Position == "mLN") %>%
-  right_join(genes, by = intersect(colnames(genes), colnames(hm)))
+lab <- lab %>% 
+  left_join(mouse_id, by = "Mouse_ID")
+
+
 
 #We also need to extract the data for the variable contributions to each of the pc axes.
 pca.vars <- res.pca$var$coord %>% data.frame
@@ -301,18 +325,13 @@ AIC(weight_lm, weight_lm_exp_only)
 ```{r}
 lab <- unique(lab)
 
-gene <- lab %>%
-  dplyr::select(c(Mouse_ID, Gene_lab_imp)) %>%
-  rename_with(~str_remove(., '_imp'))
-
-gene <- unique(gene)
  
  # turn the data frame into a matrix and transpose it. We want to have each cell 
  # type as a row name 
- gene <- t(as.matrix(gene))
+ genes <- t(as.matrix(genes))
  
  # turn the first row into column names
- gene %>%
+ genes %>%
      row_to_names(row_number = 1) -> heatmap_data
  
  heatmap_data <- as.data.frame(heatmap_data)
@@ -340,8 +359,13 @@ annotation_df <- unique(annotation_df)
 
 annotation_df <- as.data.frame(annotation_df)
 
- ### Prepare the annotation columns for the heatmap
+#select same rows in the first table
+annotation_df <- annotation_df[row.names(genes), ]
+
+
+### Prepare the annotation columns for the heatmap
 rownames(annotation_df) <- annotation_df$Mouse_ID
+
 
 # Match the row names to the heatmap data frame
 rownames(annotation_df) <- colnames(heatmap_data)
