@@ -1,0 +1,231 @@
+---
+title: "2. Heatmaps of lab and field, facs data"
+author: "Fay"
+date: '2022-10-04'
+output:
+  pdf_document: 
+    fig_width: 12
+    fig_height: 8
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import data
+```{r}
+MICE <- read.csv("output_data/MICE.csv")
+```
+
+
+```{r load_libraries, echo=FALSE, include = FALSE}
+library(pheatmap)
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(janitor)
+library(visdat)
+```
+
+
+## Vectors for selecting genes
+```{r}
+## vectors for selecting columns
+facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", "Div_Th1", "Th17", 
+              "Div_Th17", "CD8", "Act_CD8", "Div_Act_CD8", "IFNy_CD4", 
+              "IFNy_CD8","Treg_prop", "IL17A_CD4") 
+
+facs_field <- c("CD4", "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
+                     "Act_CD8", "IFNy_CD4", "IL17A_CD4", "IFNy_CD8")
+```
+
+
+# Heatmap on lab FACS data
+## data cleaning
+
+
+```{r}
+
+### Select the measurements from the mesenterial lymphnodes
+### Prepare the annotation data frame for the heatmap
+annotation_df <- MICE %>% 
+  filter(origin == "Lab") %>% # filter the lab data 
+  filter(Position == "mLN") %>%
+  filter(infection == "challenge") %>%
+  drop_na("CD4") %>%
+  dplyr::select(c("Mouse_ID", "Parasite_challenge", "infection_history",
+                    "mouse_strain", "max_WL")) 
+  ### Drop the columns that contain nas in the column CD4 of 
+#the facs columns
+  
+### Data tidying for the heatmap function
+
+FACS <- MICE %>% 
+  dplyr::filter(origin == "Lab") %>% # filter the lab data 
+  filter(Position == "mLN") %>%
+  filter(infection == "challenge",  dpi == dpi_max) %>%
+  drop_na("CD4") %>%
+  dplyr::select(c(Mouse_ID, all_of(facs_lab)))
+
+
+# turn the data frame into a matrix and transpose it. We want to have each cell 
+# type as a row name 
+FACS <- t(as.matrix(FACS))
+
+#switch the matrix back to a data frame format
+FACS <- as.data.frame(FACS)
+
+# turn the first row into column names
+FACS %>%
+  row_to_names(row_number = 1) -> FACS
+
+# Now further prepare the data frame for plotting by removing the first row
+## and convert the column to row names with the cells 
+
+heatmap_data <- FACS
+
+# turn the columns to numeric other wise the heatmap function will not work
+heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+
+annotation_df <- unique(annotation_df) %>%
+    dplyr::filter(Mouse_ID %in% colnames(heatmap_data))
+
+### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$EH_ID
+
+# Match the row names to the heatmap data frame
+rownames(annotation_df) <- colnames(FACS)
+
+#remove the unecessary column
+annotation_df <- annotation_df %>% dplyr::select(-Mouse_ID, )
+
+
+heatmap_facs_LAB <- heatmap_data
+```
+
+
+## Heatmap lab facs: Plot
+
+```{r }
+heatmap_data %>% 
+  pheatmap(annotation_col = annotation_df, scale = "row")
+```
+
+# Field data
+
+
+## data cleaning
+
+
+```{r}
+
+### Select the measurements from the mesenterial lymphnodes
+### Prepare the annotation data frame for the heatmap
+annotation_df <- MICE %>% 
+  filter(origin == "Field") %>% # filter the lab data 
+  dplyr::select(c("Mouse_ID", "Sex", "HI", "delta_ct_cewe_MminusE")) %>%
+  drop_na()
+  
+ ### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$Mouse_ID
+
+
+  
+### Data tidying for the heatmap function
+
+FACS <- MICE %>% 
+  dplyr::filter(origin == "Field") %>% # filter the lab data 
+  dplyr::select(c(Mouse_ID, all_of(facs_field)))
+
+
+# turn the data frame into a matrix and transpose it. We want to have each cell 
+# type as a row name 
+FACS <- t(as.matrix(FACS))
+
+#switch the matrix back to a data frame format
+FACS <- as.data.frame(FACS)
+
+# turn the first row into column names
+FACS %>%
+  row_to_names(row_number = 1) -> FACS
+
+
+# Now further prepare the data frame for plotting by removing the first row
+## and convert the column to row names with the cells 
+FACS -> heatmap_data
+
+# turn the columns to numeric other wise the heatmap function will not work
+heatmap_data[] <- lapply(heatmap_data, function(x) as.numeric(as.character(x)))
+
+ 
+ # remove columns with only NAs 
+ heatmap_data <- Filter(function(x)!all(is.na(x)), heatmap_data) 
+ 
+ #remove rows with only Nas
+ heatmap_data <-  heatmap_data[, colSums(is.na(heatmap_data)) != 
+                                 nrow(heatmap_data)]
+
+annotation_df <- unique(annotation_df) %>%
+    dplyr::filter(Mouse_ID %in% colnames(heatmap_data))
+
+
+#select the row names from the annotation df
+heatmap_data <- heatmap_data %>%
+  dplyr::select(row.names(annotation_df))
+
+# Match the row names to the heatmap data frame
+rownames(annotation_df) <- colnames(heatmap_data)
+
+
+annotation_df <- annotation_df %>%
+  dplyr::select(-Mouse_ID)
+
+heatmap_facs_FIELD <- heatmap_data
+```
+
+## Heatmap field facs: Plot
+
+```{r heatmap_facs}
+heatmap_data %>% 
+  pheatmap(annotation_col = annotation_df, scale = "row")
+```
+# Lab + Field Heatmap combination
+
+```{r}
+# select the same cells for both
+names_rows_field <- row.names(heatmap_facs_FIELD)
+
+heatmap_facs_LAB <- heatmap_facs_LAB[row.names(heatmap_facs_FIELD), ]
+
+heatmap_lab_field <- cbind(heatmap_facs_LAB, heatmap_facs_FIELD)
+
+
+#Prepare the annotation data frame
+annotation_df <- MICE %>%
+    dplyr::select(origin, Mouse_ID)  
+
+annotation_df <- unique(annotation_df) %>%
+    dplyr::filter(Mouse_ID %in% colnames(heatmap_lab_field))
+
+### Prepare the annotation columns for the heatmap
+rownames(annotation_df) <- annotation_df$Mouse_ID
+
+annotation_df <- unique(annotation_df) 
+
+annotation_df <- as.data.frame(annotation_df)
+
+
+
+# Match the row names to the heatmap data frame
+rownames(annotation_df) <- colnames(heatmap_lab_field)
+
+#remove the unecessary column
+annotation_df <- annotation_df %>% dplyr::select(-Mouse_ID, )
+
+```
+## Lab - Field data heatmap - plot
+
+
+```{r}
+pheatmap(heatmap_lab_field, annotation_col = annotation_df, scale = "row")
+```
