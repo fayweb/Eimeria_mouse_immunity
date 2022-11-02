@@ -259,7 +259,7 @@ vis_dat(gf_field)
 lab <- read.csv("output_data/Lab_imputed.csv")
 
 # join the genes and facs data
-c <- lab %>%
+imputed_mice <- lab %>%
   full_join(field, by = intersect(colnames(lab), colnames(field)))
 
  ##save the imputed data 
