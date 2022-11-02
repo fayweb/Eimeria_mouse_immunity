@@ -263,7 +263,7 @@ imputed_mice <- lab %>%
   full_join(field, by = intersect(colnames(lab), colnames(field)))
 
  ##save the imputed data 
-write.csv(field_genes, "output_data/imputed_mice.csv", row.names = FALSE)
+write.csv(imputed_mice, "output_data/imputed_mice.csv", row.names = FALSE)
 
 
 ```
