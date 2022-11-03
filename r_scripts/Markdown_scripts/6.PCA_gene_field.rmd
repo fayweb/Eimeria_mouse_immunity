@@ -29,7 +29,7 @@ library(pheatmap)
 
 # Load data
 ```{r}
-hm <- read.csv("output_data/imputed_MICE.csv")
+hm <- read.csv("output_data/imputed_mice.csv")
 ```
 
 # vectors for selecting
@@ -78,11 +78,13 @@ field <- unique(field)
 field <- field %>%
   dplyr::mutate(MC.Eimeria = as.factor(MC.Eimeria))
 
-genes <- field %>%
-  dplyr::select(all_of(Genes_wild_imp)) %>%
+genes_mouse <- field %>%
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild_imp))) 
+
+genes <- genes_mouse %>%
+  dplyr::select(-Mouse_ID) %>%
   rename_with(~str_remove(., '_imp'))
 
-genes <- unique(genes)
 
 # we can now run a normal pca on the complete data set
 res.pca <- PCA(genes)
@@ -115,19 +117,19 @@ str(res.pca)
 
 ```{r, echo = FALSE}
 
- #add an ending to the imputed columns
-colnames(genes) <- paste(colnames(genes), "imp", sep = "_")
+# make a data frame with the mouse names
+Mouse_ID <- as.data.frame(genes_mouse$Mouse_ID) %>%
+  dplyr::rename(Mouse_ID = "genes_mouse$Mouse_ID")
 
 
-genes$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+Mouse_ID$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 
-genes$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+Mouse_ID$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
 
 
 #join to the data frame to have the data together
-field <- hm %>%
-  dplyr::filter(origin == "Field") %>%
-  right_join(genes, by = intersect(colnames(genes), colnames(hm)))
+field <- field %>%
+  right_join(Mouse_ID, by = "Mouse_ID")
 
 #We also need to extract the data for the variable contributions to each of the pc axes.
 pca.vars <- res.pca$var$coord %>% data.frame
@@ -220,20 +222,15 @@ fviz_pca_biplot(res.pca,
 
 ### repeating the heatmap on the now imputed data
 ```{r}
-field <- unique(field)
-
-gene <- field %>%
-  dplyr::select(c(Mouse_ID, all_of(Genes_wild_imp))) %>%
+genes_mouse <- genes_mouse %>%
   rename_with(~str_remove(., '_imp'))
-
-gene <- unique(gene)
  
  # turn the data frame into a matrix and transpose it. We want to have each cell 
  # type as a row name 
- gene <- t(as.matrix(gene))
+ genes_mouse <- t(as.matrix(genes_mouse))
  
  # turn the first row into column names
- gene %>%
+ genes_mouse %>%
      row_to_names(row_number = 1) -> heatmap_data
  
  heatmap_data <- as.data.frame(heatmap_data)
