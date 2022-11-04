@@ -1,0 +1,594 @@
+---
+title: "10. Applying random forest on field data - gene"
+author: "Fay"
+date: '2022-11-04'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Aim: 
+
+- Applying the models established in the script: 
+9
+- How are hybrid mice different to the parental species?
+
+#  Load necessary libraries:
+
+```{r libraries, message = FALSE, warnings = FALSE}
+#install.packages("optimx", version = "2021-10.12") # this package is required for 
+#the parasite load package to work
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(cowplot)
+library(randomForest)
+library(ggplot2)
+library(VIM) # visualizing missing data
+library(mice) # imputing missing data without predictors
+library(ggpubr)
+library(optimx)
+library(rfUtilities) # Implements a permutation test cross-validation for 
+# Random Forests models
+library(mice) #imputations
+library(fitdistrplus) #testing distributions
+library(logspline)
+library(caret)
+```
+
+# Field data
+
+## Import field data
+
+
+```{r}
+hm <- read.csv("output_data/imputed_mice.csv")
+
+```
+
+
+## Clean data 
+
+```{r summary_stats_field}
+Field <- hm %>%
+  filter(origin == "Field") %>%
+    drop_na(HI)
+```
+
+We have 1921 mice in total.
+
+
+#### Prepare vectors for selecting
+
+```{r genes}
+EqPCR.cols      <- c("delta_ct_cewe_MminusE", "MC.Eimeria", "Ct.Eimeria") #,"Ct.Mus""delta_ct_ilwe_MminusE", )
+
+Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF") #, "IL.12", "IRG6")
+
+Genes_wild_imp <- paste(Genes_wild, "imp", sep = "_")
+```
+
+
+### Actual Cleaning
+
+```{r}
+
+#remove the unimputed columns
+Field <- unique(Field) %>%
+  dplyr::select(-all_of(Genes_wild)) %>%
+  rename_with(~str_remove(., '_imp'))
+
+#select the imputed gene columns
+gene <-  Field %>%
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild)))
+
+genes <- gene %>%
+  dplyr::select(-Mouse_ID)
+
+#remove rows with only nas
+genes <- genes[,colSums(is.na(genes))<nrow(genes)]
+
+#remove colums with only nas 
+genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
+
+# select the same rows from the gene data
+gene <- gene[row.names(genes),]
+
+# select the same rows from the field data
+Field <- Field[row.names(genes),]
+
+```
+
+
+
+# Predicting weight loss in our imputed field data
+
+Start by making the predictions for the field data. 
+
+
+```{r predicting_field }
+
+
+# load predicting weight loss model
+weight_loss_predict <- load("r_scripts/models/toa_predict_weight_loss.RData")
+
+set.seed(540)
+
+
+#The predict() function in R is used to predict the values based on the input data.
+predictions_field <- predict(weight_loss_predict, genes)
+
+# assign test.data to a new object, so that we can make changes
+result_field <- genes
+
+#add the new variable of predictions to the result object
+result_field <- cbind(result_field, predictions_field)
+
+# add it to the field data 
+Field <- cbind(Field, predictions_field)
+```
+
+
+# It is time to apply the package of Alice Balard et al. on our predictions!
+
+
+Let's see if we indeed have differences across the hybrid index with our predicted 
+weight loss. 
+
+## Install the package
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+require(devtools)
+
+devtools::install_github("alicebalard/parasiteLoad@v2.0", force = TRUE)
+
+#force = TRUE)
+
+library(parasiteLoad)
+```
+
+## Data diagnostics
+
+### Visualizations 
+
+#### What is the distribution of the predicted weight loss?
+
+
+```{r}
+
+Field %>% ggplot(aes(x = predictions_field)) +
+  geom_histogram(binwidth = 1.5)
+
+```
+
+
+#### Rough graph of our predictions against the hybrid index and against the 
+#### body length
+
+
+
+```{r}
+Field %>%
+    ggplot(aes(x = HI , y = predictions_field , color = Sex)) +
+    geom_smooth() +
+    geom_point()
+
+
+Field %>%
+    ggplot(aes(x = Body_Length , y = predictions_field , color = Sex)) +
+    geom_smooth() +
+    geom_point()
+```
+
+
+
+
+### Fitting distributions??
+
+Ratios / Percentages are not normally distributed. Weibull is a good distributions. 
+
+Alice used weibull for the qpcr data. (paper) 
+
+```{r}
+Field <- Field %>%
+dplyr::mutate(WL = predictions_field)
+
+x <- Field$WL
+
+descdist(data = x, discrete = FALSE)
+descdist(data = x, discrete = FALSE, #data is continuous
+         boot = 1000)
+
+
+```
+
+### Test for binomial distribution
+
+```{r}
+set.seed(10)
+n = 25
+size = 27
+prob = .4
+data = rbinom(x, size = size, prob = prob)
+fit = fitdist(data = data, dist="binom", 
+                   fix.arg=list(size = size), 
+                   start=list(prob = 0.1))
+
+summary(fit)
+
+
+plot(fit)
+```
+
+
+#### Functions for testing distributions
+```{r}
+normal_ <- fitdist(x, "norm")
+weibull_ <- fitdist(x, "weibull")
+gamma_ <- fitdist(x, "gamma")
+
+
+# Define function to be used to test, get the log lik and aic
+tryDistrib <- function(x, distrib){
+  # deals with fitdistr error:
+  fit <- tryCatch(MASS::fitdistr(x, distrib), error=function(err) "fit failed")
+  return(list(fit = fit,
+              loglik = tryCatch(fit$loglik, error=function(err) "no loglik computed"), 
+              AIC = tryCatch(fit$aic, error=function(err) "no aic computed")))
+}
+
+
+
+findGoodDist <- function(x, distribs, distribs2){
+  l =lapply(distribs, function(i) tryDistrib(x, i))
+  names(l) <- distribs
+  print(l)
+  listDistr <- lapply(distribs2, function(i){
+    if (i %in% "t"){
+      fitdistrplus::fitdist(x, i, start = list(df =2))
+    } else {
+      fitdistrplus::fitdist(x,i)
+    }}
+  ) 
+  par(mfrow=c(2,2))
+  denscomp(listDistr, legendtext=distribs2)
+  cdfcomp(listDistr, legendtext=distribs2)
+  qqcomp(listDistr, legendtext=distribs2)
+  ppcomp(listDistr, legendtext=distribs2)
+  par(mfrow=c(1,1))
+}
+```
+
+
+```{r}
+tryDistrib(x, "normal")
+tryDistrib(x, "binomial")
+tryDistrib(x, "student")
+tryDistrib(x, "weibull")
+tryDistrib(x, "weibullshifted")
+
+```
+
+```{r}
+findGoodDist(x, "normal", "weibull")
+```
+
+```{r normal}
+plot(normal_)
+summary(normal_)
+plot(gamma_)
+summary(gamma_)
+plot(weibull_)
+summary(weibull_)
+```
+
+
+We have a weibull distribution!
+
+
+
+### Is alpha significant for each hypothesis?
+
+
+
+```{r}
+Field$Sex <- as.factor(Field$Sex)
+
+
+
+parasiteLoad::getParamBounds("weibull", data = Field, response = "WL")
+
+
+speparam <- c(L1start = 10,
+                     L1LB = 1e-9,
+                     L1UB = 20,
+                     L2start = 10,
+                     L2LB = 1e-9,
+                     L2UB = 20,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
+
+##All
+fitWL_Sex <- parasiteLoad::analyse(data = Field,
+                        response = "WL",
+                        model = "weibull",
+                        group = "Sex")
+
+fitWL_Sex
+
+plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
+             data = Field,
+             response = "WL",
+             group = "Sex") +
+    scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_bw()
+
+plot_WL_Sex
+
+```
+
+<p style="color:blue">
+H0: the expected load for the subspecies and between 2 groups is the same
+
+H1: the mean load across 2 groups is the same, but can differ across subspecies
+
+H2: the mean load across subspecies is the same, but can differ between the 
+2 groups
+
+H3: the mean load can differ both across subspecies and between 2 groups
+
+## Summary stats for the field 
+
+Can we test the hybrid index, WL and the infection ? 
+
+```{r}
+Field %>%
+  dplyr::group_by(MC.Eimeria) %>%
+  dplyr::summarise(length(Mouse_ID))
+    
+```
+
+
+```{r}
+Field %>%
+    dplyr::group_by(eimeriaSpecies) %>%
+    dplyr::summarize(length(Mouse_ID))
+```
+
+## Reproducing for melting curve
+
+
+```{r}
+
+Field_mc <- Field %>% 
+    drop_na("MC.Eimeria")
+
+parasiteLoad::getParamBounds("weibull", data = Field_mc, response = "WL")
+
+
+speparam <- c(L1start = 10,
+                     L1LB = 1e-9,
+                     L1UB = 20,
+                     L2start = 10,
+                     L2LB = 1e-9,
+                     L2UB = 20,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
+
+
+Field_mc <- Field_mc %>%
+    dplyr::mutate(Eimeria = case_when(
+        MC.Eimeria == "TRUE" ~ "positive",
+        MC.Eimeria == "FALSE" ~ "negative",
+        TRUE ~ ""
+    ))
+
+Field_mc$Eimeria <- as.factor(Field_mc$Eimeria)
+
+
+##All
+fitWL_Eimeria <- parasiteLoad::analyse(data = Field_mc,
+                        response = "WL",
+                        model = "weibull",
+                        group = "Eimeria")
+fitWL_Eimeria
+
+plot_WL_Eimeria <- bananaPlot(mod = fitWL_Eimeria$H0,
+             data = Field_mc,
+             response = "WL",
+             group = "Eimeria") +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_bw()
+
+plot_WL_Eimeria
+
+```
+
+
+
+## Applying the classification model on the field data
+
+
+### Predicting melting curve
+```{r }
+#
+# load model
+#load("r_scripts/models/predicting_mc.RData")
+
+#The predict() function in R is used to predict the values based on the input 
+# data.
+#predictions_mc_field <- predict(model_mc, completeField)
+
+
+# assign test.data to a new object, so that we can make changes
+#result_field_mc <- completeField
+
+#add the new variable of predictions to the result object
+#result_field_mc <- cbind(result_field_mc, predictions_mc_field)
+
+# add it to the field data 
+#Field <- cbind(Field, result_field_mc)
+
+
+
+#levels(Field$predictions_mc_field) <- c("TRUE", "FALSE")
+
+
+#turn the variable of melting curve into a factor so that you can compare to 
+# the predictions
+#Field$predictions_mc_field <- 
+ # as.factor(as.character(Field$predictions_mc_field))
+
+#Field$MC.Eimeria <- 
+ # as.factor(as.character(Field$MC.Eimeria))
+
+```
+
+
+
+
+### Confusion matrix
+
+```{r include = FALSE }
+
+
+# model
+#Field$predictions_mc_field <- 
+ # gsub("uninfected", FALSE, Field$eimeriaSpecies)
+
+
+
+
+#conf_matrix_mc <- 
+#  confusionMatrix(Field_mc$predictions_mc_field, 
+ #                 reference = Field_mc$MC.Eimeria)
+
+#print(conf_matrix_mc)
+
+#conf_matrix_mc$table
+
+#plt <- as.data.frame(conf_matrix_mc$table)
+
+#plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+#ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+ #       geom_tile() + geom_text(aes(label=Freq)) +
+  #      scale_fill_gradient(low="white", high="forestgreen") +
+   #     labs(x = "Predictions",y = "Reference") 
+```
+
+## Test the other model for parasite species
+## Making predictions
+
+
+```{r }
+load("r_scripts/models/predict_infecting_parasite.RData")
+
+#The predict() function in R is used to predict the values based on 
+# the input data.
+predictions_parasite_field <- predict(model_Parasite, completeField)
+
+# edit the infecting parasite names to correspond the parasite names in the 
+# model
+Field$eimeriaSpecies <- 
+  gsub("Negative", "uninfected", Field$eimeriaSpecies)
+
+
+Field$eimeriaSpecies <- as.factor(Field$eimeriaSpecies)
+
+#add the new variable of predictions to the result object
+Field_Eim <- cbind(Field, predictions_parasite_field)
+
+# drop the rows with nas in the parasite 
+Field_Eim <- Field_Eim %>% 
+  drop_na(eimeriaSpecies)
+
+
+```
+
+
+
+
+## Visualizations
+
+
+
+```{r }
+
+conf_matrix_parasite <- 
+  confusionMatrix(Field_Eim$predictions_parasite_field, 
+                  reference = Field_Eim$eimeriaSpecies)
+
+print(conf_matrix_parasite)
+
+conf_matrix_parasite$table
+
+plt <- as.data.frame(conf_matrix_parasite$table)
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+
+ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="forestgreen") +
+        labs(x = "Predictions",y = "Reference") 
+
+```
+# Re-testing infection intensities across the hybrid zone
+
+```{r}
+Field_delta <- Field %>% 
+    drop_na("delta_ct_cewe_MminusE")
+
+x <- Field_delta$delta_ct_cewe_MminusE
+
+tryDistrib(x, "normal")
+tryDistrib(x, "binomial")
+tryDistrib(x, "student")
+tryDistrib(x, "weibull")
+tryDistrib(x, "weibullshifted")
+
+```
+We have a normal distribution.
+
+
+```{r}
+
+parasiteLoad::getParamBounds("normal", data = Field_delta, 
+                             response = "delta_ct_cewe_MminusE")
+
+
+speparam <- c(L1start = -9,
+                     L1LB = -14,
+                     L1UB = 4,
+                     L2start = -9,
+                     L2LB = -14,
+                     L2UB = 4,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 10)
+
+
+##All
+fit_delta <- parasiteLoad::analyse(data = Field_delta,
+                        response = "delta_ct_cewe_MminusE",
+                        model = "normal",
+                        group = "Sex")
+fit_delta
+
+plot_delta <- bananaPlot(mod = fit_delta$H0,
+             data = Field_delta,
+             response = "delta_ct_cewe_MminusE",
+             islog10 = FALSE, group = "Sex") +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_bw() 
+
+
+
+plot_delta
+
+```
