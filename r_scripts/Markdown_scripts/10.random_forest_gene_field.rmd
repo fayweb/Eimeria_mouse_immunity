@@ -115,7 +115,7 @@ Start by making the predictions for the field data.
 
 
 # load predicting weight loss model
-weight_loss_predict <- load("r_scripts/models/toa_predict_weight_loss.RData")
+weight_loss_predict <- readRDS("r_scripts/models/predict_WL.rds")
 
 set.seed(540)
 
@@ -299,6 +299,9 @@ We have a weibull distribution!
 ```{r}
 Field$Sex <- as.factor(Field$Sex)
 
+Field <- Field %>% 
+  mutate(WL = 100 - WL)
+
 
 
 parasiteLoad::getParamBounds("weibull", data = Field, response = "WL")
@@ -332,7 +335,33 @@ plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
 plot_WL_Sex
 
 ```
-
+[1] "Testing H1 no alpha vs alpha"
+   dLL dDF   pvalue
+1 1.23   1 0.116121
+[1] "Testing H2 groupA no alpha vs alpha"
+  dLL dDF    pvalue
+1 0.2   1 0.5246522
+[1] "Testing H2 groupB no alpha vs alpha"
+   dLL dDF    pvalue
+1 1.34   1 0.1011852
+[1] "Testing H3 groupA no alpha vs alpha"
+   dLL dDF    pvalue
+1 0.75   1 0.2210683
+[1] "Testing H3 groupB no alpha vs alpha"
+   dLL dDF     pvalue
+1 1.56   1 0.07695409
+[1] "Testing H1 vs H0"
+  dLL dDF    pvalue
+1 0.1   1 0.6624668
+[1] "Testing H2 vs H0"
+   dLL dDF    pvalue
+1 1.38   3 0.4306275
+[1] "Testing H3 vs H1"
+   dLL dDF    pvalue
+1 3.72   4 0.1140242
+[1] "Testing H3 vs H2"
+   dLL dDF     pvalue
+1 2.44   2 0.08709369
 <p style="color:blue">
 H0: the expected load for the subspecies and between 2 groups is the same
 
@@ -343,33 +372,17 @@ H2: the mean load across subspecies is the same, but can differ between the
 
 H3: the mean load can differ both across subspecies and between 2 groups
 
-## Summary stats for the field 
-
-Can we test the hybrid index, WL and the infection ? 
-
-```{r}
-Field %>%
-  dplyr::group_by(MC.Eimeria) %>%
-  dplyr::summarise(length(Mouse_ID))
-    
-```
 
 
 ```{r}
-Field %>%
-    dplyr::group_by(eimeriaSpecies) %>%
-    dplyr::summarize(length(Mouse_ID))
-```
+Field$Sex <- as.factor(Field$Sex)
 
-## Reproducing for melting curve
+Field1 <- Field %>%
+  drop_na(MC.Eimeria)
+Field$MC.Eimeria
 
 
-```{r}
-
-Field_mc <- Field %>% 
-    drop_na("MC.Eimeria")
-
-parasiteLoad::getParamBounds("weibull", data = Field_mc, response = "WL")
+parasiteLoad::getParamBounds("weibull", data = Field, response = "WL")
 
 
 speparam <- c(L1start = 10,
@@ -381,214 +394,20 @@ speparam <- c(L1start = 10,
                      alphaStart = 0, alphaLB = -5, alphaUB = 5,
                      myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
 
-
-Field_mc <- Field_mc %>%
-    dplyr::mutate(Eimeria = case_when(
-        MC.Eimeria == "TRUE" ~ "positive",
-        MC.Eimeria == "FALSE" ~ "negative",
-        TRUE ~ ""
-    ))
-
-Field_mc$Eimeria <- as.factor(Field_mc$Eimeria)
-
-
 ##All
-fitWL_Eimeria <- parasiteLoad::analyse(data = Field_mc,
+fitWL_Sex <- parasiteLoad::analyse(data = Field,
                         response = "WL",
                         model = "weibull",
-                        group = "Eimeria")
-fitWL_Eimeria
+                        group = "Sex")
 
-plot_WL_Eimeria <- bananaPlot(mod = fitWL_Eimeria$H0,
-             data = Field_mc,
+fitWL_Sex
+
+plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
+             data = Field,
              response = "WL",
-             group = "Eimeria") +
-  scale_fill_manual(values = c("blue", "red")) +
+             group = "Sex") +
+    scale_fill_manual(values = c("blue", "red")) +
   scale_color_manual(values = c("blue", "red")) +
   theme_bw()
 
-plot_WL_Eimeria
-
-```
-
-
-
-## Applying the classification model on the field data
-
-
-### Predicting melting curve
-```{r }
-#
-# load model
-#load("r_scripts/models/predicting_mc.RData")
-
-#The predict() function in R is used to predict the values based on the input 
-# data.
-#predictions_mc_field <- predict(model_mc, completeField)
-
-
-# assign test.data to a new object, so that we can make changes
-#result_field_mc <- completeField
-
-#add the new variable of predictions to the result object
-#result_field_mc <- cbind(result_field_mc, predictions_mc_field)
-
-# add it to the field data 
-#Field <- cbind(Field, result_field_mc)
-
-
-
-#levels(Field$predictions_mc_field) <- c("TRUE", "FALSE")
-
-
-#turn the variable of melting curve into a factor so that you can compare to 
-# the predictions
-#Field$predictions_mc_field <- 
- # as.factor(as.character(Field$predictions_mc_field))
-
-#Field$MC.Eimeria <- 
- # as.factor(as.character(Field$MC.Eimeria))
-
-```
-
-
-
-
-### Confusion matrix
-
-```{r include = FALSE }
-
-
-# model
-#Field$predictions_mc_field <- 
- # gsub("uninfected", FALSE, Field$eimeriaSpecies)
-
-
-
-
-#conf_matrix_mc <- 
-#  confusionMatrix(Field_mc$predictions_mc_field, 
- #                 reference = Field_mc$MC.Eimeria)
-
-#print(conf_matrix_mc)
-
-#conf_matrix_mc$table
-
-#plt <- as.data.frame(conf_matrix_mc$table)
-
-#plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
-#ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
- #       geom_tile() + geom_text(aes(label=Freq)) +
-  #      scale_fill_gradient(low="white", high="forestgreen") +
-   #     labs(x = "Predictions",y = "Reference") 
-```
-
-## Test the other model for parasite species
-## Making predictions
-
-
-```{r }
-load("r_scripts/models/predict_infecting_parasite.RData")
-
-#The predict() function in R is used to predict the values based on 
-# the input data.
-predictions_parasite_field <- predict(model_Parasite, completeField)
-
-# edit the infecting parasite names to correspond the parasite names in the 
-# model
-Field$eimeriaSpecies <- 
-  gsub("Negative", "uninfected", Field$eimeriaSpecies)
-
-
-Field$eimeriaSpecies <- as.factor(Field$eimeriaSpecies)
-
-#add the new variable of predictions to the result object
-Field_Eim <- cbind(Field, predictions_parasite_field)
-
-# drop the rows with nas in the parasite 
-Field_Eim <- Field_Eim %>% 
-  drop_na(eimeriaSpecies)
-
-
-```
-
-
-
-
-## Visualizations
-
-
-
-```{r }
-
-conf_matrix_parasite <- 
-  confusionMatrix(Field_Eim$predictions_parasite_field, 
-                  reference = Field_Eim$eimeriaSpecies)
-
-print(conf_matrix_parasite)
-
-conf_matrix_parasite$table
-
-plt <- as.data.frame(conf_matrix_parasite$table)
-plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
-
-ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
-        geom_tile() + geom_text(aes(label=Freq)) +
-        scale_fill_gradient(low="white", high="forestgreen") +
-        labs(x = "Predictions",y = "Reference") 
-
-```
-# Re-testing infection intensities across the hybrid zone
-
-```{r}
-Field_delta <- Field %>% 
-    drop_na("delta_ct_cewe_MminusE")
-
-x <- Field_delta$delta_ct_cewe_MminusE
-
-tryDistrib(x, "normal")
-tryDistrib(x, "binomial")
-tryDistrib(x, "student")
-tryDistrib(x, "weibull")
-tryDistrib(x, "weibullshifted")
-
-```
-We have a normal distribution.
-
-
-```{r}
-
-parasiteLoad::getParamBounds("normal", data = Field_delta, 
-                             response = "delta_ct_cewe_MminusE")
-
-
-speparam <- c(L1start = -9,
-                     L1LB = -14,
-                     L1UB = 4,
-                     L2start = -9,
-                     L2LB = -14,
-                     L2UB = 4,
-                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
-                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 10)
-
-
-##All
-fit_delta <- parasiteLoad::analyse(data = Field_delta,
-                        response = "delta_ct_cewe_MminusE",
-                        model = "normal",
-                        group = "Sex")
-fit_delta
-
-plot_delta <- bananaPlot(mod = fit_delta$H0,
-             data = Field_delta,
-             response = "delta_ct_cewe_MminusE",
-             islog10 = FALSE, group = "Sex") +
-  scale_fill_manual(values = c("blue", "red")) +
-  scale_color_manual(values = c("blue", "red")) +
-  theme_bw() 
-
-
-
-plot_delta
-
-```
+plot_WL_Sex

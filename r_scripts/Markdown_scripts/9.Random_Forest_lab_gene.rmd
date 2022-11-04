@@ -375,6 +375,7 @@ weight_loss_predict <- randomForest(max_WL ~., data = gene,
 # ntree = number of trees     
 # save the model 
 # toa = trained on all
-save(weight_loss_predict, file =  "r_scripts/models/toa_predict_weight_loss.RData")
+saveRDS(weight_loss_predict, "r_scripts/models/predict_WL.rds")
+
 print(weight_loss_predict)
 ```
