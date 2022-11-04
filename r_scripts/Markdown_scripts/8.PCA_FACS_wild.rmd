@@ -1,7 +1,7 @@
 ---
-title: "5. PCA genes - field"
+title: "8. PCA FACS heatmap wild"
 author: "Fay"
-date: '2022-10-08'
+date: '2022-11-04'
 output:
   pdf_document:
     fig_width: 12
@@ -9,6 +9,12 @@ output:
   html_document:
     df_print: paged
 ---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
 
 # Load libraries
 
@@ -50,25 +56,18 @@ Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
 
 Genes_wild_imp <- paste(Genes_wild, "imp", sep = "_")
 
-Facs_field <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+Facs_lab <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
                     "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
                     "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
                     "IL17A_CD4")  
 
-Facs_field_imp <- paste(Facs_field, "imp", sep = "_")
-
 Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
                      "Act_CD8", "IFNy_CD4", "IL17A_CD4", "IFNy_CD8")
 
-Facs_wild_imp <- paste(Facs_wild, "imp", sep = "_")
 ```
 
-# PCA on the field genes -*imputed*
+# PCA on the field facs -*imputed*
 ```{r}
-# somehow the field samples have the origin na,
-# fix that
-hm$origin[is.na(hm$origin)] <- "Field"
-
 field <- hm %>%
   dplyr::filter(origin == "Field") 
 
@@ -78,28 +77,23 @@ field <- unique(field)
 field <- field %>%
   dplyr::mutate(MC.Eimeria = as.factor(MC.Eimeria))
 
-genes_mouse <- field %>%
-  dplyr::select(c(Mouse_ID, all_of(Genes_wild_imp))) 
+facs_mouse <- field %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_wild))) 
 
-
-genes <- genes_mouse %>%
-  dplyr::select(-Mouse_ID) %>%
-  rename_with(~str_remove(., '_imp'))
-
+facs <- facs_mouse %>%
+  dplyr::select(-Mouse_ID)
 
 #remove rows with only nas
-genes <- genes[,colSums(is.na(genes))<nrow(genes)]
+facs <- facs[,colSums(is.na(facs))<nrow(facs)]
 
 #remove colums with only nas 
-genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
+facs <- facs[rowSums(is.na(facs)) != ncol(facs), ]
 
-
-##select same rows in the first table
-field <- field[row.names(genes), ]
-
+# select same rows in facs_mouse
+facs_mouse <- facs_mouse[row.names(facs),]
 
 # we can now run a normal pca on the complete data set
-res.pca <- PCA(genes)
+res.pca <- PCA(facs)
 ```
 
 
@@ -129,12 +123,17 @@ str(res.pca)
 
 ```{r, echo = FALSE}
 
+facs_pc<- facs_mouse %>%
+  dplyr::select(Mouse_ID)
 
-field$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
+facs_pc$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 
-field$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
+facs_pc$pc2 <- res.pca$ind$coord[, 2]  # indexing the second column
 
 
+#join to the data frame to have the data together
+field <- field %>%
+  left_join(facs_pc, by = "Mouse_ID")
 
 
 #We also need to extract the data for the variable contributions to each of the pc axes.
@@ -212,10 +211,10 @@ fviz_contrib(res.pca, choice = "ind", axes = 1:2)
 PCA + Biplot combination
 
 ```{r pca_biplot_genes, echo = FALSE}
-
+field_pc <- field[row.names(facs),]
 
 fviz_pca_biplot(res.pca, 
-                col.ind = field$MC.Eimeria, palette = "jco", 
+                col.ind = field_pc$MC.Eimeria, palette = "jco", 
                 addEllipses = TRUE, fieldel = "var",
                 col.var = "black", repel = TRUE,
                 legend.title = "Infected with Eimeria") 
@@ -226,20 +225,15 @@ fviz_pca_biplot(res.pca,
 
 
 
-### repeating the heatmap on the now imputed data
+### repeating the heatmap o
 ```{r}
-genes_mouse <- genes_mouse %>%
-  rename_with(~str_remove(., '_imp'))
-
- #select same rows in the first table
-genes_mouse <- genes_mouse[row.names(genes), ]
  
  # turn the data frame into a matrix and transpose it. We want to have each cell 
  # type as a row name 
- genes_mouse <- t(as.matrix(genes_mouse))
+ facs_mouse <- t(as.matrix(facs_mouse))
  
  # turn the first row into column names
- genes_mouse %>%
+ facs_mouse %>%
      row_to_names(row_number = 1) -> heatmap_data
  
  heatmap_data <- as.data.frame(heatmap_data)
@@ -258,9 +252,8 @@ genes_mouse <- genes_mouse[row.names(genes), ]
                                    nrow(heatmap_data)]
  
   
-
 #Prepare the annotation data frame
-annotation_df <- as_tibble(field) %>%
+annotation_df <- as_tibble(field_pc) %>%
     dplyr::select(c("Mouse_ID", "MC.Eimeria", "HI",
                     "Sex")) 
   
@@ -269,7 +262,6 @@ annotation_df <- unique(annotation_df)
 annotation_df <- as.data.frame(annotation_df)
 
  ### Prepare the annotation columns for the heatmap
-
 rownames(annotation_df) <- annotation_df$Mouse_ID
 
 # Match the row names to the heatmap data frame

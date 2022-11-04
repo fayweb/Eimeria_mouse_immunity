@@ -48,8 +48,10 @@ Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
 
 Facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
                     "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
-                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
-                    "IL17A_CD4")  
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8")
+
+#"IL17A_CD4")  
+#,"Treg_prop", from another assay
 
 Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
                      "Act_CD8", "IFNy_CD4", "IL17A_CD4", "IFNy_CD8")
@@ -397,6 +399,8 @@ lab <- unique(lab)
 gf_lab <- lab %>% 
   dplyr::select(all_of(Gene_lab))
 
+gf_lab <- unique(gf_lab)
+
 #remove rows with only nas
 gf_lab <- gf_lab[,colSums(is.na(gf_lab))<nrow(gf_lab)]
 
@@ -494,11 +498,20 @@ imp_lab_gene <- complete_lab_gene %>%
 #add an ending to the imputed columns
 colnames(imp_lab_gene) <- paste(colnames(imp_lab_gene), "imp", sep = "_")
 
+lab_gene <- lab_gene %>% 
+  dplyr::select(Mouse_ID)
+
 #now join it to the full data set of the laboratory infections
 lab_gene <- cbind(lab_gene, imp_lab_gene)
 
+lab_gene <- unique(lab_gene) 
+
 lab <- lab %>%
-  left_join(lab_gene, by = intersect(colnames(lab), colnames(lab_gene)))
+  left_join(lab_gene, by = "Mouse_ID")
+
+
+lab <- unique(lab)
+
 ```
 
 
@@ -516,159 +529,14 @@ gf_lab <- gf_lab[,colSums(is.na(gf_lab))<nrow(gf_lab)]
 #remove colums with only nas 
 gf_lab <- gf_lab[rowSums(is.na(gf_lab)) != ncol(gf_lab), ]
 
-#select same rows in the first table
-lab_facs <- lab[row.names(gf_lab), ]
 
-lab_facs[rowSums(is.na(lab_facs)) != ncol(lab_facs), ]
+vis_dat(gf_lab)
 
-# really removing empty columns
-lab_facs <- lab_facs %>% 
-  discard(~all(is.na(.) | . ==""))
+# no need to impute
 
-
-# looking at patterns of nas
-pattern_na <-as.data.frame(md.pattern(lab_facs))
-
-
-#select the relevant columns to use for the imputation
-lab_facs_s <- lab_facs %>%
-  dplyr::select(c(Mouse_ID, experiment, primary_infection, challenge_infection, 
-                  mouse_strain, weight, weight_dpi0, relative_weight, 
-                  oocyst_sq1, oocyst_sq2, oocyst_sq3, oocyst_sq4, OO4sq, OOC, 
-                  MC.Eimeria, delta_ct_cewe_MminusE, IFNy_CEWE, IFNy_MES, 
-                  c(all_of(Facs_lab), all_of(Gene_lab))))
-
-
-# The frequency distribution of the missing cases per variable can be obtained 
-# as:
-init <- mice(lab_facs_s, maxit = 0)
-
-
-#we want to impute only the specific variables
-meth <- init$method
-
-
-#select all the colnames ending in std (the standardized ones)
-#std <- colnames(lab %>% dplyr::select(ends_with("_std"))) 
-
-# set every variable that is not one of your variables of interest to ""
-#You can supply a vector to the method argument of mice::mice. This vector should contain the methods that you want to use to impute the variables you want to impute. In the example they first do a dry-run 
-#meth[!(names(meth) %in% all_of(std))] <- ""
-
-# repeat the imputation only for the specific variables
-#init <- mice(lab, maxit = 0, method = meth)
-
-# table of amount of variables with the amount of missing values 
-#table(init$nmis)
-
-# which method is used for imputation? In this case the package mice 
-# uses the default method for continuous variable, 
-# which is pmm, or predictive mean matching
-
-# now impute the data and save it as the oject: 
-# igf
-
-#vis_miss(lab)
-
-#sapply(lab, function(x) sum(is.na(x)))
-
-# which column numbers end in Std 
-#grep("_std", colnames(lab) )
-
-#imp <- mice(lab, print = FALSE)
-
-
-# m=5 refers to the number of imputed datasets. Five is the default value.
-igf <- mice(lab_facs_s, m = 5, seed = 500) # method = meth,
-summary(igf)
-
-# to check each column with imputed data
-## igf$imp$IFNy
-
-#Now we can get back the completed dataset using the complete()
-complete_lab_facs <- complete(igf, 1)
-
-#visualize missingness
-vis_miss(complete_lab_facs)
-
-#sapply(complete_lab, function(x) sum(is.na(x)))
-
-imp_lab_facs <- complete_lab_facs%>%
-  dplyr::select(all_of(Facs_lab))
-
-#add an ending to the imputed columns
-colnames(imp_lab_facs) <- paste(colnames(imp_lab_facs), "imp", sep = "_")
-
-#now join it to the full data set of the laboratory infections
-lab_facs <- cbind(lab_facs, imp_lab_facs)
-
-lab <- lab %>%
-  left_join(lab_facs, by = intersect(colnames(lab), colnames(lab_facs)))
 
 
 write.csv(lab, "output_data/Lab_imputed.csv", row.names = FALSE)
-```
-
-
-
-
-
-Predictive mean matching with \(d = 5\) is the default in mice() for continuous 
-data. The method is robust against misspecification of the imputation model, 
-yet performs as well as theoretically superior methods. In the context of missing 
-covariate data, Marshall, Altman, and Holder (2010) concluded that predictive 
-mean matching “produced the least biased estimates and better model performance 
-measures.” Another simulation study that addressed skewed data concluded that 
-predictive mean matching “may be the preferred approach provided that less than 
-50% of the cases have missing data and the missing data are not MNAR” 
-(Marshall et al. 2010). Kleinke (2017) found that the method works well across a 
-wide variety of scenarios, but warned the default cannot address severe 
-skewness or small samples.
-
-
-Let’s compare the distributions of original and imputed data using a some useful 
-plots.First of all we can use a scatterplot and plot Ozone against all the other 
-variables. Let's first plot the variables for which we have few missing values.
-
-
-
-```{r }
-
-xyplot(igf, IFNy ~ IL.13 + IRGM1 + MUC2, pch=18,cex=1)
-
-
-```
-
-
-What we would like to see is that the shape of the magenta points (imputed) 
-matches the shape of the blue ones (observed). The matching shape tells us that 
-the imputed values are indeed “plausible values”.
-
-Now let's plot the variables with many missing data points.
-
-
-```{r }
-
-xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
-```
-
-
-
-```{r }
-#densityplot(igf)
-```
-
-The density of the imputed data for each imputed dataset is showed in magenta 
-while the density of the observed data is showed in blue. Again, under our 
-previous assumptions we expect the distributions to be similar.
-
-Another useful visual take on the distributions can be obtained using the 
-stripplot() function that shows the distributions of the variables as individual 
-points
-
-
-```{r strirrplot}
-stripplot(igf, pch = 20, cex = 1.2)
 ```
 
 

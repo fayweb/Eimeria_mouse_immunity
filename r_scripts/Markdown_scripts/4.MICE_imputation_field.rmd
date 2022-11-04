@@ -166,9 +166,17 @@ colnames(imp_field) <- paste(colnames(imp_field), "imp", sep = "_")
 #now join it to the full data set of the laboratory infections
 field_genes <- cbind(field_genes, imp_field)
 
+
+Genes_wild_imp <- paste(Genes_wild, "imp", sep = "_")
+
+
+field_genes <- field_genes %>%
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild_imp)))
+
+
 # join the now imputed columns to the field
-field <- field_genes %>%
-  left_join(field, by = intersect(colnames(field), colnames(field_genes)))
+field <- field %>%
+  left_join(field_genes, by = "Mouse_ID")
 
 ```
 
