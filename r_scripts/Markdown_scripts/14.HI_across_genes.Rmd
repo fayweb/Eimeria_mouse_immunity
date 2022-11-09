@@ -42,7 +42,7 @@ Gene_lab_imp <- paste(Gene_lab, "imp", sep = "_")
 Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
                   "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                   "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
-                  "TICAM1", "TNF", "IL.12", "IRG6")
+                  "TICAM1", "TNF") #"IRG6")
 
 Genes_wild_imp <- paste(Genes_wild, "imp", sep = "_")
 
@@ -81,8 +81,7 @@ genes_mouse <- field %>%
   dplyr::select(all_of(Genes_wild_imp))
 
 
-genes <- genes_mouse %>%
-  dplyr::select(-Mouse_ID) %>%
+genes <- genes_mouse  %>%
   rename_with(~str_remove(., '_imp'))
 
 
@@ -96,6 +95,12 @@ genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
 ##select same rows in the first table
 field <- field[row.names(genes), ]
 
+#remove the non imputed genes from the field 
+field <- field %>% 
+  dplyr::select(-c(all_of(Genes_wild), all_of(Genes_wild_imp)))
+
+#add the columns of genes with the removed suffix
+field <- cbind(field, genes)
 
 ```
 
@@ -166,18 +171,27 @@ tryDistrib(x, "weibullshifted")
 
 
 
-```{r }
+```{r IFNy}
+# remove NA in HI
+field <- field %>% 
+  drop_na(HI)
+
 field$Sex <- as.factor(field$Sex)
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "IFNy")
+parasiteLoad::getParamBounds("weibull", data = field, response = "IFNy")
+
+
 
 IFNy <- parasiteLoad::analyse(data = field,
                         response = "IFNy",
                         model = "weibull",
                         group = "Sex")
-##All
-print(IFNy)
 
+
+parasiteLoad::analyse(data = field,
+                        response = "IFNy",
+                        model = "weibull",
+                        group = "Sex")
 
 bananaPlot(mod = IFNy$H0,
              data = field,
@@ -190,17 +204,12 @@ bananaPlot(mod = IFNy$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
-
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "CXCR3")
-
+```{r CXCR3 gene}
 CXCR3 <- parasiteLoad::analyse(data = field,
                         response = "CXCR3",
                         model = "weibull",
                         group = "Sex")
-##All
-print(CXCR3)
+
 
 
 bananaPlot(mod = CXCR3$H0,
@@ -214,10 +223,7 @@ bananaPlot(mod = CXCR3$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
-
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "IL.6")
+```{r IL.6}
 
 IL.6 <- parasiteLoad::analyse(data = field,
                         response = "IL.6",
@@ -238,10 +244,8 @@ bananaPlot(mod = IL.6$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "IL.10")
+```{r IL.10}
 
 IL.10 <- parasiteLoad::analyse(data = field,
                         response = "IL.10",
@@ -262,10 +266,8 @@ bananaPlot(mod = IL.10$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
+```{r IL.13}
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "IL.13")
 
 IL.13 <- parasiteLoad::analyse(data = field,
                         response = "IL.13",
@@ -286,10 +288,7 @@ bananaPlot(mod = IL.13$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
-
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "IL1RN")
+```{r IL1RN}
 
 IL1RN <- parasiteLoad::analyse(data = field,
                         response = "IL1RN",
@@ -310,10 +309,8 @@ bananaPlot(mod = IL1RN$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "CXCR3")
+```{r CXCR3}
 
 CXCR3 <- parasiteLoad::analyse(data = field,
                         response = "CXCR3",
@@ -334,10 +331,8 @@ bananaPlot(mod = CXCR3$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "CASP1")
+```{r CASP1}
 
 CASP1 <- parasiteLoad::analyse(data = field,
                         response = "CASP1",
@@ -359,11 +354,7 @@ bananaPlot(mod = CASP1$H0,
 ```
 
 
-```{r }
-field$Sex <- as.factor(field$Sex)
-
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "CXCL9")
-
+```{r CXCL9}
 CXCL9 <- parasiteLoad::analyse(data = field,
                         response = "CXCL9",
                         model = "weibull",
@@ -383,11 +374,8 @@ bananaPlot(mod = CXCL9$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "IDO1")
-
+```{r IDO1}
 IDO1 <- parasiteLoad::analyse(data = field,
                         response = "IDO1",
                         model = "weibull",
@@ -407,10 +395,7 @@ bananaPlot(mod = IDO1$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
-
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "IRGM1")
+```{r IRGM1}
 
 IRGM1 <- parasiteLoad::analyse(data = field,
                         response = "IRGM1",
@@ -431,10 +416,8 @@ bananaPlot(mod = IRGM1$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "MPO")
+```{r MPO}
 
 MPO <- parasiteLoad::analyse(data = field,
                         response = "MPO",
@@ -455,10 +438,9 @@ bananaPlot(mod = MPO$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "MUC2")
+```{r MUC2}
+
 
 MUC2 <- parasiteLoad::analyse(data = field,
                         response = "MUC2",
@@ -479,10 +461,8 @@ bananaPlot(mod = MUC2$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
+```{r MUC5AC}
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "MUC5AC")
 
 MUC5AC <- parasiteLoad::analyse(data = field,
                         response = "MUC5AC",
@@ -504,10 +484,8 @@ bananaPlot(mod = MUC5AC$H0,
 ```
 
 
-```{r }
-field$Sex <- as.factor(field$Sex)
+```{r MYD88}
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "MYD88")
 
 MYD88 <- parasiteLoad::analyse(data = field,
                         response = "MYD88",
@@ -528,10 +506,8 @@ bananaPlot(mod = MYD88$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
+```{r NCR1}
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "NCR1")
 
 NCR1 <- parasiteLoad::analyse(data = field,
                         response = "NCR1",
@@ -553,10 +529,8 @@ bananaPlot(mod = NCR1$H0,
 ```
 
 
-```{r }
-field$Sex <- as.factor(field$Sex)
+```{r PRF1}
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "PRF1")
 
 PRF1 <- parasiteLoad::analyse(data = field,
                         response = "PRF1",
@@ -578,10 +552,8 @@ bananaPlot(mod = PRF1$H0,
 ```
 
 
-```{r }
-field$Sex <- as.factor(field$Sex)
+```{r RETNLB}
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "RETNLB")
 
 RETNLB <- parasiteLoad::analyse(data = field,
                         response = "RETNLB",
@@ -602,10 +574,8 @@ bananaPlot(mod = RETNLB$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "SOCS1")
+```{r SOCS1}
 
 SOCS1 <- parasiteLoad::analyse(data = field,
                         response = "SOCS1",
@@ -626,10 +596,9 @@ bananaPlot(mod = SOCS1$H0,
   
 ```
 
-```{r }
-field$Sex <- as.factor(field$Sex)
 
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "TICAM1")
+```{r TICAM1}
+
 
 TICAM1 <- parasiteLoad::analyse(data = field,
                         response = "TICAM1",
@@ -651,10 +620,7 @@ bananaPlot(mod = TICAM1$H0,
 ```
 
 
-```{r }
-field$Sex <- as.factor(field$Sex)
-
-speparam <- parasiteLoad::getParamBounds("weibull", data = field, response = "TNF")
+```{r TNF }
 
 TNF <- parasiteLoad::analyse(data = field,
                         response = "TNF",
