@@ -1,0 +1,308 @@
+---
+title: "15. HI across facs data"
+author: "Fay"
+date: '2022-08-09'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# load libraries
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(optimx)
+```
+
+# Import data:
+Here, we have the experimental / field data
+
+```{r}
+hm <- read.csv("output_data/imputed_mice.csv")
+
+```
+
+
+
+```{r}
+
+# Selecting facs
+Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF") # "IL.12", "IRG6")
+
+#add a suffix to represent changes in data file
+Gene_lab_imp <- paste(Gene_lab, "imp", sep = "_")
+
+facs_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF") #"IRG6")
+
+facs_wild_imp <- paste(facs_wild, "imp", sep = "_")
+
+Facs_lab <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8") #,"Treg_prop", 
+                   # "IL17A_CD4")  
+
+
+Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
+                     "Act_CD8", "IFNy_CD4",  "IFNy_CD8") #"IL17A_CD4",
+
+```
+
+
+# It is time to apply the package of Alice Balard et al. on our predictions!
+
+
+Let's see if we indeed have differences across the hybrid index across facs
+
+
+
+```{r}
+# Selecting the field samples
+
+field <- hm %>%
+  dplyr::filter(origin == "Field") 
+
+field <- unique(field)
+
+#make a factor out of the melting curves (important for later visualization)
+field <- field %>%
+  dplyr::mutate(MC.Eimeria = as.factor(MC.Eimeria))
+
+facs <- field %>% 
+  dplyr::select(all_of(Facs_wild))
+
+
+#remove rows with only nas
+facs <- facs[,colSums(is.na(facs))<nrow(facs)]
+
+#remove colums with only nas 
+facs <- facs[rowSums(is.na(facs)) != ncol(facs), ]
+
+
+##select same rows in the first table
+field <- field[row.names(facs), ]
+
+
+
+```
+
+
+## Install the package
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+require(devtools)
+
+devtools::install_github("alicebalard/parasiteLoad@v2.0", force = TRUE)
+
+#force = TRUE)
+
+library(parasiteLoad)
+```
+
+Applying Alice's package on every gene 
+
+
+
+#### Functions for testing distributions
+
+```{r}
+x <- field$CD4
+
+
+
+# Define function to be used to test, get the log lik and aic
+tryDistrib <- function(x, distrib){
+  # deals with fitdistr error:
+  fit <- tryCatch(MASS::fitdistr(x, distrib), error=function(err) "fit failed")
+  return(list(fit = fit,
+              loglik = tryCatch(fit$loglik, error=function(err) "no loglik computed"), 
+              AIC = tryCatch(fit$aic, error=function(err) "no aic computed")))
+}
+
+
+
+findGoodDist <- function(x, distribs, distribs2){
+  l =lapply(distribs, function(i) tryDistrib(x, i))
+  names(l) <- distribs
+  print(l)
+  listDistr <- lapply(distribs2, function(i){
+    if (i %in% "t"){
+      fitdistrplus::fitdist(x, i, start = list(df =2))
+    } else {
+      fitdistrplus::fitdist(x,i)
+    }}
+  ) 
+  par(mfrow=c(2,2))
+  denscomp(listDistr, legendtext=distribs2)
+  cdfcomp(listDistr, legendtext=distribs2)
+  qqcomp(listDistr, legendtext=distribs2)
+  ppcomp(listDistr, legendtext=distribs2)
+  par(mfrow=c(1,1))
+}
+```
+
+
+```{r}
+tryDistrib(x, "normal")
+tryDistrib(x, "binomial")
+tryDistrib(x, "student")
+tryDistrib(x, "weibull")
+tryDistrib(x, "weibullshifted")
+
+```
+
+## CD4
+
+```{r CD4}
+# remove NA in HI
+field <- field %>% 
+  drop_na(HI)
+
+field$Sex <- as.factor(field$Sex)
+
+parasiteLoad::getParamBounds("weibull", data = field, response = "CD4")
+
+#write a function to test parasite load on a facs cell proportion
+
+facs_hypothesis <- function(y) {
+  parasiteLoad::analyse(data = field,
+                        response = y,
+                        model = "weibull",
+                        group = "Sex")
+}
+
+parasite_load_facs <- function(x, y) {
+  # x takes the cell without "" and y is the cell with ""
+  x <- parasiteLoad::analyse(data = field,
+                        response = y,
+                        model = "weibull",
+                        group = "Sex")
+
+
+bananaPlot(mod = x$H0,
+             data = field,
+             response = y,
+             group = "Sex") +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_bw()
+
+}
+
+
+# write another function that combines both
+
+apply_facs <- function(x, y) {
+  
+facs_hypothesis(y)
+
+parasite_load_facs(x, y)
+
+}
+
+
+apply_facs(CD4, "CD4")
+
+
+```
+
+
+
+## Treg
+
+```{r Treg}
+apply_facs(Treg, "Treg")
+```
+
+
+ 
+## Treg17
+
+```{r Treg17}
+parasiteLoad::getParamBounds("weibull", data = field, response = "Treg17")
+
+#write a function to test parasite load on a facs cell proportion
+
+speparam <-          c(L1start = 8,
+                     L1LB = 1e-9,
+                     L1UB = 89,
+                     L2start = 8,
+                     L2LB = 1e-9,
+                     L2UB = 89,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
+
+parasiteLoad::analyse(data = field,
+                        response = "Treg17",
+                        model = "normal",
+                        group = "Sex")
+
+
+parasite_load_facs <- function(x, y) {
+  # x takes the cell without "" and y is the cell with ""
+  x <- parasiteLoad::analyse(data = field,
+                        response = y,
+                        model = "weibull",
+                        group = "Sex")
+
+
+bananaPlot(mod = x$H0,
+             data = field,
+             response = y,
+             group = "Sex") +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_bw()
+
+}
+```
+ 
+ 
+## Th1
+
+```{r Th1}
+apply_facs(Th1, "Th1")
+```
+ 
+ 
+## Th17
+
+```{r Th17}
+apply_facs(Th17, "Th17")
+```
+ 
+## CD8
+
+```{r CD8}
+apply_facs(CD8, "CD8")
+```
+
+## Act_CD8
+
+```{r Act_CD8}
+apply_facs(Act_CD8, "Act_CD8")
+```
+
+## IFNy_CD4
+
+```{r IFNy_CD4}
+apply_facs(IFNy_CD4, "IFNy_CD4")
+```
+
+## IFNy_CD8
+
+```{r IFNy_CD8}
+apply_facs(IFNy_CD8, "IFNy_CD8")
+```
+
+
+
