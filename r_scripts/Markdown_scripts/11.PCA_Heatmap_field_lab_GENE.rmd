@@ -75,9 +75,7 @@ Facs_wild_imp <- paste(Facs_wild, "imp", sep = "_")
 # PCA on the field genes -*imputed*
 ```{r}
 ###########field
-# somehow the field samples have the origin na,
-# fix that
-hm$origin[is.na(hm$origin)] <- "Field"
+
 
 field <- hm %>%
   dplyr::filter(origin == "Field") 
