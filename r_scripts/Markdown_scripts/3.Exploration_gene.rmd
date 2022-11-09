@@ -1,5 +1,5 @@
 ---
-title: "3. Exploration Gene - PCA"
+title: "3. Exploration Gene "
 author: "Fay"
 date: '2022-10-05'
 output:

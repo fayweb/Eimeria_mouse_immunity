@@ -320,17 +320,19 @@ pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
 gene <- as_tibble(data) %>%
     dplyr::filter(origin == "Field") %>%
     dplyr::group_by(Mouse_ID) %>%
-    dplyr::select(c(Mouse_ID, MC.Eimeria, all_of(Genes_wild)))
+  drop_na(HI) %>%
+    dplyr::select(c(Mouse_ID, all_of(Genes_wild)))
 
 gene <- unique(gene)
 
 # I will remove nas. See towards the end of this chunk why I did it in this way
 gene <- gene %>% drop_na(MYD88)
 
+
+#
 # turn the data frame into a matrix and transpose it. We want to have each cell 
  # type as a row name 
- gene <- t(as.matrix(gene %>% 
-                         dplyr::select(c(Mouse_ID, all_of(Genes_wild)))))
+ gene <- t(as.matrix(gene))
  
  #switch the matrix back to a data frame format
  gene <- as.data.frame(gene)
@@ -365,6 +367,8 @@ annotation_df <- unique(annotation_df) %>%
 
 annotation_df <- as.data.frame(annotation_df)
 
+
+
  ### Prepare the annotation columns for the heatmap
 rownames(annotation_df) <- annotation_df$Mouse_ID
 
@@ -382,9 +386,6 @@ g_field <- data %>%
     dplyr::group_by(Mouse_ID) %>%
     dplyr::select(all_of(Genes_wild))
 
-# visualizing the missing values
-# woa up to 88 % missing values 
-vis_miss(g_field)
 
 # How many nas?
 is.na(g_field) %>% table()
