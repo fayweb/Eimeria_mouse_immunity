@@ -81,7 +81,10 @@ Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
 ```{r}
 #select the imputed gene columns
 gene <-  Field %>%
-  dplyr::select(c(Mouse_ID, all_of(Genes_wild)))
+  dplyr::select(c(Mouse_ID, "IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF"))
 
 genes <- gene %>%
   dplyr::select(-Mouse_ID)
@@ -287,7 +290,7 @@ summary(weibull_)
 ```
 
 
-We have a weibull distribution!
+
 
 
 
@@ -298,12 +301,8 @@ We have a weibull distribution!
 ```{r}
 Field$Sex <- as.factor(Field$Sex)
 
-Field <- Field %>% 
-  mutate(WL = 100 - WL)
 
-
-
-parasiteLoad::getParamBounds("weibull", data = Field, response = "WL")
+parasiteLoad::getParamBounds("normal", data = Field, response = "WL")
 
 
 speparam <- c(L1start = 10,
@@ -318,7 +317,7 @@ speparam <- c(L1start = 10,
 ##All
 fitWL_Sex <- parasiteLoad::analyse(data = Field,
                         response = "WL",
-                        model = "weibull",
+                        model = "normal",
                         group = "Sex")
 
 fitWL_Sex
@@ -370,43 +369,3 @@ H2: the mean load across subspecies is the same, but can differ between the
 2 groups
 
 H3: the mean load can differ both across subspecies and between 2 groups
-
-
-
-```{r}
-Field$Sex <- as.factor(Field$Sex)
-
-Field1 <- Field %>%
-  drop_na(MC.Eimeria)
-Field$MC.Eimeria
-
-
-parasiteLoad::getParamBounds("weibull", data = Field, response = "WL")
-
-
-speparam <- c(L1start = 10,
-                     L1LB = 1e-9,
-                     L1UB = 20,
-                     L2start = 10,
-                     L2LB = 1e-9,
-                     L2UB = 20,
-                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
-                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
-
-##All
-fitWL_Sex <- parasiteLoad::analyse(data = Field,
-                        response = "WL",
-                        model = "weibull",
-                        group = "Sex")
-
-fitWL_Sex
-
-plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
-             data = Field,
-             response = "WL",
-             group = "Sex") +
-    scale_fill_manual(values = c("blue", "red")) +
-  scale_color_manual(values = c("blue", "red")) +
-  theme_bw()
-
-plot_WL_Sex
