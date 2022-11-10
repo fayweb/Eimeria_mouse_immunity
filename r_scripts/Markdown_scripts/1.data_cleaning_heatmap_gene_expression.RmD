@@ -150,7 +150,7 @@ Challenge <- Challenge %>%
 Challenge <- Challenge %>% 
   dplyr::filter(!weight == "NA") %>%
   dplyr::group_by(EH_ID, infection) %>%
-  dplyr::mutate(dpi_max = max(dpi))
+  dplyr::mutate(dpi_max = max(dpi), WL_max = (min(relative_weight) - 100))
 
 #somehow case when dplyr ways didn't work for me and this is the only solution 
 #that is functional

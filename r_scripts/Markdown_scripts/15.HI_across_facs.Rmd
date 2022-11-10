@@ -176,7 +176,7 @@ parasiteLoad::getParamBounds("weibull", data = field, response = "CD4")
 facs_hypothesis <- function(y) {
   parasiteLoad::analyse(data = field,
                         response = y,
-                        model = "weibull",
+                        model = "normal",
                         group = "Sex")
 }
 
@@ -184,7 +184,7 @@ parasite_load_facs <- function(x, y) {
   # x takes the cell without "" and y is the cell with ""
   x <- parasiteLoad::analyse(data = field,
                         response = y,
-                        model = "weibull",
+                        model = "normal",
                         group = "Sex")
 
 
@@ -247,23 +247,22 @@ parasiteLoad::analyse(data = field,
                         group = "Sex")
 
 
-parasite_load_facs <- function(x, y) {
-  # x takes the cell without "" and y is the cell with ""
-  x <- parasiteLoad::analyse(data = field,
-                        response = y,
-                        model = "weibull",
+treg17  <- parasiteLoad::analyse(data = field,
+                        response = "Treg17",
+                        model = "normal",
                         group = "Sex")
 
 
-bananaPlot(mod = x$H0,
+bananaPlot(mod = treg17$H0,
              data = field,
-             response = y,
+             response = "Treg17",
              group = "Sex") +
   scale_fill_manual(values = c("blue", "red")) +
   scale_color_manual(values = c("blue", "red")) +
   theme_bw()
 
-}
+
+
 ```
  
  

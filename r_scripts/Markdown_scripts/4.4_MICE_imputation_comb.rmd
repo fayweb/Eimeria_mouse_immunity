@@ -1,0 +1,259 @@
+---
+title: "4.4_Mice_imputation_comb.rmd"
+author: "Fay"
+date: '2022-11-01'
+output:
+  pdf_document: 
+    fig_width: 12
+    fig_height: 8
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+# Load libraries
+
+
+
+```{r}
+library(mice)
+library(tidyr)
+library(tidyverse)
+library(VIM)
+library(fitdistrplus)
+library(fitur)
+library(visdat)
+```
+
+# Load data
+
+# Import data
+
+```{r}
+hm <- read.csv("output_data/MICE.csv")
+```
+
+```{r}
+# Vectors for selecting genes
+
+#Lab genes
+# The measurements of IL.12 and IRG6 are done with an other assay and will 
+#ignore for now
+Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF") #"IL.12", "IRG6")
+
+Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF") #, "IL.12", "IRG6")
+
+Facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
+                    "IL17A_CD4")  
+
+Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
+                     "Act_CD8", "IFNy_CD4", "IL17A_CD4", "IFNy_CD8")
+
+```
+
+
+
+# data imputation
+
+# Genes
+```{r imputing_mice}
+
+
+field <- hm %>%
+  dplyr::filter(origin == "Field") 
+
+field <- unique(field)
+
+
+genes_mouse_field <- field %>%
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild))) 
+
+
+genes <- genes_mouse_field  %>%
+  dplyr::select(-Mouse_ID)
+
+
+#remove rows with only nas
+genes <- genes[,colSums(is.na(genes))<nrow(genes)]
+
+#remove colums with only nas 
+genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
+
+
+genes_mouse_field <- genes_mouse_field[row.names(genes), ]
+
+##select same rows in the first table
+field <- field[row.names(genes), ]
+
+
+###############lab
+#select the genes and lab muce
+lab <- hm %>%
+  dplyr::filter(origin == "Lab", Position == "mLN") #selecting for mln to avoid
+# duplicates
+
+lab <- unique(lab)
+
+gene_lab_mouse <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab))) 
+
+gene_lab_mouse <- unique(gene_lab_mouse)
+
+genes_lab <- gene_lab_mouse[, -1]
+
+#remove rows with only nas
+genes_lab <- genes_lab[,colSums(is.na(genes_lab))<nrow(genes_lab)]
+
+#remove colums with only nas 
+genes_lab <- genes_lab[rowSums(is.na(genes_lab)) != ncol(genes_lab), ]
+
+genes_lab <- unique(genes_lab)
+
+#select same rows in the first table
+gene_lab_mouse <- gene_lab_mouse[row.names(genes_lab), ]
+
+##select same rows in the first table
+lab <- lab[row.names(genes_lab), ]
+
+hm_genes <- rbind(gene_lab_mouse, genes_mouse_field)
+
+hm_selection_g <- rbind(lab, field)
+
+genes <- hm_genes %>%
+  dplyr::select(-Mouse_ID)
+
+
+# looking at patterns of nas
+#pattern_na <-as.data.frame(md.pattern(field_genes))
+
+sapply(hm_genes, function(x) sum(is.na(x)))
+
+
+
+#had to remove as they were disturbing the imputation: Worms_presence, MC.Eimeria.FEC,  Heligmosomoides_polygurus, Zfy2, Y,  MpiC,
+
+#vis_miss(field)
+
+
+# The frequency distribution of the missing cases per variable can be obtained 
+# as:
+init <- mice(genes, maxit = 0)
+
+
+#we want to impute only the specific variables
+meth <- init$method
+
+
+
+```
+
+
+```{r}
+# m=5 refers to the number of imputed datasets. Five is the default value.
+igf <- mice(genes, m = 5, seed = 500) # method = meth,
+summary(igf)
+
+# to check each column with imputed data
+## igf$imp$IFNy
+
+#Now we can get back the completed dataset using the complete()
+complete_genes <- complete(igf, 1)
+
+
+#sapply(complete_field, function(x) sum(is.na(x)))
+
+
+#visualize missingness
+vis_dat(complete_genes)
+
+
+#remove the non imputed genes from our data set
+hm_selection_g <- hm_selection_g %>%
+  dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF"))
+
+# add the new imputed genes to the data
+hm_selection_g <- cbind(hm_selection_g, complete_genes)
+
+```
+
+
+
+
+Let’s compare the distributions of original and imputed data using a some useful 
+plots.First of all we can use a scatterplot and plot Ozone against all the other 
+variables. Let's first plot the variables for which we have few missing values.
+
+
+
+```{r distr_orig_pred}
+
+xyplot(igf, IFNy ~ IL.13 + IRGM1 + MUC2, pch=18,cex=1)
+
+
+```
+
+
+What we would like to see is that the shape of the magenta points (imputed) 
+matches the shape of the blue ones (observed). The matching shape tells us that 
+the imputed values are indeed “plausible values”.
+
+Now let's plot the variables with many missing data points.
+
+
+```{r distr_orig_pred2}
+
+xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
+```
+
+
+
+```{r }
+stripplot(igf, pch = 20, cex = 1.2)
+```
+
+
+
+```{r }
+densityplot(igf)
+```
+
+The density of the imputed data for each imputed dataset is showed in magenta 
+while the density of the observed data is showed in blue. Again, under our 
+previous assumptions we expect the distributions to be similar.
+
+Another useful visual take on the distributions can be obtained using the 
+stripplot() function that shows the distributions of the variables as individual 
+points
+
+
+
+
+# Just add here the lab data and join the two tables 
+
+
+```{r}
+
+
+
+ ##save the imputed data 
+write.csv(hm_selection_g, "output_data/imputed_mice.csv", row.names = FALSE)
+
+
+```
+

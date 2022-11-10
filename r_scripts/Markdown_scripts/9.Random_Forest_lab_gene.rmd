@@ -64,15 +64,14 @@ Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                 "TICAM1", "TNF") #"IL.12", "IRG6")
 
-#add a suffix to represent changes in data file
-Gene_lab_imp <- paste(Gene_lab, "imp", sep = "_")
+
 
 Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
                   "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                   "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                   "TICAM1", "TNF") #, "IL.12", "IRG6")
 
-Genes_wild_imp <- paste(Genes_wild, "imp", sep = "_")
+
 
 Facs_lab <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
                     "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
@@ -116,6 +115,9 @@ Splitting between training and testing:
 - Assess model performance on unseen data
 - Avoid over-fitting 
 
+## Cross validation in R
+k - fold cross validation: the data set is divided into k subsets.
+Each time, one of the k subsets is used as the test set and 
 
 # Random forest for predicting percentage of maximum weight loss
 
@@ -127,10 +129,6 @@ Splitting between training and testing:
 lab <- hm %>% 
   dplyr::filter(origin == "Lab")
 
-#remove the unimputed columns
-lab <- unique(lab) %>%
-  dplyr::select(-all_of(Gene_lab)) %>%
-  rename_with(~str_remove(., '_imp'))
 
 #select the imputed gene columns
 gene <-  lab %>%
@@ -155,43 +153,85 @@ lab <- lab[row.names(genes),]
 
 
 gene <- lab %>%
-  dplyr::select(c(Mouse_ID, max_WL)) %>%
+  dplyr::select(c(Mouse_ID, WL_max)) %>%
   right_join(gene, by = "Mouse_ID")
 
 gene <- unique(gene) %>%
   dplyr::select(-Mouse_ID)
 
+
+
+```
+
+
+## Cross validation
+mtry: Number of variable is randomly collected to be sampled at each split time
+ntree: Number of trees you are going to grow in this random forest
+
+https://rpubs.com/jvaldeleon/forest_repeat_cv
+
+
+cross validation
+
+The general procedure is like this.
+
+We shuffle the data by random.
+
+We split it into k-groups. Note that k is an arbitrary parameter. There’s no specific criteria to choose the value for k. Typically, it’s 5 or 10.
+
+For each unique group:
+
+ 1. Take the group as a hold out or test data set
+
+ 2. Take the remaining groups as a training data set
+
+ 3. Fit a model on the training set and evaluate it on the test set
+
+ 4. Retain the evaluation score and discard the model
+ 
+```{r}
+
+
+
+repeat_cv <- trainControl(method = "repeatedcv", #repeated cross validation
+                           number = 5, # 5 fold cross validation
+                           repeats = 3)
+
+
+```
+
+## Splitting into training and testing
+
+```{r}
+
 # split data into training and test
-set.seed(123) # this will help us reproduce this random assignment
+set.seed(333) # this will help us reproduce this random assignment
 
 # in this way we can pick the random numbers
-training.samples <- gene$max_WL%>%
-  createDataPartition(p = .7, 
-                      list = FALSE) 
+training.samples <- createDataPartition(y = gene$WL_max, p = .7, list = FALSE) 
 
 # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
 # we don't want to get a list in return
 train.data <- gene[training.samples, ] 
 test.data <- gene[-training.samples, ] 
-
-
 ```
-
-
 
 ## Building the model
 
 ```{r  predicting_weight_loss_model}
+set.seed(333)
+
+
 #train the model
-weight_loss_predict <- randomForest(max_WL ~., data = train.data, 
+WL_predict_gene <- randomForest(WL_max ~., data = train.data, 
                                     proximity = TRUE, ntree = 1000) 
 # ntree = number of trees     
 # save the model 
-save(weight_loss_predict, file =  "r_scripts/models/predict_weight_loss.RData")
-print(weight_loss_predict)
+save(WL_predict_gene, file =  "r_scripts/models/WL_predict_gene.RData")
+print(WL_predict_gene)
 ```
 
-Plotting the weight_loss_predict will illustrate the error rate as we average 
+Plotting the WL_predict_gene will illustrate the error rate as we average 
 across more trees and shows that our error rate stabalizes with around 200 trees.
 
 
@@ -207,7 +247,7 @@ Variance explained: %explained variance is a measure of how well out-of-bag
 predictions explain the target variance of the training set.
 
 ```{r}
-predict_WL_cv <- rf.crossValidation(x = weight_loss_predict, xdata = train.data, 
+predict_WL_cv <- rf.crossValidation(x = WL_predict_gene, xdata = train.data, 
                                     p = 0.10, n = 99, ntree = 501)
 
 predict_WL_cv$fit.var.exp
@@ -228,7 +268,7 @@ plot(predict_WL_cv, stat = "mae")
 ```
 
 ```{r}
-plot(weight_loss_predict)
+plot(WL_predict_gene)
 ```
 The plotted error rate above is based on the OOB sample error 
 and can be accessed directly at m1$mse. Thus, we can find which number of trees 
@@ -236,10 +276,10 @@ providing the lowest error rate
 
 ```{r}
 # number of trees with lowest MSE
-which.min(weight_loss_predict$mse)
+which.min(WL_predict_gene$mse)
 
 # RMSE of this optimal random forest
-sqrt(weight_loss_predict$mse[which.min(weight_loss_predict$mse)])
+sqrt(WL_predict_gene$mse[which.min(WL_predict_gene$mse)])
 ```
 
 ### https://uc-r.github.io/s
@@ -282,23 +322,23 @@ your model!
 ```{r include = FALSE, message = FALSE, echo = FALSE}
 ### Visualize variable importance ----------------------------------------------
 #Call importance() function on the model model to check how the attributes used 
-# as predictors affect our weight_loss_predict
-importance(weight_loss_predict)
+# as predictors affect our WL_predict_gene
+importance(WL_predict_gene)
 
-#weight_loss_predict$mse
+#WL_predict_gene$mse
 
 ## S3 method for class 'randomForest'
-plot(weight_loss_predict, type = "l", main=deparse(substitute(x)))
-varImpPlot(weight_loss_predict)
+plot(WL_predict_gene, type = "l", main=deparse(substitute(x)))
+varImpPlot(WL_predict_gene)
 
-# Get variable importance from the weight_loss_predict fit
-ImpData <- as.data.frame(importance(weight_loss_predict))
+# Get variable importance from the WL_predict_gene fit
+ImpData <- as.data.frame(importance(WL_predict_gene))
 ImpData$Var.Names <- row.names(ImpData)
 ```
 
 
 
-# Application of weight_loss_predict
+# Application of WL_predict_gene
 ## Using the testing data
 
 Let's now make some predictions using our test data.
@@ -307,7 +347,7 @@ Let's now make some predictions using our test data.
 ```{r }
 #The predict() function in R is used to predict the values based on the 
 # input data.
-predictions <- predict(weight_loss_predict, test.data)
+predictions <- predict(WL_predict_gene, test.data)
 
 # assign test.data to a new object, so that we can make changes
 result <- test.data
@@ -316,12 +356,12 @@ result <- test.data
 result <- cbind(result, predictions)
 
 # what is the correlation between predicted and actual data?
-cor(result$max_WL, result$predictions, 
+cor(result$WL_max, result$predictions, 
     method = c("pearson", "kendall", "spearman"))
 
 
 test_lab <- lab %>%
-  left_join(result, by = c("max_WL", "IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+  left_join(result, by = c("WL_max", "IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
                 "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                 "TICAM1", "TNF"))
@@ -334,31 +374,30 @@ test_lab <- test_lab %>%
 
 
 ## Visualizing the predictions
-
-
-```{r predictions_weight_loss_predict_wL }
-# trying to find a way to represent the delta ct for the negative ones
-# please find a better way to do this
+trying to find a way to represent the delta ct for the negative ones
+please find a better way to do this
 test_lab <- test_lab %>% 
-    dplyr::mutate(Infection_intensity = case_when(
-       Parasite_challenge == "uninfected" ~ -9,
-       TRUE ~ delta_ct_cewe_MminusE
-    ))
+   dplyr::mutate(Infection_intensity = case_when(
+      Parasite_challenge == "uninfected" ~ -9,
+    TRUE ~ delta_ct_cewe_MminusE
+ ))
 
-cor(test_lab$predictions, test_lab$max_WL)
+```{r  }
+
+cor(test_lab$predictions, test_lab$WL_max)
 
 test_lab   %>%
-  ggplot(aes(x = predictions, y = max_WL, color = current_infection, 
+  ggplot(aes(x = predictions, y = WL_max, color = current_infection, 
                  size = delta_ct_cewe_MminusE)) +
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
-  geom_point(aes(x = predictions, y = max_WL, 
-                 color = Parasite_challenge, size = Infection_intensity)) +
+  geom_point(aes(x = predictions, y = WL_max, 
+                 color = Parasite_challenge, size = delta_ct_cewe_MminusE)) +
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
     theme_bw()
 
-cor.test(result$predictions, result$max_WL, method = "spearman")
+cor.test(result$predictions, result$WL_max, method = "spearman")
   
 ```
 
@@ -370,12 +409,12 @@ cor.test(result$predictions, result$max_WL, method = "spearman")
 
 ```{r  }
 #train the model
-weight_loss_predict <- randomForest(max_WL ~., data = gene, 
+WL_predict_gene <- randomForest(WL_max ~., data = gene, 
                                     proximity = TRUE, ntree = 1000) 
 # ntree = number of trees     
 # save the model 
 # toa = trained on all
-saveRDS(weight_loss_predict, "r_scripts/models/predict_WL.rds")
+saveRDS(WL_predict_gene, "r_scripts/models/predict_WL.rds")
 
-print(weight_loss_predict)
+print(WL_predict_gene)
 ```

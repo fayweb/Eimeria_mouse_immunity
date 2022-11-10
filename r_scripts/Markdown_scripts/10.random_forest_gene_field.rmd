@@ -72,19 +72,13 @@ Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
                   "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                   "TICAM1", "TNF") #, "IL.12", "IRG6")
 
-Genes_wild_imp <- paste(Genes_wild, "imp", sep = "_")
+
 ```
 
 
 ### Actual Cleaning
 
 ```{r}
-
-#remove the unimputed columns
-Field <- unique(Field) %>%
-  dplyr::select(-all_of(Genes_wild)) %>%
-  rename_with(~str_remove(., '_imp'))
-
 #select the imputed gene columns
 gene <-  Field %>%
   dplyr::select(c(Mouse_ID, all_of(Genes_wild)))
@@ -124,6 +118,9 @@ set.seed(540)
 
 #The predict() function in R is used to predict the values based on the input data.
 predictions_field <- predict(weight_loss_predict, genes)
+
+#make the vector positive so that the distributions further down work
+predictions_field <- predictions_field * (-1)
 
 # assign test.data to a new object, so that we can make changes
 result_field <- genes
