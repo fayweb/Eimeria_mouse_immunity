@@ -391,11 +391,6 @@ confint(tolerance)
 ```
 
 ```{r}
-Field2 <- Field %>%
-  drop_na(OPG)  %>%
-  drop_na(delta_ct_cewe_MminusE)
-
-
 
 tolerance <- lm(WL ~  OPG * delta_ct_cewe_MminusE, data = Field)
 
@@ -405,3 +400,25 @@ summary(tolerance)
 confint(tolerance)
 
 ```
+
+
+
+
+```{r}
+Field <- Field %>%
+  dplyr::mutate(BMI = Body_Weight / Body_Length)
+
+ggplot(data = Field, aes(x = BMI, y = WL)) +
+  geom_point() +
+  stat_smooth(method= "lm") 
+
+bmi <- lm(WL ~ BMI, data = Field)
+
+cor(Field$BMI, Field$WL, use = "complete.obs")
+
+summary(bmi)
+
+confint(bmi)
+
+```
+
