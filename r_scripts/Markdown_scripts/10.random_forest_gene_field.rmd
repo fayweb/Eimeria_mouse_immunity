@@ -320,7 +320,10 @@ fitWL_Sex <- parasiteLoad::analyse(data = Field,
                         model = "normal",
                         group = "Sex")
 
-fitWL_Sex
+parasiteLoad::analyse(data = Field,
+                        response = "WL",
+                        model = "normal",
+                        group = "Sex")
 
 plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
              data = Field,
@@ -333,34 +336,7 @@ plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
 plot_WL_Sex
 
 ```
-[1] "Testing H1 no alpha vs alpha"
-   dLL dDF   pvalue
-1 1.23   1 0.116121
-[1] "Testing H2 groupA no alpha vs alpha"
-  dLL dDF    pvalue
-1 0.2   1 0.5246522
-[1] "Testing H2 groupB no alpha vs alpha"
-   dLL dDF    pvalue
-1 1.34   1 0.1011852
-[1] "Testing H3 groupA no alpha vs alpha"
-   dLL dDF    pvalue
-1 0.75   1 0.2210683
-[1] "Testing H3 groupB no alpha vs alpha"
-   dLL dDF     pvalue
-1 1.56   1 0.07695409
-[1] "Testing H1 vs H0"
-  dLL dDF    pvalue
-1 0.1   1 0.6624668
-[1] "Testing H2 vs H0"
-   dLL dDF    pvalue
-1 1.38   3 0.4306275
-[1] "Testing H3 vs H1"
-   dLL dDF    pvalue
-1 3.72   4 0.1140242
-[1] "Testing H3 vs H2"
-   dLL dDF     pvalue
-1 2.44   2 0.08709369
-<p style="color:blue">
+
 H0: the expected load for the subspecies and between 2 groups is the same
 
 H1: the mean load across 2 groups is the same, but can differ across subspecies
@@ -369,3 +345,47 @@ H2: the mean load across subspecies is the same, but can differ between the
 2 groups
 
 H3: the mean load can differ both across subspecies and between 2 groups
+
+
+
+```{r}
+ggplot(data = Field, aes(x = delta_ct_cewe_MminusE, y = WL)) +
+  geom_point() +
+  stat_smooth(method= "lm") 
+
+Field2 <- Field %>%
+  drop_na(delta_ct_cewe_MminusE)
+
+cor(Field2$WL, Field2$delta_ct_cewe_MminusE)
+
+
+tolerance <- lm(WL ~  delta_ct_cewe_MminusE, data = Field)
+
+
+summary(tolerance)
+
+confint(tolerance)
+
+```
+
+
+```{r}
+ggplot(data = Field, aes(x = OPG, y = WL)) +
+  geom_point() +
+  stat_smooth(method= "lm") +
+  scale_x_log10()
+
+Field2 <- Field %>%
+  drop_na(OPG)
+
+cor(Field2$WL, Field2$OPG)
+
+
+tolerance <- lm(WL ~  OPG, data = Field)
+
+
+summary(tolerance)
+
+confint(tolerance)
+
+```
