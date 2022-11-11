@@ -389,3 +389,19 @@ summary(tolerance)
 confint(tolerance)
 
 ```
+
+```{r}
+Field2 <- Field %>%
+  drop_na(OPG)  %>%
+  drop_na(delta_ct_cewe_MminusE)
+
+
+
+tolerance <- lm(WL ~  OPG * delta_ct_cewe_MminusE, data = Field)
+
+
+summary(tolerance)
+
+confint(tolerance)
+
+```
