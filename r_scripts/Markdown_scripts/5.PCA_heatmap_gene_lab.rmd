@@ -4,6 +4,7 @@ author: "Fay"
 date: '2022-10-08'
 output:
   pdf_document:
+    keep_md: yes 
     fig_width: 12
     fig_height: 8
   html_document:
@@ -77,8 +78,7 @@ lab <- hm %>%
 lab <- unique(lab)
 
 gene <- lab %>%
-  dplyr::select(c(Mouse_ID, all_of(Gene_lab_imp))) %>%
-  rename_with(~str_remove(., '_imp'))
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab)))
 
 genes <- unique(gene)
 

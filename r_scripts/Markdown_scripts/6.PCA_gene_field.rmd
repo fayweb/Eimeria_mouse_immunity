@@ -4,6 +4,7 @@ author: "Fay"
 date: '2022-10-08'
 output:
   pdf_document:
+    keep_md: yes 
     fig_width: 12
     fig_height: 8
   html_document:
@@ -79,12 +80,11 @@ field <- field %>%
   dplyr::mutate(MC.Eimeria = as.factor(MC.Eimeria))
 
 genes_mouse <- field %>%
-  dplyr::select(c(Mouse_ID, all_of(Genes_wild_imp))) 
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild))) 
 
 
 genes <- genes_mouse %>%
-  dplyr::select(-Mouse_ID) %>%
-  rename_with(~str_remove(., '_imp'))
+  dplyr::select(-Mouse_ID)
 
 
 #remove rows with only nas

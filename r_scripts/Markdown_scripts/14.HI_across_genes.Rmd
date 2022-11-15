@@ -3,8 +3,12 @@ title: "5.Gene_expression_analysis"
 author: "Fay"
 date: '2022-08-09'
 output:
-  pdf_document: default
-  html_document: default
+  pdf_document:
+    keep_md: yes 
+    fig_width: 12
+    fig_height: 8
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -78,12 +82,9 @@ field <- field %>%
   dplyr::mutate(MC.Eimeria = as.factor(MC.Eimeria))
 
 genes_mouse <- field %>% 
-  dplyr::select(all_of(Genes_wild_imp))
+  dplyr::select(all_of(Genes_wild))
 
-
-genes <- genes_mouse  %>%
-  rename_with(~str_remove(., '_imp'))
-
+genes <- genes_mouse
 
 #remove rows with only nas
 genes <- genes[,colSums(is.na(genes))<nrow(genes)]
@@ -95,12 +96,7 @@ genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
 ##select same rows in the first table
 field <- field[row.names(genes), ]
 
-#remove the non imputed genes from the field 
-field <- field %>% 
-  dplyr::select(-c(all_of(Genes_wild), all_of(Genes_wild_imp)))
 
-#add the columns of genes with the removed suffix
-field <- cbind(field, genes)
 
 ```
 

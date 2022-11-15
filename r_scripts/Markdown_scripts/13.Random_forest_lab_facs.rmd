@@ -3,8 +3,12 @@ title: "13.Random_forest_lab_facs"
 author: "Fay"
 date: '2022-11-08'
 output:
-  pdf_document: default
-  html_document: default
+  pdf_document:
+    keep_md: yes 
+    fig_width: 12
+    fig_height: 8
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -49,18 +53,17 @@ We start with the data from experimental lab infections.
 ```{r import_data,  message = FALSE, warnings = FALSE }
 #import data
 hm <- read.csv("output_data/imputed_mice.csv")
-
 ```
 
 # vectors for selecting
 
 ```{r}
-
-
-
+Facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8") #"Treg_prop", removed due to many missing values
+                    #"IL17A_CD4"
 Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
                      "Act_CD8", "IFNy_CD4", "IFNy_CD8") #"IL17A_CD4", 
-
 ```
 
 
@@ -71,7 +74,6 @@ Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
 # we need to change the  in challenge infections to a factor
 hm$Parasite_challenge <- as.factor(hm$Parasite_challenge)
 hm$MC.Eimeria <- as.factor(hm$MC.Eimeria)
-
 # Here I create a new column, where we get the actual infection status
 # According to the melting curve for eimeria 
 hm <- hm %>%
@@ -84,7 +86,6 @@ hm <- hm %>%
     Parasite_challenge == "uninfected" & MC.Eimeria == "FALSE" ~ "uninfected",
     TRUE ~ ""
   ))
-
 ```
 
 
@@ -100,21 +101,20 @@ Splitting between training and testing:
 
 ## Dividing data into training and testing 
 
-```{r Diving_testing_training}
+```{r}
+#select the genes and lab muce
+lab <- hm %>%
+  dplyr::filter(origin == "Lab", Position == "mLN") #selecting for mln to avoid
 
-# prepare the lab data
-lab <- hm %>% 
-  dplyr::filter(origin == "Lab")
+# duplicates
+
+lab <- unique(lab)
+
+facs_mouse <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_lab)))
 
 
-#select the imputed facs columns
-facs <-  lab %>%
-  dplyr::select(c(Mouse_ID, all_of(Facs_wild)))
-
-facs <- unique(facs)
-
-facs <- facs %>%
-  dplyr::select(-Mouse_ID)
+facs <- facs_mouse[, -1]
 
 #remove rows with only nas
 facs <- facs[,colSums(is.na(facs))<nrow(facs)]
@@ -122,36 +122,33 @@ facs <- facs[,colSums(is.na(facs))<nrow(facs)]
 #remove colums with only nas 
 facs <- facs[rowSums(is.na(facs)) != ncol(facs), ]
 
-# select the same rows from the facs data
-facs <- facs[row.names(facs),]
+vis_dat(facs)
 
-facs <- unique(facs)
+#select same rows in the first table
+facs_mouse <- facs_mouse[row.names(facs), ]
+
+
+# we can now run a normal pca on the complete data set
+res.pca <- PCA(facs)
+```
 
 # select the same rows from the lab data
 lab <- lab[row.names(facs),]
-
 M_W <- lab %>%
   dplyr::select(c(Mouse_ID, max_WL)) 
-
 facs <- cbind(M_W, facs)
-
 facs <- unique(facs) %>%
   dplyr::select(-Mouse_ID)
-
 # split data into training and test
 set.seed(123) # this will help us reproduce this random assignment
-
 # in this way we can pick the random numbers
 training.samples <- facs$max_WL%>%
   createDataPartition(p = .7, 
                       list = FALSE) 
-
 # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
 # we don't want to get a list in return
 train.data <- facs[training.samples, ] 
 test.data <- facs[-training.samples, ] 
-
-
 ```
 
 
@@ -166,7 +163,6 @@ weight_loss_predict <- randomForest(max_WL ~., data = train.data,
 # save the model 
 save(weight_loss_predict, file =  "r_scripts/models/predict_weight_loss.RData")
 print(weight_loss_predict)
-
 ```
 
 ## Model - quality testing
@@ -181,23 +177,16 @@ Variance explained: %explained variance is a measure of how well out-of-bag
 predictions explain the target variance of the training set.
 
 ```{r}
-
 predict_WL_cv <- rf.crossValidation(x = weight_loss_predict, xdata = train.data, 
                                     p = 0.10, n = 99, ntree = 501)
-
 predict_WL_cv$fit.var.exp
-
 par(mfrow=c(2,2))
-
 plot(predict_WL_cv) 
-
 # Root Mean Squared Error (observed vs. predicted) from each Bootstrap 
 # iteration (cross-validation)
 plot(predict_WL_cv, stat = "mse")
-
 #Percent variance explained from specified fit model
 plot(predict_WL_cv, stat = "var.exp")
-
 #Mean Absolute Error from each Bootstrapped model
 plot(predict_WL_cv, stat = "mae")
 ```
@@ -214,7 +203,6 @@ providing the lowest error rate
 ```{r}
 # number of trees with lowest MSE
 which.min(weight_loss_predict$mse)
-
 # RMSE of this optimal random forest
 sqrt(weight_loss_predict$mse[which.min(weight_loss_predict$mse)])
 ```
@@ -261,13 +249,10 @@ your model!
 #Call importance() function on the model model to check how the attributes used 
 # as predictors affect our weight_loss_predict
 importance(weight_loss_predict)
-
 #weight_loss_predict$mse
-
 ## S3 method for class 'randomForest'
 plot(weight_loss_predict, type = "l", main=deparse(substitute(x)))
 varImpPlot(weight_loss_predict)
-
 # Get variable importance from the weight_loss_predict fit
 ImpData <- as.data.frame(importance(weight_loss_predict))
 ImpData$Var.Names <- row.names(ImpData)
@@ -285,25 +270,18 @@ Let's now make some predictions using our test data.
 #The predict() function in R is used to predict the values based on the 
 # input data.
 predictions <- predict(weight_loss_predict, test.data)
-
 # assign test.data to a new object, so that we can make changes
 result <- test.data
-
 #add the new variable of predictions to the result object
 result <- cbind(result, predictions)
-
 # what is the correlation between predicted and actual data?
 cor(result$max_WL, result$predictions, 
     method = c("pearson", "kendall", "spearman"))
-
-
 test_lab <- lab %>%
   left_join(result, by = c("max_WL", "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
                      "Act_CD8", "IFNy_CD4", "IFNy_CD8"))
-
 test_lab <- test_lab %>%
   drop_na(predictions)
-
 ```
 
 
@@ -319,9 +297,7 @@ test_lab <- test_lab %>%
        Parasite_challenge == "uninfected" ~ -9,
        TRUE ~ delta_ct_cewe_MminusE
     ))
-
 cor(test_lab$predictions, test_lab$max_WL)
-
 test_lab   %>%
   ggplot(aes(x = predictions, y = max_WL, color = current_infection, 
                  size = delta_ct_cewe_MminusE)) +
@@ -332,12 +308,9 @@ test_lab   %>%
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
     theme_bw()
-
 cor.test(result$predictions, result$max_WL, method = "spearman")
   
 ```
 
 # Repeating the process using the whole data set as a training data set
-
-
 
