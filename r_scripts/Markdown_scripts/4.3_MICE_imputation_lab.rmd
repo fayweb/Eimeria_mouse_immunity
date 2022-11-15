@@ -3,7 +3,8 @@ title: "5. Imputation of missing values"
 author: "Fay"
 date: '2022-10-05'
 output:
-  pdf_document: 
+  pdf_document:
+    keep_md: yes
     fig_width: 12
     fig_height: 8
 ---
