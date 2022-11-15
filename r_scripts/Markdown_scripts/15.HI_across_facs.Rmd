@@ -3,8 +3,12 @@ title: "15. HI across facs data"
 author: "Fay"
 date: '2022-08-09'
 output:
-  pdf_document: default
-  html_document: default
+  pdf_document:
+    keep_md: yes 
+    fig_width: 12
+    fig_height: 8
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}

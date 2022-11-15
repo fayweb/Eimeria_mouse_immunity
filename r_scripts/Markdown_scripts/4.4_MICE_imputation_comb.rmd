@@ -245,7 +245,82 @@ points
 
 
 
-# Just add here the lab data and join the two tables 
+# Facs
+
+```{r}
+###############lab
+#select the facs and lab muce
+lab <- hm %>%
+  dplyr::filter(origin == "Lab", Position == "mLN") #selecting for mln to avoid
+# duplicates
+
+lab <- unique(lab)
+
+facs_mouse <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_lab))) #choosing the same with the wild
+
+facs_mouse <- unique(facs_mouse)
+
+facs_lab <- facs_mouse[, -1]
+
+#remove rows with only nas
+facs_lab <- facs_lab[,colSums(is.na(facs_lab))<nrow(facs_lab)]
+
+#remove colums with only nas 
+facs_lab <- facs_lab[rowSums(is.na(facs_lab)) != ncol(facs_lab), ]
+
+
+#select same rows in the first table
+facs_mouse <- facs_mouse[row.names(facs_lab), ]
+
+##select same rows in the first table
+lab <- lab[row.names(facs_mouse), ]
+
+#########################Field
+###########field
+# somehow the field samples have the origin na,
+# fix that
+
+field <- hm %>%
+  dplyr::filter(origin == "Field") 
+
+field <- unique(field)
+
+
+facs_mouse <- field %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_wild))) 
+
+facs_field <- facs_mouse[,-1]
+
+#remove rows with only nas
+facs_field <- facs_field[,colSums(is.na(facs_field))<nrow(facs_field)]
+
+#remove colums with only nas 
+facs_field <- facs_field[rowSums(is.na(facs_field)) != ncol(facs_field), ]
+
+
+##select same rows in the first table
+field <- field[row.names(facs_field), ]
+
+facs_data <- full_join(lab, field, by = intersect(colnames(lab), colnames(field)))
+
+facs_data <- unique(facs_data) %>%
+  dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF"))
+```
+
+# Now put everything togetehr
+
+
+```{r}
+hm_selection_g <- hm_selection_g %>% 
+  full_join(facs_data, by = intersect(colnames(facs_data), colnames(hm_selection_g)))
+
+hm_selection_g <- unique(hm_selection_g)
+
+```
 
 
 ```{r}

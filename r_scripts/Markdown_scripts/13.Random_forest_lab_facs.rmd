@@ -41,6 +41,8 @@ library(caret)
 library(ggpubr)
 library(rfUtilities) # Implements a permutation test cross-validation for 
 # Random Forests models
+library(FactoMineR)
+
 ```
 
 
@@ -122,7 +124,7 @@ facs <- facs[,colSums(is.na(facs))<nrow(facs)]
 #remove colums with only nas 
 facs <- facs[rowSums(is.na(facs)) != ncol(facs), ]
 
-vis_dat(facs)
+
 
 #select same rows in the first table
 facs_mouse <- facs_mouse[row.names(facs), ]
@@ -130,19 +132,19 @@ facs_mouse <- facs_mouse[row.names(facs), ]
 
 # we can now run a normal pca on the complete data set
 res.pca <- PCA(facs)
-```
+
 
 # select the same rows from the lab data
 lab <- lab[row.names(facs),]
 M_W <- lab %>%
-  dplyr::select(c(Mouse_ID, max_WL)) 
+  dplyr::select(c(Mouse_ID, WL_max)) 
 facs <- cbind(M_W, facs)
 facs <- unique(facs) %>%
   dplyr::select(-Mouse_ID)
 # split data into training and test
 set.seed(123) # this will help us reproduce this random assignment
 # in this way we can pick the random numbers
-training.samples <- facs$max_WL%>%
+training.samples <- facs$WL_max%>%
   createDataPartition(p = .7, 
                       list = FALSE) 
 # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
@@ -157,7 +159,7 @@ test.data <- facs[-training.samples, ]
 
 ```{r  predicting_weight_loss_model}
 #train the model
-weight_loss_predict <- randomForest(max_WL ~., data = train.data, 
+weight_loss_predict <- randomForest(WL_max ~., data = train.data, 
                                     proximity = TRUE, ntree = 1000) 
 # ntree = number of trees     
 # save the model 
@@ -275,10 +277,10 @@ result <- test.data
 #add the new variable of predictions to the result object
 result <- cbind(result, predictions)
 # what is the correlation between predicted and actual data?
-cor(result$max_WL, result$predictions, 
+cor(result$WL_max, result$predictions, 
     method = c("pearson", "kendall", "spearman"))
 test_lab <- lab %>%
-  left_join(result, by = c("max_WL", "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
+  left_join(result, by = c("WL_max", "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
                      "Act_CD8", "IFNy_CD4", "IFNy_CD8"))
 test_lab <- test_lab %>%
   drop_na(predictions)
@@ -297,18 +299,18 @@ test_lab <- test_lab %>%
        Parasite_challenge == "uninfected" ~ -9,
        TRUE ~ delta_ct_cewe_MminusE
     ))
-cor(test_lab$predictions, test_lab$max_WL)
+cor(test_lab$predictions, test_lab$WL_max)
 test_lab   %>%
-  ggplot(aes(x = predictions, y = max_WL, color = current_infection, 
+  ggplot(aes(x = predictions, y = WL_max, color = current_infection, 
                  size = delta_ct_cewe_MminusE)) +
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
-  geom_point(aes(x = predictions, y = max_WL, 
+  geom_point(aes(x = predictions, y = WL_max, 
                  color = Parasite_challenge, size = Infection_intensity)) +
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
     theme_bw()
-cor.test(result$predictions, result$max_WL, method = "spearman")
+cor.test(result$predictions, result$WL_max, method = "spearman")
   
 ```
 
