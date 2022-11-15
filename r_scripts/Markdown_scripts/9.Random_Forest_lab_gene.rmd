@@ -384,12 +384,15 @@ test_lab <- test_lab %>%
  ))
 
 ```{r  }
+# what is the correlation between predicted and actual data?
+cor(result$WL_max, result$predictions, 
+    method = c("pearson", "kendall", "spearman"))
 
-cor(test_lab$predictions, test_lab$WL_max)
 
 test_lab   %>%
-  ggplot(aes(x = predictions, y = WL_max, color = current_infection, 
+  ggplot(aes(x = predictions, y = WL_max, color = Parasite_challenge, 
                  size = delta_ct_cewe_MminusE)) +
+  geom_smooth(method = lm, se = FALSE) +
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
   geom_point(aes(x = predictions, y = WL_max, 
@@ -398,7 +401,22 @@ test_lab   %>%
        y = "Observed: Maximum weight loss") +
     theme_bw()
 
-cor.test(result$predictions, result$WL_max, method = "spearman")
+
+cor(test_lab$predictions, test_lab$WL_max, method = "spearman")
+
+
+test_lab   %>%
+  ggplot(aes(x = predictions, y = WL_max, 
+                 size = delta_ct_cewe_MminusE)) +
+  geom_smooth(method = lm, se = TRUE) +
+  labs(x = "Predictions: Maximum weight loss", 
+       y = "Observed: Maximum weight loss") +
+  geom_point(aes(x = predictions, y = WL_max,  size = delta_ct_cewe_MminusE)) +
+  labs(x = "Predictions: Maximum weight loss", 
+       y = "Observed: Maximum weight loss") +
+    theme_bw()
+
+
   
 ```
 
@@ -418,4 +436,126 @@ WL_predict_gene <- randomForest(WL_max ~., data = gene,
 saveRDS(WL_predict_gene, "r_scripts/models/predict_WL.rds")
 
 print(WL_predict_gene)
+
 ```
+
+
+
+
+
+
+
+######################## other models
+
+### Predicing parasite: splliting into training and testing
+
+```{r }
+
+lab$Parasite_challenge <- as.factor(lab$Parasite_challenge)
+
+gene_curr <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab), Parasite_challenge))
+
+
+
+gene <- gene_curr %>%
+  dplyr::select(-Mouse_ID)
+
+
+# split data into training and test
+set.seed(123) # this will help us reproduce this random assignment
+# in this way we can pick the random numbers
+training.samples <- gene$Parasite_challenge%>%
+  createDataPartition(p = .7, list = FALSE) 
+train.data_parasite <- gene[training.samples, ] 
+test.data_parasite <- gene[-training.samples, ] 
+
+
+```
+
+### Building the model_Parasite
+
+```{r }
+
+#train the model
+model_Parasite <- randomForest(Parasite_challenge ~., 
+                               data = train.data_parasite, proximity = TRUE,
+                      ntree = 1500) # number of trees
+
+# save the model 
+save(model_Parasite, file =  "r_scripts/models/predict_infecting_parasite.RData")
+
+print(model_Parasite)
+
+```
+
+
+### Quality checks
+
+
+#### Cross-validation 
+
+MSE: As a brief explanation, mean squared error (MSE) is the average of the 
+summation of the squared difference between the actual output value and the 
+predicted output value. Our goal is to reduce the MSE as much as possible. 
+
+Variance explained: %explained variance is a measure of how well out-of-bag 
+predictions explain the target variance of the training set.
+
+```{r}
+model_Parasite_cv <- rf.crossValidation(x = model_Parasite, xdata =  
+                                          train.data_parasite, 
+                                    p = 0.10, n = 99, ntree = 501)
+
+model_Parasite_cv$fit.var.exp
+
+
+# Plot cross validation versus model producers accuracy
+
+
+```
+
+### Testing the model: Predictions
+
+
+```{r }
+#The predict() function in R is used to predict the values based on the input 
+# data.
+predictions_parasite <- predict(model_Parasite, test.data_parasite)
+# assign test.data to a new object, so that we can make changes
+result_parasite <- test.data_parasite
+#add the new variable of predictions to the result object
+result_parasite <- cbind(result_parasite, predictions_parasite)
+#add the results to a data frame containing test data and the prediction
+result_parasite <- cbind(lab[row.names(result_parasite), ], predictions_parasite)
+```
+
+
+### Visualizing predictions_parasite
+
+
+
+```{r }
+
+conf_matrix_parasite <- 
+  confusionMatrix(
+    result_parasite$predictions_parasite,
+    reference = result_parasite$Parasite_challenge)
+
+print(conf_matrix_parasite)
+
+conf_matrix_parasite$table
+
+plt <- as.data.frame(conf_matrix_parasite$table)
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+
+ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="darkturquoise") +
+        labs(x = "Predictions",y = "Reference") 
+
+```
+
+
+
+
