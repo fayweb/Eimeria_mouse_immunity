@@ -163,6 +163,18 @@ meth <- init$method
 
 
 ```{r}
+
+aggr_plot <- aggr(hm_genes, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(hm_genes), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+```
+
+
+```{r}
+marginplot(hm_genes[c(4,5)])
+```
+
+
+
+```{r}
 # m=5 refers to the number of imputed datasets. Five is the default value.
 igf <- mice(genes, m = 5, seed = 500) # method = meth,
 summary(igf)
@@ -193,6 +205,11 @@ hm_selection_g <- cbind(hm_selection_g, complete_genes)
 
 ```
 
+inspect the trace lines for convergence: 
+
+```{r}
+plot(igf)
+```
 
 
 
@@ -241,6 +258,7 @@ previous assumptions we expect the distributions to be similar.
 Another useful visual take on the distributions can be obtained using the 
 stripplot() function that shows the distributions of the variables as individual 
 points
+
 
 
 
