@@ -334,10 +334,26 @@ plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
              data = Field,
              response = "WL",
              group = "Sex") +
-    scale_fill_manual(values = c("blue", "red")) +
-  scale_color_manual(values = c("blue", "red")) +
-  theme_bw()
+    scale_fill_manual(values = c("blueviolet", "limegreen")) +
+  scale_color_manual(values = c("blueviolet", "limegreen")) +
+  theme_bw() 
 
+# Create HI bar
+HIgradientBar <- ggplot(data.frame(hi = seq(0,1,0.0001)),
+                        aes(x=hi, y=1, fill = hi)) +
+  geom_tile() +
+  theme_void() +
+  scale_fill_gradient(low = "blue", high = "red")  + 
+  scale_x_continuous(expand=c(.01,0)) + 
+  scale_y_continuous(expand=c(0,0)) +
+  theme(legend.position = 'none')
+
+plot_grid(plot_WL_Sex, 
+          HIgradientBar,
+          nrow = 2,
+          align = "v",
+          axis = "tlr",
+          rel_heights = c(13, 1))
 plot_WL_Sex
 
 ```
