@@ -1,0 +1,318 @@
+---
+title: "3. Exploration Gene "
+author: "Fay"
+date: '2022-10-05'
+output:
+  pdf_document: 
+    keep_md: yes
+    fig_width: 12
+    fig_height: 8
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+
+```{r load_libraries, echo=FALSE, include = FALSE}
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(janitor)
+library(visdat)
+library(corrplot)
+library(RColorBrewer)
+library(ggplot2)
+```
+
+# Import data
+```{r}
+MICE <- read.csv("output_data/1.MICE_cleaned_data.csv")
+```
+
+# Vectors for selecting genes
+```{r}
+Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF") #"IL.12", "IRG6")
+
+Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF") #, "IL.12", "IRG6")
+```
+
+
+# Lab data 
+## Correlations between the genes 
+
+
+```{r gene_correlations, echo = FALSE}
+gene_correlation <- MICE %>% 
+  filter(origin == "Lab", infection == "challenge", dpi == dpi_max) %>%
+  ungroup() %>%
+  dplyr::select(all_of(Gene_lab))
+
+# draw correlation between the genes
+gene_correlation <- as.matrix(cor(gene_correlation, 
+                                  use="pairwise.complete.obs"))
+
+# load the function to calculate the p value for correlations
+source("r_scripts/functions/p_value_for_correlations.R")
+
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(gene_correlation)
+```
+
+
+## Corrplot of correlations - Laboratory gene expression data
+
+Here is a corrplot of the correlations between the genes.
+
+```{r corrplot_correlations_genes, echo = FALSE}
+corrplot(gene_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black',
+         number.cex=0.5) 
+  #Add significance level to the correlogram
+#remove the values that are insignificant
+```
+
+
+
+## Gene expression versus infection intensities - laboratory infections
+
+```{r, echo = FALSE, message = FALSE}
+
+g <- MICE %>% 
+  filter(origin == "Lab", infection == "challenge", dpi == dpi_max) %>%
+  dplyr::group_by(Mouse_ID) %>%
+  pivot_longer(cols = all_of(Gene_lab), names_to = "Gene", 
+               values_to = "gene_expression")
+
+g <- unique(g)
+
+
+g %>%
+  ggplot(aes(x = Parasite_challenge, y = gene_expression, 
+             color = Parasite_challenge)) + 
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~ Gene) +
+  labs(x = "Infection groups, E64 = E. ferrisi, E88 = E.falciformis, 
+         UNI = Uninfected", y = "Gene expression",
+         title = "Gene expression in response to infection group, 
+         laboratory infections") +
+  theme_bw() +
+  theme(axis.text.x=element_blank(),
+        plot.title = element_text(size=30))
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+g %>%
+    filter(!Parasite_challenge == "uninfected", MC.Eimeria == "TRUE") %>%
+    ggplot(aes(x = delta_ct_cewe_MminusE, y = gene_expression, 
+               color = Parasite_challenge)) +
+    geom_jitter() +
+    facet_wrap(~ Gene, scales = "free") +
+    theme_light() +
+    labs(x = "Delta Ct, Infection intensity", y = "Gene expression",
+         title = "Gene expression in response to infection intensity - 
+         laboratory infections") +
+    theme_bw() +
+  theme(plot.title = element_text(size= 30))
+
+```
+
+
+
+
+
+
+
+
+
+```{r histogram_genes, echo = FALSE, message=FALSE}
+g  %>%
+  ggplot(aes(x = gene_expression, color = challenge_infection)) + 
+  geom_histogram(echo = FALSE) +
+  labs(x = "Delta Ct, Infection intensity", y = "Frequency",
+         title = "Gene expression in response to infecting parasite - 
+         laboratory infections") +
+  theme(plot.title = element_text(size= 30))
+```
+
+
+
+
+###############################
+# Repeating for field infections
+
+# Field data 
+## Correlations between the genes 
+
+
+```{r, echo = FALSE}
+gene_correlation <- MICE %>% 
+  filter(origin == "Field") %>%
+  ungroup() %>%
+  dplyr::select(all_of(Genes_wild))
+
+# draw correlation between the genes
+gene_correlation <- as.matrix(cor(gene_correlation, use="pairwise.complete.obs"))
+
+
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(gene_correlation)
+```
+
+
+## Corrplot of correlations - Field gene expression data
+
+Here is a corrplot of the correlations between the genes.
+I am using the non-normalized genes
+
+```{r, echo = FALSE}
+
+corrplot(gene_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black',
+         number.cex=0.5) #Add significance level to the correlogram
+#remove the values that are insignificant
+```
+
+## Gene expression versus infection intensities - Field infections
+
+
+
+```{r , echo = FALSE, message = FALSE}
+
+g <- MICE %>% 
+  filter(origin == "Field") %>%
+  dplyr::group_by(Mouse_ID) %>%
+  pivot_longer(cols = all_of(Genes_wild), names_to = "Gene", 
+               values_to = "gene_expression")
+
+g <- unique(g)
+
+
+g %>%
+  ggplot(aes(x = eimeriaSpecies, y = gene_expression, 
+             color = eimeriaSpecies)) + 
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~ Gene) +
+    labs(x = "Infective parasite species", y = "Gene expression",
+         title = "Gene expression in response to parasite species -
+         field data") +
+  theme_bw() +
+  theme(axis.text.x = element_blank(),
+        plot.title = element_text(size= 30))
+
+
+
+```
+
+
+
+
+```{r}
+
+g %>%
+    filter(!eimeriaSpecies == "uninfected", MC.Eimeria == "TRUE") %>%
+    ggplot(aes(x = delta_ct_cewe_MminusE, y = gene_expression, 
+               color = eimeriaSpecies)) +
+    geom_jitter() +
+    facet_wrap(~ Gene, scales = "free") +
+    theme_light() +
+    labs(x = "Delta Ct, Infection intensity", y = "Gene expression",
+         title = "Gene expression in response to infection intensity - 
+         field data") +
+    theme_bw() +
+  theme(plot.title = element_text(size= 30))
+
+
+```
+
+
+
+
+
+
+```{r , echo = FALSE, message=FALSE}
+g  %>%
+  ggplot(aes(x = gene_expression, color = eimeriaSpecies)) + 
+  geom_histogram(echo = FALSE) +
+  labs(x = "Delta Ct, Infection intensity", y = "Frequency",
+         title = "Gene expression in response to infecting parasite - 
+         field data") +
+  theme(plot.title = element_text(size= 30))
+
+```
+
+#####################
+# Gene expression correlations in lab and field data
+
+
+```{r, echo = FALSE}
+gene_correlation1 <- MICE %>% 
+  filter(origin == "Lab", infection == "challenge", dpi == dpi_max) %>%
+  ungroup() %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab)))
+
+gene_correlation2 <- MICE %>% 
+  filter(origin == "Field") %>%
+  ungroup() %>%
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild)))
+
+gene_correlation <- rbind(gene_correlation1, gene_correlation2)
+
+gene_correlation <- gene_correlation %>% 
+  dplyr::select(-Mouse_ID)
+
+# draw correlation between the genes
+gene_correlation <- as.matrix(cor(gene_correlation, 
+                                  use="pairwise.complete.obs"))
+
+
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(gene_correlation)
+```
+
+
+## Corrplot of correlations - *Laboratory and field* gene expression data
+
+Here is a corrplot of the correlations between the genes.
+
+```{r, echo = FALSE}
+corrplot(gene_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black',
+         number.cex=0.5) 
+  #Add significance level to the correlogram
+#remove the values that are insignificant
+```

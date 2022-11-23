@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Import data
 ```{r}
-MICE <- read.csv("output_data/MICE.csv")
+MICE <- read.csv("output_data/1.MICE_cleaned_data.csv")
 ```
 
 

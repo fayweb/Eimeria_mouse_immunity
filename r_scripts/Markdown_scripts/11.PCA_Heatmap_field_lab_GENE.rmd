@@ -31,7 +31,7 @@ library(visdat)
 
 # Load data
 ```{r}
-hm <- read.csv("output_data/imputed_mice.csv")
+hm <- read.csv("output_data/2.imputed_MICE_data_set.csv")
 ```
 
 # vectors for selecting

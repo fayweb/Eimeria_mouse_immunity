@@ -1,0 +1,311 @@
+---
+title: "4.Exploration facs data"
+author: "Fay"
+date: '2022-10-05'
+output:
+  pdf_document: 
+    keep_md: yes
+    fig_width: 12
+    fig_height: 8
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r , echo=FALSE, include = FALSE}
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(janitor)
+library(visdat)
+library(corrplot)
+library(RColorBrewer)
+library(ggplot2)
+```
+
+# Import data
+```{r}
+MICE <- read.csv("output_data/1.MICE_cleaned_data.csv")
+```
+
+
+# Vectors for selecting cells
+```{r}
+
+Facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
+                    "IL17A_CD4")  
+
+Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
+                     "Act_CD8", "IFNy_CD4", "IL17A_CD4", "IFNy_CD8")
+```
+
+
+# Lab data 
+## Correlations between the cells 
+
+
+```{r, echo = FALSE}
+facs_correlation <- MICE %>% 
+  filter(origin == "Lab", infection == "challenge", dpi == dpi_max) %>%
+  ungroup() %>%
+  dplyr::select(all_of(Facs_lab))
+
+# draw correlation between the cells
+facs_correlation <- as.matrix(cor(facs_correlation, 
+                                  use="pairwise.complete.obs"))
+
+# load the function to calculate the p value for correlations
+source("r_scripts/functions/p_value_for_correlations.R")
+
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(facs_correlation)
+```
+
+
+## Corrplot of correlations - Laboratory facs data
+
+Here is a corrplot of the correlations between the cells
+
+```{r corrplot_correlations_genes, echo = FALSE}
+corrplot(facs_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black',
+         number.cex=0.5) 
+  #Add significance level to the correlogram
+#remove the values that are insignificant
+```
+
+
+
+## FACS versus infection intensities - laboratory infections
+
+```{r, echo = FALSE, message = FALSE}
+
+f <- MICE %>% 
+  filter(origin == "Lab", infection == "challenge", dpi == dpi_max) %>%
+  dplyr::group_by(Mouse_ID) %>%
+  pivot_longer(cols = all_of(Facs_lab), names_to = "Cells", 
+               values_to = "Percentage")
+
+f <- unique(f)
+
+
+f %>%
+  ggplot(aes(x = Parasite_challenge, y = Percentage, 
+             color = Parasite_challenge)) + 
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~ Cells) +
+  labs(x = "Infection groups, E64 = E. ferrisi, E88 = E.falciformis, 
+         UNI = Uninfected", y = "Gene expression",
+         title = "Immune cell percentages in response to infection group, 
+         laboratory infections") +
+  theme_bw() +
+  theme(axis.text.x=element_blank(),
+        plot.title = element_text(size=30))
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+f %>%
+    filter(!Parasite_challenge == "uninfected", MC.Eimeria == "TRUE") %>%
+    ggplot(aes(x = delta_ct_cewe_MminusE, y = Percentage, 
+               color = Parasite_challenge)) +
+    geom_jitter() +
+    facet_wrap(~ Cells, scales = "free") +
+    theme_light() +
+    labs(x = "Delta Ct, Infection intensity", y = "Immune cell percentage",
+         title = "Immune cells in response to infection intensity - 
+         laboratory infections") +
+    theme_bw() +
+  theme(plot.title = element_text(size= 30))
+
+```
+
+
+
+
+
+
+
+
+
+```{r histogram_genes, echo = FALSE, message=FALSE}
+f  %>%
+  ggplot(aes(x = Percentage, color = challenge_infection)) + 
+  geom_histogram(echo = FALSE) +
+  labs(x = "Delta Ct, Infection intensity", y = "Frequency",
+         title = "Immune cells in response to infecting parasite - 
+         laboratory infections") +
+  theme(plot.title = element_text(size= 30))
+```
+
+
+
+
+###############################
+# Repeating for field infections
+
+# Field data 
+## Correlations between the cells 
+
+
+```{r, echo = FALSE}
+facs_correlation <- MICE %>% 
+  filter(origin == "Field") %>%
+  ungroup() %>%
+  dplyr::select(all_of(Facs_wild))
+
+# draw correlation between the genes
+facs_correlation <- as.matrix(cor(facs_correlation, use="pairwise.complete.obs"))
+
+
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(facs_correlation)
+```
+
+
+## Corrplot of correlations - Field facs data
+
+Here is a corrplot of the correlations between the cells
+
+
+```{r, echo = FALSE}
+
+corrplot(facs_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black',
+         number.cex=0.5) #Add significance level to the correlogram
+#remove the values that are insignificant
+```
+
+## Immune cells versus infection intensities - Field infections
+
+
+
+```{r , echo = FALSE, message = FALSE}
+
+f <- MICE %>% 
+  filter(origin == "Field") %>%
+  dplyr::group_by(Mouse_ID) %>%
+  pivot_longer(cols = all_of(Facs_wild), names_to = "Cells", 
+               values_to = "Percentage")
+
+f <- unique(f)
+
+
+f %>%
+  ggplot(aes(x = eimeriaSpecies, y = Percentage, 
+             color = eimeriaSpecies)) + 
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~ Cells) +
+    labs(x = "Infective parasite species", y = "Immune Cells",
+         title = "Immune cells in response to parasite species -
+         field data") +
+  theme_bw() +
+  theme(axis.text.x = element_blank(),
+        plot.title = element_text(size= 30))
+
+
+
+```
+
+
+
+
+```{r}
+
+f %>%
+    filter(!eimeriaSpecies == "uninfected", MC.Eimeria == "TRUE") %>%
+    ggplot(aes(x = delta_ct_cewe_MminusE, y = Percentage, 
+               color = eimeriaSpecies)) +
+    geom_jitter() +
+    facet_wrap(~ Cells, scales = "free") +
+    theme_light() +
+    labs(x = "Delta Ct, Infection intensity", y = "Percentage",
+         title = "Immune cells in response to infection intensity - 
+         field data") +
+    theme_bw() +
+  theme(plot.title = element_text(size= 30))
+
+
+```
+
+
+
+
+
+
+#####################
+# FACS correlations in lab and field data
+
+
+```{r, echo = FALSE}
+facs_correlation1 <- MICE %>% 
+  filter(origin == "Lab", infection == "challenge", dpi == dpi_max) %>%
+  ungroup() %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_lab)))
+
+facs_correlation2 <- MICE %>% 
+  filter(origin == "Field") %>%
+  ungroup() %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_wild)))
+
+# We want to have the same exactly columns in order for our correlation to work
+facs_correlation1 <- facs_correlation1 %>%
+  dplyr::select(colnames(facs_correlation2))
+
+facs_correlation <- rbind(facs_correlation1, facs_correlation2)
+
+facs_correlation <- facs_correlation %>% 
+  dplyr::select(-Mouse_ID)
+
+# draw correlation between the genes
+facs_correlation <- as.matrix(cor(facs_correlation, 
+                                  use="pairwise.complete.obs"))
+
+
+# matrix of the p-value of the correlatio
+p.mat <- cor.mtest(facs_correlation)
+```
+
+
+## Corrplot of correlations - *Laboratory and field* gene expression data
+
+Here is a corrplot of the correlations between the genes.
+
+```{r, echo = FALSE}
+corrplot(facs_correlation, 
+         method = "circle",  #method of the plot, "color" would show colour gradient
+         tl.col = "black", tl.srt=45, #colour of labels and rotation
+         col = brewer.pal(n = 8, name ="RdYlBu"), #colour of matrix
+         order="hclust", #hclust reordering
+         p.mat = p.mat, sig.level = 0.01, insig = "blank",
+         addCoef.col = 'black',
+         number.cex=0.5) 
+  #Add significance level to the correlogram
+#remove the values that are insignificant
+```
