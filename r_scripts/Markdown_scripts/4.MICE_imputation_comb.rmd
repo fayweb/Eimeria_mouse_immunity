@@ -133,8 +133,8 @@ hm_genes <- rbind(gene_lab_mouse, genes_mouse_field)
 
 hm_selection_g <- rbind(lab, field)
 
-genes <- hm_genes %>%
-  dplyr::select(-Mouse_ID)
+genes <- hm_genes #%>%
+ # dplyr::select(-Mouse_ID)
 
 
 # looking at patterns of nas
@@ -248,7 +248,8 @@ stripplot(igf, pch = 20, cex = 1.2)
 
 
 ```{r }
-densityplot(igf)
+
+densityplot(igf, height = 1000, width = 800)
 ```
 
 The density of the imputed data for each imputed dataset is showed in magenta 
