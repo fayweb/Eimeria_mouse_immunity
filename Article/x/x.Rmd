@@ -1,0 +1,419 @@
+---
+title: Tolerance of hybrid hosts against infections, TAC Meeting December 2022
+author:
+  - name: Fay Webster
+    email: fay.webster@hu-berlin.de
+    corresponding_author: TRUE # Automatic footnote using corresponding_author
+    affiliation:
+      - ABC
+      - DEF
+    biography: |
+      jkjb
+#    biography_pic: "/PATH/TO/image.png"
+#    biography_pic_width: "1in"
+  - name: Lubomír Bednář
+    email: bednarlu@hu-berlin.de
+    affiliation:
+      - ABC
+      - DEF
+    footnote:  # Footnote using reference
+      - 2
+  - name: Emanuel Heitlinger
+    email: emanuel.heitlinger@hu-berlin.de
+    affiliation: 
+      - ABC
+      - DEF
+    footnote:
+        - 1
+address:
+  - code: ABC
+    department: Department of Molecular Parasitology, Institute for Biology
+    organization: Humboldt University Berlin (HU)
+    street: Philippstraße 13
+    #postcode: 
+    city: Berlin
+    state: 10115 # Mix and match elements to get proper address
+    country: Germany
+  - code: DEF
+    department: Research Group Ecology and Evolution of Molecular Parasite-Host Interactions
+    organization: Leibniz-Institut for Zoo and Wildlife Research (IZW)
+    street: Alfred-Kowalke-Straße 17 
+    #postcode: 
+    city: Berlin
+    state: 10315 # Mix and match elements to get proper address
+    country: Germany
+footnote:
+  - code: 1
+    text:
+  - code: 2
+    text: "Current email address: [fay.webster@hu-berlin.de)](mailto:fay.webster@hu-berlin.de))"
+abstract:
+  - "Parasites in hybrid zones can give insight into species barriers, as they are modulating the fitness of hybrid hosts. Recent findings have demonstrated lower infection intensities with parasites in hybrids in the European House Mouse Hybrid zone (HMHZ), indicating higher disease resistance. However, tolerance has not yet been addressed in depth, as it is impractical to measure in wild populations. In an attempt to predict and evaluate the health impact of parasite infections and extrapolate tolerance in the HMHZ, we use a machine learning method. A random forest model was trained on immune parameters measured in experimental lab infections with Eimeria and then applied to data obtained from field sampling. Our predictions revealed that these infections are more detrimental to hybrid male mice. This approach represents an initial step in assessing tolerance in field studies."
+keywords:
+  - hybrids
+  - parasites
+#boxedlist: # Not fully compatible with all document formats
+competing_interests: |
+  There are no competing interest.
+author_contributions: |
+  To be worked on
+acknowledgements: |
+  To be worked on
+bibliography: mybibfile.bib # Includes refs in OUP example template
+#csl: https://www.zotero.org/styles/oxford-university-press-note
+output:
+  rticles::oup_article:
+    oup_version: 1 # 1 = 2020 CTAN OUP CLS package; 0 = 2009 OUP CLS package
+    journal: 
+    document_style: "contemporary" # Can be contemporary, modern, traditional
+    papersize: "large" # Can be large, medium, small
+    #citation_package: "default" # Uncomment when using a CSL; default "natbib"
+    namedate: TRUE # Set FALSE to use numeric refs; Default FALSE
+    #number_sections: FALSE # Uncomment to not number sections; default TRUE
+    #number_lines: TRUE # Use `lineno` package - Default FALSE
+    #number_lines_options: ["mathlines","switch"]  # Options for latex lineno package.
+    #onecolumn: TRUE # Uncomment for one column format; default FALSE
+    extra_dependencies:
+      - booktabs # to use with knitr::kable() example below
+  html_document: default
+  pdf_document: default
+  word_document: default
+#urlcolor: orange
+#linkcolor: green
+#citecolor: red
+header-includes:
+  #- \usepackage[nomarkers,tablesfirst]{endfloat} # For figures and tables at end
+  - \theoremstyle{thmstyleone} # Theorem stuff from OUP template
+  - \newtheorem{theorem}{Theorem} #  meant for continuous numbers. %%\newtheorem{theorem}{Theorem}[section] # meant for sectionwise numbers. optional argument [theorem] produces theorem numbering sequence instead of independent numbers for Proposition
+  - \newtheorem{proposition}[theorem]{Proposition} # %%\newtheorem{proposition}{Proposition}" # to get separate numbers for theorem and proposition etc.
+  - \theoremstyle{thmstyletwo}
+  - \newtheorem{example}{Example}
+  - \newtheorem{remark}{Remark}
+  - \theoremstyle{thmstylethree}
+  - \newtheorem{definition}{Definition}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, # By default, hide code; set to TRUE to see code
+  fig.pos = 'th', # Places figures at top or here
+  out.width = '100%', dpi = 300, # Figure resolution and size
+  fig.env="figure"
+) # Latex figure environment
+
+options(knitr.table.format = "latex") # For kable tables to write LaTeX table directly
+```
+
+
+
+# Introduction
+## Introduce the topic
+
+# Methods
+
+## Statistical Analysis
+
+### Imputation of missing data 
+
+To make the most of our data collection, we aimed to resolve missingness. Missing data were imputed using multiple imputations by chained equations. We used the package MICE in R @van2011mice, with five imputed data sets and five iterations. Data generated by FACS or the Gene Expression / Biomarker assay were regarded as missing if each mouse had measurements for some variables. For each continuous variable, we specified a predictive mean matching model. All the remaining variables were used as predictors in the imputation. To control the quality of our imputations, we evaluated the distribution plot of the existing data and the imputed data for all measurements. Further, we tested for convergence \ref{fig:sup_fig1}. We assume data is "missing completely at random" or "missing at random". For both types of missingness, multiple imputation is a suggested method to impute missing variables @van2018flexible. 
+
+#### Questions / To-dos:
+ 
+1. Should I log-transform the data prior to imputation?
+2. Increasing produced data sets / iterations
+3. sensitivity analyses using complete cases only 
+
+
+```{r, warning=FALSE, message=FALSE, include=FALSE}
+library(mice)
+library(tidyr)
+library(tidyverse)
+library(VIM)
+library(fitdistrplus)
+library(fitur)
+library(visdat)
+
+setwd("~/GitHub/Eimeria_mouse_immunity/")
+
+hm <- read.csv("output_data/1.MICE_cleaned_data.csv")
+
+# Vectors for selecting genes
+#Lab genes
+# The measurements of IL.12 and IRG6 are done with an other assay and will 
+#ignore for now
+Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF") #"IL.12", "IRG6")
+Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF") #, "IL.12", "IRG6")
+Facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
+                    "IL17A_CD4")  
+Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8")
+
+# data imputation
+
+# Genes
+field <- hm %>%
+  dplyr::filter(origin == "Field") 
+
+field <- unique(field)
+genes_mouse_field <- field %>%
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild))) 
+genes <- genes_mouse_field  %>%
+  dplyr::select(-Mouse_ID)
+#remove rows with only nas
+genes <- genes[,colSums(is.na(genes))<nrow(genes)]
+#remove colums with only nas 
+genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
+genes_mouse_field <- genes_mouse_field[row.names(genes), ]
+##select same rows in the first table
+field <- field[row.names(genes), ]
+###############lab
+#select the genes and lab muce
+lab <- hm %>%
+  dplyr::filter(origin == "Lab", Position == "mLN") #selecting for mln to avoid
+# duplicates
+lab <- unique(lab)
+gene_lab_mouse <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab))) 
+gene_lab_mouse <- unique(gene_lab_mouse)
+genes_lab <- gene_lab_mouse[, -1]
+#remove rows with only nas
+genes_lab <- genes_lab[,colSums(is.na(genes_lab))<nrow(genes_lab)]
+#remove colums with only nas 
+genes_lab <- genes_lab[rowSums(is.na(genes_lab)) != ncol(genes_lab), ]
+genes_lab <- unique(genes_lab)
+#select same rows in the first table
+gene_lab_mouse <- gene_lab_mouse[row.names(genes_lab), ]
+
+##select same rows in the first table
+lab <- lab[row.names(genes_lab), ]
+hm_genes <- rbind(gene_lab_mouse, genes_mouse_field)
+hm_selection_g <- rbind(lab, field)
+genes <- hm_genes %>%
+ dplyr::select(-Mouse_ID)
+# looking at patterns of nas
+#pattern_na <-as.data.frame(md.pattern(field_genes))
+sapply(hm_genes, function(x) sum(is.na(x)))
+#had to remove as they were disturbing the imputation: Worms_presence, MC.Eimeria.FEC,  Heligmosomoides_polygurus, Zfy2, Y,  MpiC,
+#vis_miss(field)
+# The frequency distribution of the missing cases per variable can be obtained 
+# as:
+init <- mice(genes, maxit = 0)
+#we want to impute only the specific variables
+meth <- init$method
+
+aggr_plot <- aggr(hm_genes, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(hm_genes), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+
+marginplot(hm_genes[c(4,5)])
+
+# m=5 refers to the number of imputed datasets. Five is the default value.
+igf <- mice(genes, m = 5, seed = 500) # method = meth,
+summary(igf)
+# to check each column with imputed data
+## igf$imp$IFNy
+#Now we can get back the completed dataset using the complete()
+complete_genes <- complete(igf, 1)
+#sapply(complete_field, function(x) sum(is.na(x)))
+#visualize missingness
+vis_dat(complete_genes)
+#remove the non imputed genes from our data set
+hm_selection_g <- hm_selection_g %>%
+  dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF"))
+# add the new imputed genes to the data
+hm_selection_g <- cbind(hm_selection_g, complete_genes)
+
+xyplot(igf, IFNy ~ IL.13 + IRGM1 + MUC2, pch=18,cex=1)
+
+xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
+
+###############lab
+#select the facs and lab muce
+lab <- hm %>%
+  dplyr::filter(origin == "Lab", Position == "mLN") #selecting for mln to avoid
+# duplicates
+lab <- unique(lab)
+facs_mouse <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_lab))) #choosing the same with the wild
+facs_mouse <- unique(facs_mouse)
+facs_lab <- facs_mouse[, -1]
+#remove rows with only nas
+facs_lab <- facs_lab[,colSums(is.na(facs_lab))<nrow(facs_lab)]
+#remove colums with only nas 
+facs_lab <- facs_lab[rowSums(is.na(facs_lab)) != ncol(facs_lab), ]
+#select same rows in the first table
+facs_mouse <- facs_mouse[row.names(facs_lab), ]
+##select same rows in the first table
+lab <- lab[row.names(facs_mouse), ]
+#########################Field
+###########field
+# somehow the field samples have the origin na,
+# fix that
+field <- hm %>%
+  dplyr::filter(origin == "Field") 
+field <- unique(field)
+facs_mouse <- field %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_wild))) 
+facs_field <- facs_mouse[,-1]
+#remove rows with only nas
+facs_field <- facs_field[,colSums(is.na(facs_field))<nrow(facs_field)]
+#remove colums with only nas 
+facs_field <- facs_field[rowSums(is.na(facs_field)) != ncol(facs_field), ]
+##select same rows in the first table
+field <- field[row.names(facs_field), ]
+facs_data <- full_join(lab, field, by = intersect(colnames(lab), colnames(field)))
+facs_data <- unique(facs_data) %>%
+  dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF"))
+
+hm_selection_g <- hm_selection_g %>% 
+  full_join(facs_data, by = intersect(colnames(facs_data), colnames(hm_selection_g)))
+hm_selection_g <- unique(hm_selection_g)
+```
+
+
+# Results 
+# Discussion
+# Conclusion
+
+## A subsection
+
+
+
+# Literature citations
+
+
+
+# Equations
+
+An equation without a label for cross-referencing:
+
+$$
+E=mc^2
+$$
+
+An inline equation: $y=ax+b$
+
+An equation with a label for cross-referencing:
+
+\begin{equation}\label{eq:eq1}
+\int^{r_2}_0 F(r,\varphi){\rm d}r\,{\rm d}\varphi = 1
+\end{equation}
+
+This equation can be referenced as follows: Eq. \ref{eq:eq1}
+
+# Inserting R figures
+
+The code below creates a figure. The code is included in the output because `echo=TRUE`.
+
+```{r fig1, fig.cap="This is the first figure.",echo=TRUE}
+plot(1:10,main="Some data",xlab="Distance (cm)",
+     ylab="Time (hours)")
+```
+
+You can reference this figure as follows: Fig. \ref{fig:fig1}.
+
+## Figures spanning two-columns
+
+Figures can span two columns be setting `fig.env="figure*"`.
+
+```{r fig2, fig.cap="This is a wide figure.",fig.env="figure*"}
+plot(1:5,pch=19,main="Some wide data",
+     xlab="Distance (cm)",ylab="Time (hours)")
+```
+
+Reference to second figure: Fig. \ref{fig:fig2}
+
+# Tables
+
+## Generate a table using `xtable`
+
+```{r xtabletable, results="asis", echo=TRUE}
+df = data.frame(ID=1:3,code=letters[1:3])
+
+# Creates tables that follow OUP guidelines 
+# using xtable
+library(xtable) 
+print(xtable(df,caption="This is a xtable table.",
+             label="tab:tab1"),
+      comment=FALSE,caption.placement="top")
+```
+
+You can reference this table as follows: Table \ref{tab:tab1}.
+
+## Generate a table using `kable`
+
+```{r kabletable, echo=TRUE}
+df = data.frame(ID=1:3,code=letters[1:3])
+
+# kable can alse be used for creating tables
+knitr::kable(df,caption="This is a kable table.",
+             booktabs=TRUE,label="tab2")
+```
+
+You can reference this table as follows: Table \ref{tab:tab2}.
+
+## Table spanning two columns
+
+Tables can span two columns be setting `table.envir = "table*"` in `knitr::kable`.
+
+```{r widetable, echo=TRUE}
+df = data.frame(ID=1:3,code1=letters[1:3],
+                code2=letters[4:6],
+                code3=letters[7:9],
+                code4=letters[10:12],
+                code5=letters[13:15])
+
+# kable can alse be used for creating tables
+knitr::kable(df,caption="This is a wide kable table.",
+             #format="latex",
+             table.envir="table*",
+             booktabs=TRUE,label="tab3")
+```
+
+# Cross-referencing sections
+
+You can cross-reference sections and subsections as follows: Section \ref{literature-citations} and Section \ref{a-subsection}.
+
+***Note:*** the last section in the document will be used as the section title for the bibliography.
+
+For more portable and flexible referencing of sections, equations, figures and tables, use [`bookdown::pdf_document2`](https://github.com/rstudio/bookdown) with YAML header option `base_format: rticles::oup_article`.
+
+# Appendices {-}
+
+::: {.appendices latex=true}
+
+# Section title of first appendix
+
+blabla
+
+## Subsection title of first appendix
+
+and so on....
+:::
+
+# References
+
+# Supplementarry material
+
+```{r sup_fig1, fig.cap="Inspecting to evaluate trace lines for convergence", fig.env="figure*", echo=FALSE, message = FALSE, include = FALSE}
+plot(igf)
+```
+
+```{r sup_fig2, fig.cap="Stripplot of observed and imputed data", fig.env="figure*", echo=TRUE}
+stripplot(igf, pch = 20, cex = 1.2)
+```
+
+```{r sup_fig3, fig.cap="Stripplot of observed and imputed data",fig.env="figure*", echo=TRUE }
+densityplot(igf, height = 1000, width = 800)
+```
