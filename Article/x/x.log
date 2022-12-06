@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.12.5)  6 DEC 2022 17:59
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.12.5)  6 DEC 2022 18:51
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -779,21 +779,16 @@ File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
 LaTeX Font Info:    Calculating math sizes for size <7.52812> on input line 279.
 LaTeX Font Info:    Calculating math sizes for size <6.52437> on input line 279.
 
-LaTeX Warning: Reference `fig:sup_fig1' on page 1 undefined on input line 307.
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
-Underfull \hbox (badness 1194) in paragraph at lines 297--311
-\OT1/cmr/m/n/7.52812 To make the most of our data collection, we aimed to
+Underfull \hbox (badness 4995) in paragraph at lines 351--366
+\OT1/cmr/m/n/7.52812 the filter based innuPREP RNA Mini Kit 2.0 (Jena
  []
 
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
-<x_files/figure-latex/fig1-1.pdf, id=118, 469.755pt x 325.215pt>
-File: x_files/figure-latex/fig1-1.pdf Graphic file (type pdf)
-<use x_files/figure-latex/fig1-1.pdf>
-Package pdftex.def Info: x_files/figure-latex/fig1-1.pdf  used on input line 374.
-(pdftex.def)             Requested size: 235.25pt x 162.86514pt.
 [1
 Non-PDF special ignored!
 <special> ps: [{ThisPage} << /CropBox [0 0 595.26013 782.33696] >> /PUT pdf...
@@ -802,32 +797,30 @@ Non-PDF special ignored!
 
 
 ]
-<x_files/figure-latex/fig2-1.pdf, id=179, 469.755pt x 325.215pt>
-File: x_files/figure-latex/fig2-1.pdf Graphic file (type pdf)
-<use x_files/figure-latex/fig2-1.pdf>
-Package pdftex.def Info: x_files/figure-latex/fig2-1.pdf  used on input line 386.
-(pdftex.def)             Requested size: 488.5pt x 338.19081pt.
-
-LaTeX Font Warning: Font shape `OT1/cmtt/b/n' undefined
-(Font)              using `OT1/cmtt/bx/n' instead on input line 396.
-
-LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10.03749> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 396.
-
-Overfull \hbox (4.71155pt too wide) in paragraph at lines 410--410
-[]\OT1/cmtt/m/n/7.52812 ## Warning: package ^^Mxtable^^M was built under R version 4.2.1[] 
+Underfull \hbox (badness 1675) in paragraph at lines 372--385
+\OT1/cmr/m/n/7.52812 United States). Fluidigm Preamp Master Mix (Fluidigm
  []
 
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+Underfull \hbox (badness 1194) in paragraph at lines 423--437
+\OT1/cmr/m/n/7.52812 To make the most of our data collection, we aimed to
+ []
 
-
-LaTeX Font Warning: Font shape `OT1/cmtt/b/n' undefined
-(Font)              using `OT1/cmtt/bx/n' instead on input line 439.
-
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
+<x_files/figure-latex/fig1-1.pdf, id=189, 469.755pt x 325.215pt>
+File: x_files/figure-latex/fig1-1.pdf Graphic file (type pdf)
+<use x_files/figure-latex/fig1-1.pdf>
+Package pdftex.def Info: x_files/figure-latex/fig1-1.pdf  used on input line 439.
+(pdftex.def)             Requested size: 488.5pt x 338.19081pt.
+<x_files/figure-latex/fig2-1.pdf, id=190, 469.755pt x 325.215pt>
+File: x_files/figure-latex/fig2-1.pdf Graphic file (type pdf)
+<use x_files/figure-latex/fig2-1.pdf>
+Package pdftex.def Info: x_files/figure-latex/fig2-1.pdf  used on input line 443.
+(pdftex.def)             Requested size: 488.5pt x 338.19081pt.
+<x_files/figure-latex/figa-1.pdf, id=192, 469.755pt x 325.215pt>
+File: x_files/figure-latex/figa-1.pdf Graphic file (type pdf)
+<use x_files/figure-latex/figa-1.pdf>
+Package pdftex.def Info: x_files/figure-latex/figa-1.pdf  used on input line 511.
+(pdftex.def)             Requested size: 235.25pt x 162.86514pt.
 
 Overfull \hbox (253.25pt too wide) has occurred while \output is active
 [][][] 
@@ -837,6 +830,41 @@ Overfull \hbox (253.25pt too wide) has occurred while \output is active
 Overfull \vbox (1.0pt too high) has occurred while \output is active []
 
 [2
+Non-PDF special ignored!
+<special> ps: [{ThisPage} << /CropBox [0 0 595.26013 782.33696] >> /PUT pdf...
+]
+<x_files/figure-latex/figb-1.pdf, id=225, 469.755pt x 325.215pt>
+File: x_files/figure-latex/figb-1.pdf Graphic file (type pdf)
+<use x_files/figure-latex/figb-1.pdf>
+Package pdftex.def Info: x_files/figure-latex/figb-1.pdf  used on input line 523.
+(pdftex.def)             Requested size: 488.5pt x 338.19081pt.
+
+LaTeX Font Warning: Font shape `OT1/cmtt/b/n' undefined
+(Font)              using `OT1/cmtt/bx/n' instead on input line 533.
+
+LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10.03749> not available
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 533.
+
+Overfull \hbox (4.71155pt too wide) in paragraph at lines 547--547
+[]\OT1/cmtt/m/n/7.52812 ## Warning: package ^^Mxtable^^M was built under R version 4.2.1[] 
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+LaTeX Font Warning: Font shape `OT1/cmtt/b/n' undefined
+(Font)              using `OT1/cmtt/bx/n' instead on input line 576.
+
+
+Overfull \hbox (253.25pt too wide) has occurred while \output is active
+[][][] 
+ []
+
+
+Overfull \vbox (1.0pt too high) has occurred while \output is active []
+
+[3
 Non-PDF special ignored!
 <special> ps: [{ThisPage} << /CropBox [0 0 595.26013 782.33696] >> /PUT pdf...
  <./x_files/figure-latex/fig1-1.pdf>]
@@ -850,123 +878,27 @@ Overfull \hbox (253.25pt too wide) has occurred while \output is active
 
 Overfull \vbox (1.0pt too high) has occurred while \output is active []
 
-[3
-Non-PDF special ignored!
-<special> ps: [{ThisPage} << /CropBox [0 0 595.26013 782.33696] >> /PUT pdf...
- <./x_files/figure-latex/fig2-1.pdf>]
-<x_files/figure-latex/sup_fig2-1.pdf, id=224, 469.755pt x 325.215pt>
-File: x_files/figure-latex/sup_fig2-1.pdf Graphic file (type pdf)
-<use x_files/figure-latex/sup_fig2-1.pdf>
-Package pdftex.def Info: x_files/figure-latex/sup_fig2-1.pdf  used on input line 553.
-(pdftex.def)             Requested size: 488.5pt x 338.19081pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-<x_files/figure-latex/sup_fig3-1.pdf, id=225, 469.755pt x 325.215pt>
-File: x_files/figure-latex/sup_fig3-1.pdf Graphic file (type pdf)
-<use x_files/figure-latex/sup_fig3-1.pdf>
-Package pdftex.def Info: x_files/figure-latex/sup_fig3-1.pdf  used on input line 563.
-(pdftex.def)             Requested size: 488.5pt x 338.19081pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-Overfull \hbox (253.25pt too wide) has occurred while \output is active
-[][][] 
- []
-
-
-Overfull \vbox (1.0pt too high) has occurred while \output is active []
-
 [4
 Non-PDF special ignored!
 <special> ps: [{ThisPage} << /CropBox [0 0 595.26013 782.33696] >> /PUT pdf...
- <./x_files/figure-latex/sup_fig2-1.pdf>] (./x.bbl
+ <./x_files/figure-latex/fig2-1.pdf> <./x_files/figure-latex/figa-1.pdf>] (./x.bbl
 Underfull \hbox (badness 4254) in paragraph at lines 14--17
 []\OT1/cmr/m/n/7.52812 S. Van Buuren and K. Groothuis-Oudshoorn.  mice:
  []
 
 )
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
-[leftcolumn badness]: 1000000 on 10.097pt
-[rightcolumn badness]: 1000000 on 10.097pt
 - LAST -
-Extra skip:66.86679pt
-Left:125.0pt/1.46379pt
-Right:58.03561pt/1.56139pt
-Split: 125.7678pt
-Output:125.7678pt
-Pageshrink: 0.0pt
-Pagestretch: 0.0pt
-@colht:293.60916pt
-FLUSHEND [output]: 125.7678pt
+Extra skip:0.0pt
+Left:202.5pt/0.0pt
+Right:201.53561pt/1.56139pt
+Split: 203.5178pt
+Output:203.5178pt
+Pageshrink: 3.375pt
+Pagestretch: 14.75pt
+@colht:212.20216pt
+FLUSHEND [output]: 203.5178pt
 FLUSHEND [leftcolumn badness]: 0
-FUSHEND [rightcolumn badness]: 10000
+FUSHEND [rightcolumn badness]: 1
 
 Overfull \hbox (253.25pt too wide) has occurred while \output is active
 [][][] 
@@ -975,26 +907,23 @@ Overfull \hbox (253.25pt too wide) has occurred while \output is active
 [5
 Non-PDF special ignored!
 <special> ps: [{ThisPage} << /CropBox [0 0 595.26013 782.33696] >> /PUT pdf...
- <./x_files/figure-latex/sup_fig3-1.pdf>] (./x.aux)
-
-LaTeX Warning: There were undefined references.
-
+ <./x_files/figure-latex/figb-1.pdf>] (./x.aux)
 Package rerunfilecheck Info: File `x.out' has not changed.
-(rerunfilecheck)             Checksum: 3908A1053D73272A7A93734C8B76AB55;3873.
+(rerunfilecheck)             Checksum: 94E913AAD2FC21477195F278F2C60692;5669.
  ) 
 Here is how much of TeX's memory you used:
- 25973 strings out of 476928
- 490440 string characters out of 5823314
- 824272 words of memory out of 5000000
- 46651 multiletter control sequences out of 15000+600000
- 492115 words of font info for 115 fonts, out of 8000000 for 9000
+ 26006 strings out of 476928
+ 491160 string characters out of 5823314
+ 823784 words of memory out of 5000000
+ 46669 multiletter control sequences out of 15000+600000
+ 492454 words of font info for 116 fonts, out of 8000000 for 9000
  18 hyphenation exceptions out of 8191
- 99i,10n,94p,17344b,516s stack positions out of 10000i,1000n,20000p,200000b,200000s
- <c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm0600.650pk> <c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm0500.548pk> <c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm0900.609pk><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmb10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx6.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx7.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbxti10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmitt10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti7.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb>
-Output written on x.pdf (5 pages, 3508583 bytes).
+ 99i,10n,94p,17344b,477s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ <c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm0600.650pk> <c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm0700.645pk> <c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm0500.548pk> <c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm0900.609pk><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmb10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx6.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx7.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbxti10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmitt10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti7.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb><c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb>
+Output written on x.pdf (5 pages, 3524944 bytes).
 PDF statistics:
- 384 PDF objects out of 1000 (max. 8388607)
- 314 compressed objects within 4 object streams
- 83 named destinations out of 1000 (max. 500000)
- 241 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 432 PDF objects out of 1000 (max. 8388607)
+ 358 compressed objects within 4 object streams
+ 97 named destinations out of 1000 (max. 500000)
+ 297 words of extra memory for PDF output out of 10000 (max. 10000000)
 
