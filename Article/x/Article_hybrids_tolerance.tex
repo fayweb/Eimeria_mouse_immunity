@@ -292,7 +292,7 @@ represents an initial step in assessing tolerance in field studies.}
 experiments}\label{laboratory-infection-experiments}}
 
 \hypertarget{mouse-strains-luke}{%
-\subsection{Mouse strains (Luke)}\label{mouse-strains-luke}}
+\subsubsection{Mouse strains (Luke)}\label{mouse-strains-luke}}
 
 In order to gain a better understanding of tolerance in hybrid mice we
 established a laboratory model of experimental lab infections with the
@@ -323,7 +323,7 @@ were Eimeria spp., prior to infection, following the methods of Balard
 \citet{balard2020coupling}.
 
 \hypertarget{infections-with-eimeria-spp.-luke}{%
-\subsection{Infections with Eimeria spp.
+\subsubsection{Infections with Eimeria spp.
 (Luke)}\label{infections-with-eimeria-spp.-luke}}
 
 The procedure used is as described in in Balard et al., 2020. During the
@@ -345,7 +345,7 @@ were allocated at random, while ensuring a similar distribution of age
 and sex between groups.
 
 \hypertarget{gene-expression-high-thoughput-qpcr-luke}{%
-\subsection{Gene expression high-thoughput qPCR
+\subsubsection{Gene expression high-thoughput qPCR
 (Luke)}\label{gene-expression-high-thoughput-qpcr-luke}}
 
 Homogenized caecum tissue was processed for RNA using the filter based
@@ -413,6 +413,22 @@ follows: Application type: Gene Expression, Passive reference: ROX,
 Assay: Single probe, Probe type: EvaGreen, using the GE 192x24 PCR+Melt
 v2.pcl protocol, on Auto-exposure.
 
+\hypertarget{wild-mice}{%
+\subsection{Wild mice}\label{wild-mice}}
+
+During the years 2016 to 2019, we sampled 1889 mice in the House Mouse
+Hybrid zone. We used live traps to capture mice in farms and houses,
+during September every year. To catch mice of \emph{M. musculus
+musculus}, \emph{M. musculus domesticus} and hybrid origin, we selected
+a large geographic area in Brandenburg and Neuruppin. For each mouse, we
+have collected information during dissections, on their body length,
+their weight and their pathophysiology. Tissue samples were used to
+genotype the hosts. Further information on the set-up of the experiment
+can be found in previous publications of the group
+\citet{balard2020intensity} From 1889 mice, 336 were selected with a
+varying genotype for Fluidigm BioMark assay. Another 95 were selected
+for fluorescence-activated cell sorting.
+
 \hypertarget{statistical-analysis}{%
 \subsection{Statistical Analysis}\label{statistical-analysis}}
 
@@ -435,17 +451,6 @@ assume data is ``missing completely at random'' or ``missing at
 random''. For both types of missingness, multiple imputation is a
 suggested method to impute missing variables \citet{van2018flexible}.
 
-\begin{figure*}[th]
-\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig1-1} \caption{Stripplot of observed and imputed data}\label{fig:fig1}
-\end{figure*}
-
-\begin{figure*}[th]
-\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig2-1} \caption{Density plot of observed and imputed data}\label{fig:fig2}
-\end{figure*}
-
-\hypertarget{rand}{%
-\subsubsection{Rand}\label{rand}}
-
 \hypertarget{questions-to-dos}{%
 \paragraph{Questions / To-dos:}\label{questions-to-dos}}
 
@@ -459,6 +464,34 @@ suggested method to impute missing variables \citet{van2018flexible}.
 \item
   sensitivity analyses using complete cases only
 \end{enumerate}
+
+\hypertarget{random-forest}{%
+\subsubsection{Random forest}\label{random-forest}}
+
+In an attempt to predict the health impact of infections in mice, we
+used a random forest model \citet{breiman2001random}. We chose the
+maximum weight loss during the experimental laboratory infections of
+mice with the parasite \emph{Eimeria spp.} as a response variable.
+Maximum weight loss is here used as a proxy describing the health impact
+caused by infections. The random forest was constructed utilizing the
+expression data of 20 genes, obtained by the biomarker assay (utilizing
+the R package ``randomForest,'' ntree = 1000). The data set was split
+into a training data set of 70 \% and to a testing data set of 30 \% to
+avoid over-fitting and to assess the performance of the model on
+``unseen'' data. As a quality assessment, we used k- fold cross
+validation, where the data set is divided into k subsets. Each time, the
+model is assessed by using one of the k subsets as the test data set and
+the other as the training data set. The model was then fitted on each
+k-subset and afterwards evaluated on the test set. Last the evaluation
+score was noted and the model then discarded.
+
+\begin{figure*}[th]
+\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig1-1} \caption{Stripplot of observed and imputed data}\label{fig:fig1}
+\end{figure*}
+
+\begin{figure*}[th]
+\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig2-1} \caption{Density plot of observed and imputed data}\label{fig:fig2}
+\end{figure*}
 
 \hypertarget{results}{%
 \section{Results}\label{results}}
@@ -689,10 +722,6 @@ To be worked on
 \bibliography{mybibfile.bib}
 
 %% Author bio-pics with images
-\begin{biography}{%
-%
-}{\author{Fay Webster} jkjb}
-\end{biography}
 
 
 \end{document}
