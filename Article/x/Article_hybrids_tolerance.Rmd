@@ -61,6 +61,8 @@ acknowledgements: |
 bibliography: mybibfile.bib # Includes refs in OUP example template
 #csl: https://www.zotero.org/styles/oxford-university-press-note
 output:
+  word_document: default
+  pdf_document: default
   rticles::oup_article:
     oup_version: 1 # 1 = 2020 CTAN OUP CLS package; 0 = 2009 OUP CLS package
     journal: 
@@ -74,9 +76,7 @@ output:
     #onecolumn: TRUE # Uncomment for one column format; default FALSE
     extra_dependencies:
       - booktabs # to use with knitr::kable() example below
-  pdf_document: default
   html_document: default
-  word_document: default
 #urlcolor: orange
 #linkcolor: green
 #citecolor: red
@@ -507,7 +507,6 @@ ImpData$Var.Names <- row.names(ImpData)
 ImpData <- ImpData %>% arrange(desc(IncNodePurity))
 print(ImpData)
 ```
-
 
 ```{r fig6, fig.cap="", fig.env="figure*"}
 ### Visualize variable importance ----------------------------------------------
