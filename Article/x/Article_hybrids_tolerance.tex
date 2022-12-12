@@ -27,47 +27,6 @@
   pdfcreator={LaTeX via pandoc}}
 
 
-% Pandoc syntax highlighting
-\usepackage{color}
-\usepackage{fancyvrb}
-\newcommand{\VerbBar}{|}
-\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
-% Add ',fontsize=\small' for more characters per line
-\usepackage{framed}
-\definecolor{shadecolor}{RGB}{248,248,248}
-\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
-\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
-\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
-\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
-\newcommand{\BuiltInTok}[1]{#1}
-\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
-\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
-\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
-\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
-\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
-\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
-\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
-\newcommand{\ExtensionTok}[1]{#1}
-\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
-\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
-\newcommand{\ImportTok}[1]{#1}
-\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
-\newcommand{\NormalTok}[1]{#1}
-\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
-\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
-\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
-\newcommand{\RegionMarkerTok}[1]{#1}
-\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
-\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
-\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
-\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
-\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
-\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
 
 % tightlist command for lists without linebreak
 \providecommand{\tightlist}{%
@@ -451,6 +410,14 @@ assume data is ``missing completely at random'' or ``missing at
 random''. For both types of missingness, multiple imputation is a
 suggested method to impute missing variables \citet{van2018flexible}.
 
+\begin{figure*}[th]
+\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig1-1} \caption{Stripplot of observed and imputed data}\label{fig:fig1}
+\end{figure*}
+
+\begin{figure*}[th]
+\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig2-1} \caption{Density plot of observed and imputed data}\label{fig:fig2}
+\end{figure*}
+
 \hypertarget{questions-to-dos}{%
 \paragraph{Questions / To-dos:}\label{questions-to-dos}}
 
@@ -478,20 +445,74 @@ expression data of 20 genes, obtained by the biomarker assay (utilizing
 the R package ``randomForest,'' ntree = 1000). The data set was split
 into a training data set of 70 \% and to a testing data set of 30 \% to
 avoid over-fitting and to assess the performance of the model on
-``unseen'' data. As a quality assessment, we used k- fold cross
-validation, where the data set is divided into k subsets. Each time, the
-model is assessed by using one of the k subsets as the test data set and
-the other as the training data set. The model was then fitted on each
-k-subset and afterwards evaluated on the test set. Last the evaluation
-score was noted and the model then discarded.
+``unseen'' data.
+
+As a quality assessment, we used k- fold cross validation, where the
+data set is divided into k subsets. Each time, the model is assessed by
+using one of the k subsets as the test data set and the other as the
+training data set. The model was then fitted on each k-subset and
+afterwards evaluated on the test set. Last the evaluation score was
+noted and the model then discarded. Further, a permutation test
+cross-validation was implemented (using the function
+``rf.crossValidation'' (using the R package rfUtilities, version 2.1-5).
+The percent variance explained from the specified fit model was 27.7\%.
+Moreover, the mean squared error from each bootstrapped model was 44.14.
+Next, the variable importance was calculated according to the total
+decrease in node impurities from splitting on each variable, averaged
+over all trees. In this case of regression, the node impurity is
+measured by residual sum of squares. Variables with comparetively higher
+importance have a greater impact on the predictions of the model.
+
+\begin{verbatim}
+## running: regression cross-validation with 99 iterations
+\end{verbatim}
+
+\begin{verbatim}
+## [1] 27.7
+\end{verbatim}
+
+\begin{verbatim}
+## [1] 44.13772
+\end{verbatim}
+
+\begin{verbatim}
+## [1] 78
+\end{verbatim}
+
+\begin{verbatim}
+## [1] 6.543936
+\end{verbatim}
 
 \begin{figure*}[th]
-\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig1-1} \caption{Stripplot of observed and imputed data}\label{fig:fig1}
+\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig4-1} \caption{Variance explained and Root Mean Squared Error}\label{fig:fig4}
 \end{figure*}
 
+\begin{verbatim}
+##        IncNodePurity Var.Names
+## SOCS1       582.5419     SOCS1
+## TICAM1      549.4166    TICAM1
+## CXCL9       538.1206     CXCL9
+## IL.6        459.0768      IL.6
+## IFNy        395.9684      IFNy
+## IL1RN       327.9611     IL1RN
+## RETNLB      289.5686    RETNLB
+## NCR1        239.8289      NCR1
+## TNF         226.3735       TNF
+## MPO         214.1609       MPO
+## IL.13       201.9333     IL.13
+## MUC2        200.2868      MUC2
+## MYD88       196.5789     MYD88
+## IRGM1       178.2120     IRGM1
+## CASP1       170.0408     CASP1
+## CXCR3       169.9418     CXCR3
+## IDO1        162.3620      IDO1
+## PRF1        161.2846      PRF1
+## IL.10       156.3871     IL.10
+## MUC5AC      149.1062    MUC5AC
+\end{verbatim}
+
 \begin{figure*}[th]
-\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig2-1} \caption{Density plot of observed and imputed data}\label{fig:fig2}
-\end{figure*}
+\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/fig6-1} \end{figure*}
 
 \hypertarget{results}{%
 \section{Results}\label{results}}
@@ -502,210 +523,8 @@ score was noted and the model then discarded.
 \hypertarget{conclusion}{%
 \section{Conclusion}\label{conclusion}}
 
-\hypertarget{a-subsection}{%
-\subsection{A subsection}\label{a-subsection}}
-
 \hypertarget{literature-citations}{%
 \section{Literature citations}\label{literature-citations}}
-
-\hypertarget{equations}{%
-\section{Equations}\label{equations}}
-
-An equation without a label for cross-referencing:
-
-\[
-E=mc^2
-\]
-
-An inline equation: \(y=ax+b\)
-
-An equation with a label for cross-referencing:
-
-\begin{equation}\label{eq:eq1}
-\int^{r_2}_0 F(r,\varphi){\rm d}r\,{\rm d}\varphi = 1
-\end{equation}
-
-This equation can be referenced as follows: Eq. \ref{eq:eq1}
-
-\hypertarget{inserting-r-figures}{%
-\section{Inserting R figures}\label{inserting-r-figures}}
-
-The code below creates a figure. The code is included in the output
-because \texttt{echo=TRUE}.
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\FunctionTok{plot}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{10}\NormalTok{,}\AttributeTok{main=}\StringTok{"Some data"}\NormalTok{,}\AttributeTok{xlab=}\StringTok{"Distance (cm)"}\NormalTok{,}
-     \AttributeTok{ylab=}\StringTok{"Time (hours)"}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{figure}[th]
-\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/figa-1} \caption{This is the first figure.}\label{fig:figa}
-\end{figure}
-
-You can reference this figure as follows: Fig. \ref{fig:fig1}.
-
-\hypertarget{figures-spanning-two-columns}{%
-\subsection{Figures spanning
-two-columns}\label{figures-spanning-two-columns}}
-
-Figures can span two columns be setting \texttt{fig.env="figure*"}.
-
-\begin{figure*}[th]
-\includegraphics[width=1\linewidth]{Article_hybrids_tolerance_files/figure-latex/figb-1} \caption{This is a wide figure.}\label{fig:figb}
-\end{figure*}
-
-Reference to second figure: Fig. \ref{fig:fig2}
-
-\hypertarget{tables}{%
-\section{Tables}\label{tables}}
-
-\hypertarget{generate-a-table-using-xtable}{%
-\subsection{\texorpdfstring{Generate a table using
-\texttt{xtable}}{Generate a table using xtable}}\label{generate-a-table-using-xtable}}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{df }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{ID=}\DecValTok{1}\SpecialCharTok{:}\DecValTok{3}\NormalTok{,}\AttributeTok{code=}\NormalTok{letters[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{3}\NormalTok{])}
-
-\CommentTok{\# Creates tables that follow OUP guidelines }
-\CommentTok{\# using xtable}
-\FunctionTok{library}\NormalTok{(xtable) }
-\end{Highlighting}
-\end{Shaded}
-
-\begin{verbatim}
-## Warning: package 'xtable' was built under R version 4.2.1
-\end{verbatim}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\FunctionTok{print}\NormalTok{(}\FunctionTok{xtable}\NormalTok{(df,}\AttributeTok{caption=}\StringTok{"This is a xtable table."}\NormalTok{,}
-             \AttributeTok{label=}\StringTok{"tab:tab1"}\NormalTok{),}
-      \AttributeTok{comment=}\ConstantTok{FALSE}\NormalTok{,}\AttributeTok{caption.placement=}\StringTok{"top"}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{table}[ht]
-\centering
-\caption{This is a xtable table.} 
-\label{tab:tab1}
-\begin{tabular}{rrl}
-  \hline
- & ID & code \\ 
-  \hline
-1 &   1 & a \\ 
-  2 &   2 & b \\ 
-  3 &   3 & c \\ 
-   \hline
-\end{tabular}
-\end{table}
-
-You can reference this table as follows: Table \ref{tab:tab1}.
-
-\hypertarget{generate-a-table-using-kable}{%
-\subsection{\texorpdfstring{Generate a table using
-\texttt{kable}}{Generate a table using kable}}\label{generate-a-table-using-kable}}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{df }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{ID=}\DecValTok{1}\SpecialCharTok{:}\DecValTok{3}\NormalTok{,}\AttributeTok{code=}\NormalTok{letters[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{3}\NormalTok{])}
-
-\CommentTok{\# kable can alse be used for creating tables}
-\NormalTok{knitr}\SpecialCharTok{::}\FunctionTok{kable}\NormalTok{(df,}\AttributeTok{caption=}\StringTok{"This is a kable table."}\NormalTok{,}
-             \AttributeTok{booktabs=}\ConstantTok{TRUE}\NormalTok{,}\AttributeTok{label=}\StringTok{"tab2"}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{table}
-
-\caption{\label{tab:tab2}This is a kable table.}
-\centering
-\begin{tabular}[t]{rl}
-\toprule
-ID & code\\
-\midrule
-1 & a\\
-2 & b\\
-3 & c\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-You can reference this table as follows: Table \ref{tab:tab2}.
-
-\hypertarget{table-spanning-two-columns}{%
-\subsection{Table spanning two
-columns}\label{table-spanning-two-columns}}
-
-Tables can span two columns be setting \texttt{table.envir\ =\ "table*"}
-in \texttt{knitr::kable}.
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{df }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{ID=}\DecValTok{1}\SpecialCharTok{:}\DecValTok{3}\NormalTok{,}\AttributeTok{code1=}\NormalTok{letters[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{3}\NormalTok{],}
-                \AttributeTok{code2=}\NormalTok{letters[}\DecValTok{4}\SpecialCharTok{:}\DecValTok{6}\NormalTok{],}
-                \AttributeTok{code3=}\NormalTok{letters[}\DecValTok{7}\SpecialCharTok{:}\DecValTok{9}\NormalTok{],}
-                \AttributeTok{code4=}\NormalTok{letters[}\DecValTok{10}\SpecialCharTok{:}\DecValTok{12}\NormalTok{],}
-                \AttributeTok{code5=}\NormalTok{letters[}\DecValTok{13}\SpecialCharTok{:}\DecValTok{15}\NormalTok{])}
-
-\CommentTok{\# kable can alse be used for creating tables}
-\NormalTok{knitr}\SpecialCharTok{::}\FunctionTok{kable}\NormalTok{(df,}\AttributeTok{caption=}\StringTok{"This is a wide kable table."}\NormalTok{,}
-             \CommentTok{\#format="latex",}
-             \AttributeTok{table.envir=}\StringTok{"table*"}\NormalTok{,}
-             \AttributeTok{booktabs=}\ConstantTok{TRUE}\NormalTok{,}\AttributeTok{label=}\StringTok{"tab3"}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{table*}
-
-\caption{\label{tab:tab3}This is a wide kable table.}
-\centering
-\begin{tabular}[t]{rlllll}
-\toprule
-ID & code1 & code2 & code3 & code4 & code5\\
-\midrule
-1 & a & d & g & j & m\\
-2 & b & e & h & k & n\\
-3 & c & f & i & l & o\\
-\bottomrule
-\end{tabular}
-\end{table*}
-
-\hypertarget{cross-referencing-sections}{%
-\section{Cross-referencing sections}\label{cross-referencing-sections}}
-
-You can cross-reference sections and subsections as follows: Section
-\ref{literature-citations} and Section \ref{a-subsection}.
-
-\textbf{\emph{Note:}} the last section in the document will be used as
-the section title for the bibliography.
-
-For more portable and flexible referencing of sections, equations,
-figures and tables, use
-\href{https://github.com/rstudio/bookdown}{\texttt{bookdown::pdf\_document2}}
-with YAML header option \texttt{base\_format:\ rticles::oup\_article}.
-
-\hypertarget{appendices}{%
-\section*{Appendices}\label{appendices}}
-\addcontentsline{toc}{section}{Appendices}
-
-\begin{appendices}
-
-\hypertarget{section-title-of-first-appendix}{%
-\section{Section title of first
-appendix}\label{section-title-of-first-appendix}}
-
-blabla
-
-\hypertarget{subsection-title-of-first-appendix}{%
-\subsection{Subsection title of first
-appendix}\label{subsection-title-of-first-appendix}}
-
-and so on\ldots.
-
-\end{appendices}
 
 \section{Competing interests}
 
