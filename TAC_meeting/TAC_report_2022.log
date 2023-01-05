@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020/Debian) (preloaded format=pdflatex 2022.5.9)  12 DEC 2022 15:50
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020/Debian) (preloaded format=pdflatex 2022.5.9)  12 DEC 2022 16:10
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -487,16 +487,16 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
-34.
+30.
 (/usr/share/texmf/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 146.
+(Font)              <10> on input line 142.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 146.
+(Font)              <7> on input line 142.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 146.
+(Font)              <5> on input line 142.
 
 ! Package inputenc Error: Unicode character ́ (U+0301)
 (inputenc)                not set up for use with LaTeX.
@@ -505,14 +505,14 @@ See the inputenc package documentation for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.152 Balard, Jarquı́
+l.148 Balard, Jarquı́
                        n-Dı́az, Jost, Mittné, et al. (2020). 
 Here is how much of TeX's memory you used:
- 13021 strings out of 479304
- 191074 string characters out of 5869780
+ 13014 strings out of 479304
+ 190984 string characters out of 5869780
  520272 words of memory out of 5000000
- 29940 multiletter control sequences out of 15000+600000
- 452104 words of font info for 102 fonts, out of 8000000 for 9000
+ 29937 multiletter control sequences out of 15000+600000
+ 448912 words of font info for 99 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  85i,6n,88p,520b,337s stack positions out of 5000i,500n,10000p,200000b,80000s
 
