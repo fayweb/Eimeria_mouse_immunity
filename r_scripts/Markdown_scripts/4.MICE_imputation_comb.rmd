@@ -135,7 +135,7 @@ aggr_plot <- aggr(hm_genes, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE
 
 
 ```{r}
-marginplot(hm_genes[c(4,5)])
+marginplot(hm_genes[c(6,8)])
 ```
 
 

@@ -101,6 +101,19 @@ gene <- gene[row.names(genes), ]
 res.pca <- PCA(genes)
 ```
 
+```{r}
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 70))
+```
+```{r}
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+```
+```{r}
+fviz_pca_ind(res.pca, col.ind = "cos2", 
+                  gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"), 
+                  repel = TRUE)
+```
 
 
 ```{r dimensions, include = FALSE, echo = FALSE, warnings = FALSE}
@@ -273,7 +286,7 @@ AIC(weight_lm)
 
 ```{r lm_pc_parasite_hybrid, echo = FALSE}
 
-weight_lm2 <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge + hybrid_status, 
+weight_lm2 <- lm(max_WL ~ pc1 + pc2, #+ Parasite_challenge + hybrid_status, 
                  data = lab)
 summary(weight_lm2)
 AIC(weight_lm2)
@@ -352,8 +365,7 @@ AIC(weight_lm, weight_lm_exp_only)
   
 #Prepare the annotation data frame
 annotation_df <- as_tibble(lab) %>%
-    dplyr::select(c("Mouse_ID", "Parasite_challenge", "infection_history",
-                    "mouse_strain", "max_WL")) 
+    dplyr::select(c("Mouse_ID",  "max_WL", "Parasite_challenge")) 
   
 annotation_df <- unique(annotation_df) 
 
@@ -380,5 +392,5 @@ Heatmap on gene expression data:
 
 
 ```{r, echo = FALSE}
-pheatmap(heatmap_data, annotation_col = annotation_df, scale = "row")
+pheatmap(heatmap_data, annotation_col = annotation_df,  scale = "row")
 ```
