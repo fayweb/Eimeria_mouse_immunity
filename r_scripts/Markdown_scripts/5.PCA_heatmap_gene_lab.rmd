@@ -392,5 +392,5 @@ Heatmap on gene expression data:
 
 
 ```{r, echo = FALSE}
-pheatmap(heatmap_data, annotation_col = annotation_df,  scale = "row")
+pheatmap(heatmap_data, annotation_col = annotation_df,  scale = "row",  clustering_distance_rows = "euclidean", clustering_distance_cols = "euclidean")
 ```
