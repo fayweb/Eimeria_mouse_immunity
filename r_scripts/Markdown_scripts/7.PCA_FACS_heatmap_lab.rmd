@@ -107,6 +107,19 @@ facs_mouse <- facs_mouse[row.names(facs), ]
 # we can now run a normal pca on the complete data set
 res.pca <- PCA(facs)
 ```
+```{r , echo = FALSE}
+
+#The most important (or, contributing) variables can be highlighted on the 
+#correlation plot as follow:
+fviz_pca_var(res.pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+             )
+```
+```{r}
+fviz_pca_ind(res.pca, col.ind = "cos2", 
+                  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+                  repel = TRUE)
+```
 
 
 ### Dimensions of the pca
