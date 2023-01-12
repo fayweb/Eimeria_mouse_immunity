@@ -279,7 +279,7 @@ fviz_pca_biplot(res.pca,
 ################## Linear models: 
 
 ```{r lm_weight_pc, echo = FALSE}
-weight_lm <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge, data = lab)
+weight_lm <- lm(max_WL ~ pc1 + pc2 , data = lab)
 summary(weight_lm)
 AIC(weight_lm)
 ```
@@ -289,12 +289,17 @@ AIC(weight_lm)
 
 ```{r lm_pc_parasite_hybrid, echo = FALSE}
 
-weight_lm2 <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge + hybrid_status, 
+weight_lm2 <- lm(max_WL ~ pc1 + pc2  + hybrid_status, 
                  data = lab)
 summary(weight_lm2)
 AIC(weight_lm2)
 ```
 
+```{r}
+weight_lm3 <- lm(max_WL ~ pc1  + hybrid_status, data = lab)
+summary(weight_lm3)
+AIC(weight_lm3)
+```
 
 Try instead: 
 LLR test (likelihood ration)  (LM4 package )? 
@@ -312,8 +317,8 @@ weight_lm3 <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = lab)
 weight_no_pc1 <- lm(max_WL ~ pc2 + hybrid_status, data = lab)
 weight_no_pc2 <- lm(max_WL ~ pc1  + hybrid_status, data = lab)
 weight_no_hybrid <- lm(max_WL ~ pc1 + pc2, data = lab)
-lrtest(weight_lm3, weight_no_pc1)
-lrtest(weight_lm3, weight_no_pc2)
+lrtest(weight_lm2, weight_lm3)
+lrtest(weight_lm, weight_lm3)
 lrtest(weight_lm3, weight_no_hybrid)
 ```
 
@@ -339,6 +344,14 @@ weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = lab)
 summary(weight_lm_exp_only)
 AIC(weight_lm, weight_lm_exp_only)
 ```
+
+
+```{r}
+weight_lm5 <- lm(max_WL ~ hybrid_status, data = lab)
+summary(weight_lm5)
+AIC(weight_lm5)
+```
+
 
 
 
