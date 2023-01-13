@@ -404,6 +404,18 @@ test_lab   %>%
 
 cor(test_lab$predictions, test_lab$WL_max, method = "spearman")
 
+test_lab   %>%
+  ggplot(aes(x = predictions, y = WL_max, color = current_infection, 
+                 size = delta_ct_cewe_MminusE)) +
+  geom_smooth(method = lm, se = FALSE) +
+  labs(x = "Predictions: Maximum weight loss", 
+       y = "Observed: Maximum weight loss") +
+  geom_point(aes(x = predictions, y = WL_max, 
+                 color = current_infection, size = delta_ct_cewe_MminusE)) +
+  labs(x = "Predictions: Maximum weight loss", 
+       y = "Observed: Maximum weight loss") +
+    theme_bw()
+
 
 test_lab   %>%
   ggplot(aes(x = predictions, y = WL_max, 
@@ -451,6 +463,7 @@ print(WL_predict_gene)
 
 ```{r }
 
+
 lab$Parasite_challenge <- as.factor(lab$Parasite_challenge)
 
 gene_curr <- lab %>%
@@ -473,12 +486,44 @@ test.data_parasite <- gene[-training.samples, ]
 
 ```
 
+#removing infections with falciformis, as we have very few infections and make our model unreliable
+
+
+### Predicing parasite: splliting into training and testing
+
+```{r }
+lab2 <- lab %>% 
+  dplyr::filter(current_infection %in% c("E_ferrisi", "uninfected"))
+
+
+lab2$current_infection <- as.factor(lab2$current_infection)
+
+gene_curr <- lab2 %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab), current_infection))
+
+
+
+gene <- gene_curr %>%
+  dplyr::select(-Mouse_ID)
+
+
+# split data into training and test
+set.seed(123) # this will help us reproduce this random assignment
+# in this way we can pick the random numbers
+training.samples <- gene$current_infection%>%
+  createDataPartition(p = .7, list = FALSE) 
+train.data_parasite <- gene[training.samples, ] 
+test.data_parasite <- gene[-training.samples, ] 
+
+
+```
+
 ### Building the model_Parasite
 
 ```{r }
 
 #train the model
-model_Parasite <- randomForest(Parasite_challenge ~., 
+model_Parasite <- randomForest(current_infection ~., 
                                data = train.data_parasite, proximity = TRUE,
                       ntree = 1500) # number of trees
 
@@ -527,7 +572,7 @@ result_parasite <- test.data_parasite
 #add the new variable of predictions to the result object
 result_parasite <- cbind(result_parasite, predictions_parasite)
 #add the results to a data frame containing test data and the prediction
-result_parasite <- cbind(lab[row.names(result_parasite), ], predictions_parasite)
+result_parasite <- cbind(lab2[row.names(result_parasite), ], predictions_parasite)
 ```
 
 
@@ -540,7 +585,7 @@ result_parasite <- cbind(lab[row.names(result_parasite), ], predictions_parasite
 conf_matrix_parasite <- 
   confusionMatrix(
     result_parasite$predictions_parasite,
-    reference = result_parasite$Parasite_challenge)
+    reference = result_parasite$current_infection)
 
 print(conf_matrix_parasite)
 
