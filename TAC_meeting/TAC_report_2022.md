@@ -21,14 +21,15 @@ output:
 
 
 
+# Abstract 
 
+Parasites in hybrid zones can give insight into species barriers, as they are modulating the fitness of hybrid hosts. Recent findings have demonstrated lower infection intensities with parasites in hybrids in the European House Mouse Hybrid zone (HMHZ), indicating higher disease resistance. However, tolerance has not yet been addressed in depth, as it is impractical to measure in wild populations. In an attempt to predict and evaluate the health impact of parasite infections and extrapolate tolerance in the HMHZ, we use a machine learning method. A random forest model was trained on immune parameters measured in experimental lab infections with Eimeria and then applied to data obtained from field sampling. Our predictions revealed that these infections are more detrimental to hybrid male mice. This approach represents an initial step in assessing tolerance in field studies.
 
 # Introduction
-## Introduce the topic
 
 # Methods
 
-## Laboratory infection experiments
+<span style="color:grey">
 
 
 ###  Mouse strains (Luke)
@@ -50,10 +51,13 @@ Table of wet-lab tested primers can be found in the appendix file 20614FDGP21T1_
 ll primers at 100µM were pooled together in a micro centrifuge tube and resulting solution was diluted to a final concentration of 500 nM, with a 10 mM Tris-HCl (pH 8,0), 0.1 mM EDTA TE Buffer (12090-015, Invitrogen, Waltham, Massachusetts, United States). Fluidigm Preamp Master Mix (Fluidigm PN 100-5580) was added to the solution according to the manufacturer instructions, to create delta gene assay Preamp Master Mix. Sample cDNA (including a non-template control (NTC)) was plated onto 96-well plates and the master mix added to each well. Sample plate was then gently vortexed for 5 seconds and spun down at 1,000 x g for 1 minute. The amplification reactions were carried out in the Biometra TOne 96 (846-2-070-301, Analytic Jena, Jena, Germany) at the following cycling conditions: Hold at 95 ºC for 2 minutes, 95 ºC for 15 seconds, then 60 ºC for 4 minutes (15x), Hold at 4 ºC for infinity.
 
 ### Primers and sample preparation: (Luke)
-1.5 µL of primer (wet lab tested) at 100 µM ,13.5 µL of TE Buffer and 15 µL of 2X Assay Loading Reagent (PN 100-7611, Fluidigm), were combined to create 10X Assay solutions. Sample reaction mixes were then created by combining 1.8 µL of preamplified and Exonuclease I treated cDNA, 2 µL of 2X SsoFast EvaGreen Supermix with low ROX™ (Bio-Rad, PN 172-5211) and 192.24 Delta Gene Sample Reagent (PN 100-6653, Fluidigm), to create 4 µL stock per 1 sample reaction. This was scaled to accommodate sample repeat runs. Prepared samples and primers were stored at -20ºC until the IFC chips were primed.
+1.5 µL of primer (wet lab tested) at 100 µM ,13.5 µL of TE Buffer and 15 µL of 2X Assay Loading Reagent (PN 100-7611, Fluidigm), were combined to create 10X Assay solutions. Sample reaction mixes were then created by combining 1.8 µL of preamplified and Exonuclease I treated cDNA, 2 µL of 2X SsoFast EvaGreen Supermix with low ROX™ (Bio-Rad, PN 172-5211) and 192.24 Delta Gene Sample Reagent (PN 100-6653, Fluidigm), to create 4 µL stock per 1 sample reaction. This was scaled to accommodate sample repeat runs. Prepared samples and primers were stored at -20°C until the IFC chips were primed.
  
 ### IFC qPCR runs (Luke)
 The 192.24 IFC was plated and treated as per manufacturer instructions (PN 100-7222 C1), consisting of control line fluid injection into accumulator 2 slot, removal of protective film, pipetting of samples and 10X assay mixes in 3 µL volumes, adding 150 µL of Actuation Fluid (PN 100-6250) into the P1 port, 150 µL of Pressure Fluid (PN 100-6249) into the P2 and P3 ports, 20 µL of Pressure Fluid into the P4 and P5 ports and finally initializing the IFC in the Juno controller, using the Load Mix 192.24 GE script. After the initialization completed, the IFC was transferred into the BioMark HD and the assay properties were set as follows:  Application type: Gene Expression, Passive reference: ROX, Assay: Single probe, Probe type: EvaGreen, using the GE 192x24 PCR+Melt v2.pcl protocol, on Auto-exposure. 
+
+</style>
+
 
 ## Wild mice 
 

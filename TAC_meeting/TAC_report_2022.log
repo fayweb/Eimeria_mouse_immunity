@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.12.19)  19 DEC 2022 18:06
+=======
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020/Debian) (preloaded format=pdflatex 2022.5.9)  12 DEC 2022 16:10
+>>>>>>> 3bb4b8dfb8001c7a7a93cb11a01510d4667ffbc7
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -463,6 +467,7 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (c:/Users/fay_w/AppData/Roaming/TinyTeX/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
+<<<<<<< HEAD
 
 LaTeX Warning: Reference `fig:fig1' on page 1 undefined on input line 156.
 
@@ -498,6 +503,19 @@ File: TAC_report_2022_files/figure-latex/fig6-1.pdf Graphic file (type pdf)
 <use TAC_report_2022_files/figure-latex/fig6-1.pdf>
 Package pdftex.def Info: TAC_report_2022_files/figure-latex/fig6-1.pdf  used on input line 264.
 (pdftex.def)             Requested size: 469.75827pt x 313.17216pt.
+=======
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
+30.
+(/usr/share/texmf/tex/latex/lm/ts1lmr.fd
+File: ts1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10> on input line 142.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <7> on input line 142.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <5> on input line 142.
+>>>>>>> 3bb4b8dfb8001c7a7a93cb11a01510d4667ffbc7
 
 ! LaTeX Error: Unicode character ́ (U+0301)
                not set up for use with LaTeX.
@@ -506,6 +524,7 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
+<<<<<<< HEAD
 l.285 Balard, Alice, Vı́
                           ctor Hugo Jarquı́n-Dı́az, Jenny Jost, Iva Mart... 
 Here is how much of TeX's memory you used:
@@ -516,5 +535,17 @@ Here is how much of TeX's memory you used:
  554350 words of font info for 104 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  72i,6n,77p,1012b,621s stack positions out of 10000i,1000n,20000p,200000b,200000s
+=======
+l.148 Balard, Jarquı́
+                       n-Dı́az, Jost, Mittné, et al. (2020). 
+Here is how much of TeX's memory you used:
+ 13014 strings out of 479304
+ 190984 string characters out of 5869780
+ 520272 words of memory out of 5000000
+ 29937 multiletter control sequences out of 15000+600000
+ 448912 words of font info for 99 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 85i,6n,88p,520b,337s stack positions out of 5000i,500n,10000p,200000b,80000s
+>>>>>>> 3bb4b8dfb8001c7a7a93cb11a01510d4667ffbc7
 
 !  ==> Fatal error occurred, no output PDF file produced!

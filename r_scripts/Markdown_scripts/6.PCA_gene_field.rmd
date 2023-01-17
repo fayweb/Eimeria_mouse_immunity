@@ -103,6 +103,21 @@ res.pca <- PCA(genes)
 ```
 
 
+```{r}
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 70))
+```
+
+```{r}
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+```
+```{r}
+fviz_pca_ind(res.pca, col.ind = "cos2", 
+                  gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"), 
+                  repel = TRUE)
+```
+
 
 ```{r dimensions, include = FALSE, echo = FALSE, warnings = FALSE}
 #Description of the dimensions
@@ -261,7 +276,7 @@ genes_mouse <- genes_mouse[row.names(genes), ]
 
 #Prepare the annotation data frame
 annotation_df <- as_tibble(field) %>%
-    dplyr::select(c("Mouse_ID", "MC.Eimeria", "HI",
+    dplyr::select(c("Mouse_ID", "HI",
                     "Sex")) 
   
 annotation_df <- unique(annotation_df) 
@@ -276,7 +291,7 @@ rownames(annotation_df) <- annotation_df$Mouse_ID
 rownames(annotation_df) <- colnames(heatmap_data)
 
 #remove the unecessary column
-annotation_df <- annotation_df %>% dplyr::select(-Mouse_ID, )
+annotation_df <- annotation_df %>% dplyr::select(-Mouse_ID)
 
 
 ```
