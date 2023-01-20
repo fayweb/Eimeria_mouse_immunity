@@ -71,7 +71,7 @@ We have 1921 mice in total.
 ```{r genes}
 EqPCR.cols      <- c("delta_ct_cewe_MminusE", "MC.Eimeria", "Ct.Eimeria") #,"Ct.Mus""delta_ct_ilwe_MminusE", )
 
-Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10", 
                   "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                   "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                   "TICAM1", "TNF") #, "IL.12", "IRG6")
@@ -85,7 +85,7 @@ Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
 ```{r}
 #select the imputed gene columns
 gene <-  Field %>%
-  dplyr::select(c(Mouse_ID, "IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+  dplyr::select(c(Mouse_ID, "IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10", 
                   "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                   "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                   "TICAM1", "TNF"))
@@ -325,10 +325,7 @@ fitWL_Sex <- parasiteLoad::analyse(data = Field,
                         model = "normal",
                         group = "Sex")
 
-parasiteLoad::analyse(data = Field,
-                        response = "WL",
-                        model = "normal",
-                        group = "Sex")
+
 
 plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
              data = Field,

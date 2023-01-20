@@ -252,7 +252,31 @@ fviz_pca_biplot(res.pca,
  In the following example, we want to color both individuals and variables by groups. The trick is to use pointshape = 21 for individual points. This particular point shape can be filled by a color using the argument fill.ind. The border line color of individual points is set to “black” using col.ind. To color variable by groups, the argument col.var will be used.
 
 
+## Let's remove the outliers and repeat the pca 
 
+```{r}
+# delete rows by name
+hm_facs <- hm_facs[!(row.names(hm_facs) %in% c("2081","299")),]
+
+# we can now run a normal pca on the complete data set
+res.pca <- PCA(hm_facs)
+
+# select the same rows in hm_selection_
+hm_selection_g <- hm_selection_g[row.names(hm_facs), ]
+```
+
+PCA + Biplot combination
+
+```{r , echo = FALSE}
+
+
+fviz_pca_biplot(res.pca, 
+                col.ind = hm_selection_g$origin, palette = "jco", 
+                addEllipses = TRUE, fieldel = "var",
+                col.var = "black", repel = TRUE,
+                legend.title = "Origin of mice") 
+
+```
 
 
 ### repeating the heatmap on the now imputed data

@@ -81,6 +81,8 @@ genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
 genes_mouse_field <- genes_mouse_field[row.names(genes), ]
 ##select same rows in the first table
 field <- field[row.names(genes), ]
+
+
 ###############lab
 #select the genes and lab muce
 lab <- hm %>%
@@ -89,22 +91,31 @@ lab <- hm %>%
 lab <- unique(lab)
 gene_lab_mouse <- lab %>%
   dplyr::select(c(Mouse_ID, all_of(Gene_lab))) 
+
 gene_lab_mouse <- unique(gene_lab_mouse)
+
 genes_lab <- gene_lab_mouse[, -1]
+
 #remove rows with only nas
 genes_lab <- genes_lab[,colSums(is.na(genes_lab))<nrow(genes_lab)]
+
 #remove colums with only nas 
 genes_lab <- genes_lab[rowSums(is.na(genes_lab)) != ncol(genes_lab), ]
+
 genes_lab <- unique(genes_lab)
+
 #select same rows in the first table
 gene_lab_mouse <- gene_lab_mouse[row.names(genes_lab), ]
+
 ##select same rows in the first table
 lab <- lab[row.names(genes_lab), ]
+
 hm_genes <- rbind(gene_lab_mouse, genes_mouse_field)
 
 hm_selection_g <- rbind(lab, field)
 
 genes <- cbind(hm_selection_g[, "origin"], hm_genes)
+
 genes <- genes %>%
   rename(origin = `hm_selection_g[, "origin"]`)
 
@@ -117,6 +128,9 @@ genes$origin <- as.factor(genes$origin)
 # looking at patterns of nas)
 #pattern_na <-as.data.frame(md.pattern(field_genes))
 sapply(hm_genes, function(x) sum(is.na(x)))
+
+# Discarding the origin 
+#genes <- genes %>% dplyr::select(-origin)
 
 
 #had to remove as they were disturbing the imputation: Worms_presence, MC.Eimeria.FEC,  Heligmosomoides_polygurus, Zfy2, Y,  MpiC,
@@ -141,19 +155,26 @@ marginplot(hm_genes[c(6,8)])
 
 
 ```{r}
+# removing il 10
+genes <- genes %>%
+  dplyr::select(-IL.10)
 # m=5 refers to the number of imputed datasets. Five is the default value.
 igf <- mice(genes, m = 5, seed = 500) # method = meth,
+
 summary(igf)
+
 # to check each column with imputed data
 ## igf$imp$IFNy
 #Now we can get back the completed dataset using the complete()
 complete_genes <- complete(igf, 1)
+
 #sapply(complete_field, function(x) sum(is.na(x)))
 #visualize missingness
 vis_dat(complete_genes)
+
 #remove the non imputed genes from our data set
 hm_selection_g <- hm_selection_g %>%
-  dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+  dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10",
                 "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                 "TICAM1", "TNF", "origin"))
@@ -188,7 +209,7 @@ Now let's plot the variables with many missing data points.
 
 
 ```{r distr_orig_pred2}
-xyplot(igf,IFNy ~ IL.10 + PRF1 + CASP1, pch=18,cex=1)
+xyplot(igf,IFNy ~ IL.13 + PRF1 + CASP1, pch=18,cex=1)
 ```
 
 
@@ -223,26 +244,35 @@ points
 #select the facs and lab muce
 lab <- hm %>%
   dplyr::filter(origin == "Lab", Position == "mLN") #selecting for mln to avoid
+
 # duplicates
 lab <- unique(lab)
+
 facs_mouse <- lab %>%
   dplyr::select(c(Mouse_ID, all_of(Facs_lab))) #choosing the same with the wild
+
 facs_mouse <- unique(facs_mouse)
+
 facs_lab <- facs_mouse[, -1]
+
 #remove rows with only nas
 facs_lab <- facs_lab[,colSums(is.na(facs_lab))<nrow(facs_lab)]
 #remove colums with only nas 
 facs_lab <- facs_lab[rowSums(is.na(facs_lab)) != ncol(facs_lab), ]
+
 #select same rows in the first table
-facs_mouse <- facs_mouse[row.names(facs_lab), ]
-##select same rows in the first table
-lab <- lab[row.names(facs_mouse), ]
+facs_mouse_lab <- facs_mouse[row.names(facs_lab), ]
+
+
+
+
 #########################Field
 ###########field
 # somehow the field samples have the origin na,
 # fix that
 field <- hm %>%
   dplyr::filter(origin == "Field") 
+
 field <- unique(field)
 facs_mouse <- field %>%
   dplyr::select(c(Mouse_ID, all_of(Facs_wild))) 
@@ -251,27 +281,49 @@ facs_field <- facs_mouse[,-1]
 facs_field <- facs_field[,colSums(is.na(facs_field))<nrow(facs_field)]
 #remove colums with only nas 
 facs_field <- facs_field[rowSums(is.na(facs_field)) != ncol(facs_field), ]
-##select same rows in the first table
-field <- field[row.names(facs_field), ]
-facs_data <- full_join(lab, field, by = intersect(colnames(lab), colnames(field)))
-facs_data <- unique(facs_data) %>%
-  dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
-                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
-                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
-                "TICAM1", "TNF"))
+
+#select same rows in the first table
+facs_mouse_field <- facs_mouse[row.names(facs_field), ]
+
+# full join the two tables 
+facs_data <- full_join(facs_mouse_lab, facs_mouse_field)
+
+length(intersect(hm_selection_g$Mouse_ID, facs_data$Mouse_ID))
+
+facs_data <- facs_data %>%
+  left_join(hm) 
+
+
 ```
 
-# Now put everything togetehr
+We don't need to impute anything for the facs data as we have a complete data
+set
 
-
+# join the gene expression data with the facs data
 ```{r}
-hm_selection_g <- hm_selection_g %>% 
-  full_join(facs_data, by = intersect(colnames(facs_data), colnames(hm_selection_g)))
-hm_selection_g <- unique(hm_selection_g)
+setdiff(facs_data$Mouse_ID, hm_selection_g$Mouse_ID)
+
+
+facs_data <- facs_data %>%
+  dplyr::filter(Mouse_ID %in% setdiff(facs_data$Mouse_ID, hm_selection_g$Mouse_ID))
+
+# We expect 477 mice in the new data frame 
+472 + 5 
+
+#now combine the two data frames
+hm_select <- rbind(hm_selection_g, facs_data)
+
+hm_select <- unique(hm_select)
+
+
+
+
 ```
+
+
 
 
 ```{r}
  ##save the imputed data 
-write.csv(hm_selection_g, "output_data/2.imputed_MICE_data_set.csv", row.names = FALSE)
+write.csv(hm_select, "output_data/2.imputed_MICE_data_set.csv", row.names = FALSE)
 ```
