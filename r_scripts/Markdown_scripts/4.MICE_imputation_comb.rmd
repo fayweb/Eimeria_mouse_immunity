@@ -29,6 +29,7 @@ library(VIM)
 library(fitdistrplus)
 library(fitur)
 library(visdat)
+library(DESeq2)
 ```
 
 # Load data
@@ -134,6 +135,98 @@ genes$origin <- as.factor(genes$origin)
 #pattern_na <-as.data.frame(md.pattern(field_genes))
 sapply(hm_genes, function(x) sum(is.na(x)))
 
+```
+## Gene normalization 
+
+Do we have all the measurements of our housekeeping genes?
+
+```{r}
+glimpse(hm_selection_g)
+
+#dplyr::select(-Mouse_ID)
+# looking at patterns of nas)
+#pattern_na <-as.data.frame(md.pattern(field_genes))
+sapply(field %>%
+         dplyr::select(c(all_of(Genes_wild), "PPIB", "GAPDH")), 
+                       function(x) sum(is.na(x)))
+
+sapply(lab %>%
+          dplyr::select(c(all_of(Gene_lab), "PPIB", "GAPDH")), 
+                       function(x) sum(is.na(x)))
+         
+```
+
+For the field samples the missing values in the house-keeping genes are:
+PPIB: 212
+GAPDH: 10
+
+For the lab samples the missing values in the house-keeping genes are:
+PPIB: 1
+GAPDH: 96
+
+Downlad and install the package for Gene normalization
+
+```{r}
+#if (!require("BiocManager", quietly = TRUE))
+ #   install.packages("BiocManager")
+
+#BiocManager::install("DESeq2")
+
+# create a count data set, rows are sample names and columns the genes
+count_data <- hm_selection_g %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab), "GAPDH", "PPIB"))
+
+# row names are samples names
+
+rownames(count_data) <- make.names(count_data[, 1], unique = TRUE)
+
+count_data <- count_data %>% dplyr::select(-Mouse_ID)
+
+count_data <- as.matrix(unique(count_data))
+
+
+count_data <- as.data.frame(t(count_data))
+#count_field$Mouse_ID <- str_remove(count_field$Mouse_ID, "AA_")
+
+
+
+
+meta_data <- hm_selection_g %>%
+  dplyr::select(c(Mouse_ID, origin)) %>%
+  dplyr::rename(id = Mouse_ID) 
+
+#meta_field$id <- str_remove(meta_field$id, "AA_")
+
+
+
+meta_data$origin <- as.factor(meta_data$origin)
+
+
+
+# construct deseq data set object
+dds_field <- DESeqDataSetFromMatrix(countData= count_data, 
+                              colData=meta_data, 
+                              design=~dex, tidy = TRUE)
+
+head(sort(count_field[,1]))
+
+
+?DESeqDataSetFromMatrix
+
+norm_field <- DESeq(count_field)
+
+?DESeq
+
+?
+```
+
+
+
+
+
+
+```{r}
+
 # Discarding the origin 
 #genes <- genes %>% dplyr::select(-origin)
 
@@ -143,6 +236,7 @@ sapply(hm_genes, function(x) sum(is.na(x)))
 # The frequency distribution of the missing cases per variable can be obtained 
 # as:
 init <- mice(genes, maxit = 0)
+
 #we want to impute only the specific variables
 meth <- init$method
 ```
