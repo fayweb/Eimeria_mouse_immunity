@@ -39,6 +39,8 @@ library(visdat)
 hm <- read.csv("output_data/1.MICE_cleaned_data.csv")
 ```
 
+I only include GAPDH as a housekeeping gene, as PPIB is missing in a large number
+
 ```{r}
 # Vectors for selecting genes
 #Lab genes
@@ -48,14 +50,17 @@ Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
                 "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                 "TICAM1", "TNF") #"IL.12", "IRG6")
+
 Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
                   "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                   "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                   "TICAM1", "TNF") #, "IL.12", "IRG6")
+
 Facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
                     "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
                     "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
                     "IL17A_CD4")  
+
 Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
                      "Act_CD8", "IFNy_CD4", "IL17A_CD4", "IFNy_CD8")
 ```
@@ -306,6 +311,7 @@ setdiff(facs_data$Mouse_ID, hm_selection_g$Mouse_ID)
 
 facs_data <- facs_data %>%
   dplyr::filter(Mouse_ID %in% setdiff(facs_data$Mouse_ID, hm_selection_g$Mouse_ID))
+
 
 # We expect 477 mice in the new data frame 
 472 + 5 

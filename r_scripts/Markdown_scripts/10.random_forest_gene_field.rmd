@@ -424,7 +424,8 @@ confint(tolerance)
 
 ```{r}
 Field <- Field %>%
-  dplyr::mutate(BMI = Body_Weight / Body_Length)
+  dplyr::mutate(BMI = Body_Weight / (Body_Length)) #^2) which is the correct
+# way to calculatebmi?
 
 ggplot(data = Field, aes(x = BMI, y = WL)) +
   geom_point() +
