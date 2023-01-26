@@ -453,15 +453,30 @@ count_field <- count_data %>%
 
 ## have to remove rows with only nas 
 
-# We are using GAPDH for the field samples 
-count_field <- count_field %>%
-  mutate(IL.13_dct = GAPDH - IL.13) %>%
-  mutate(IL.13_dct_mean = mean(count_field$IL.13_dct, na.rm = TRUE)) %>%
-  # fold gene expression = 2^-DDCt
-  mutate(IL.13_N = 2^ - (IL.13_dct - IL.13_dct_mean)) %>%
-  mutate(IL.13_N = round(IL.13_N, digits = 2))
+# We are using GAPDH for the field samples
 
-mean_IL.13_ct <- mean(count_field$IL.13, )
+normalize_gene <- function(x, y) { # x = target gene, y = housekeeping gene
+ dct <- count_field$x - count_field$y
+
+ dct_mean <- mean(count_field$dct, na.rm = TRUE)
+ #fold gene expression
+ norm_gene <- 2^ - (dct - dct_mean)
+ norm_gene <- round(norm_gene, digits = 2)
+
+}
+ 
+x <- normalize_gene(IL.13, GAPDH) 
+  
+normalize_gene <- function(x, y) { 
+   count_field <- count_field %>%
+  mutate(dct = y - x) %>%
+  mutate(dct_mean = mean(count_field$dct_mean, na.rm = TRUE)) %>%
+  # fold gene expression = 2^-DDCt
+  mutate(N = 2^ - (dct - dct_mean)) %>%
+  mutate(N = round(paste(x, "_N", sep = ""), digits = 2)) 
+}
+
+
 
 
 
