@@ -67,17 +67,35 @@ Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
 ```
 
 
+Do we have all the measurements of our housekeeping genes?
 
+```{r}
+#glimpse(hm_selection_g)
+
+#dplyr::select(-Mouse_ID)
+# looking at patterns of nas)
+#pattern_na <-as.data.frame(md.pattern(field_genes))
+sapply(field %>%
+         dplyr::select(c(all_of(Genes_wild), "PPIB", "GAPDH")), 
+                      function(x) sum(is.na(x)))
+
+sapply(lab %>%
+         dplyr::select(c(all_of(Gene_lab), "PPIB", "GAPDH")), 
+                      function(x) sum(is.na(x)))
+         
+```
 # data imputation
 
 # Genes
 ```{r imputing_mice}
+hm$Mouse_ID <- str_replace(hm$Mouse_ID, "_", "")
+
 field <- hm %>%
   dplyr::filter(origin == "Field") 
 
 field <- unique(field)
 genes_mouse_field <- field %>%
-  dplyr::select(c(Mouse_ID, all_of(Genes_wild))) 
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild), )) 
 genes <- genes_mouse_field  %>%
   dplyr::select(-Mouse_ID)
 #remove rows with only nas
@@ -85,6 +103,7 @@ genes <- genes[,colSums(is.na(genes))<nrow(genes)]
 #remove colums with only nas 
 genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
 genes_mouse_field <- genes_mouse_field[row.names(genes), ]
+
 ##select same rows in the first table
 field <- field[row.names(genes), ]
 
@@ -120,10 +139,8 @@ hm_genes <- rbind(gene_lab_mouse, genes_mouse_field)
 
 hm_selection_g <- rbind(lab, field)
 
-genes <- cbind(hm_selection_g[, "origin"], hm_genes)
-
-genes <- genes %>%
-  rename(origin = `hm_selection_g[, "origin"]`)
+genes <- cbind(hm_selection_g %>%
+                 dplyr::select(c(origin, GAPDH, PPIB)), hm_genes)
 
 genes <- genes %>%
   dplyr::select(-Mouse_ID)
@@ -133,102 +150,14 @@ genes$origin <- as.factor(genes$origin)
 #dplyr::select(-Mouse_ID)
 # looking at patterns of nas)
 #pattern_na <-as.data.frame(md.pattern(field_genes))
-sapply(hm_genes, function(x) sum(is.na(x)))
-
-```
-## Gene normalization 
-
-Do we have all the measurements of our housekeeping genes?
-
-```{r}
-glimpse(hm_selection_g)
-
-#dplyr::select(-Mouse_ID)
-# looking at patterns of nas)
-#pattern_na <-as.data.frame(md.pattern(field_genes))
-sapply(field %>%
-         dplyr::select(c(all_of(Genes_wild), "PPIB", "GAPDH")), 
-                       function(x) sum(is.na(x)))
-
-sapply(lab %>%
-          dplyr::select(c(all_of(Gene_lab), "PPIB", "GAPDH")), 
-                       function(x) sum(is.na(x)))
-         
-```
-
-For the field samples the missing values in the house-keeping genes are:
-PPIB: 212
-GAPDH: 10
-
-For the lab samples the missing values in the house-keeping genes are:
-PPIB: 1
-GAPDH: 96
-
-Downlad and install the package for Gene normalization
-
-```{r}
-#if (!require("BiocManager", quietly = TRUE))
- #   install.packages("BiocManager")
-
-#BiocManager::install("DESeq2")
-
-# create a count data set, rows are sample names and columns the genes
-count_data <- hm_selection_g %>%
-  dplyr::select(c(Mouse_ID, all_of(Gene_lab), "GAPDH", "PPIB"))
-
-# row names are samples names
-
-rownames(count_data) <- make.names(count_data[, 1], unique = TRUE)
-
-count_data <- count_data %>% dplyr::select(-Mouse_ID)
-
-count_data <- as.matrix(unique(count_data))
+sapply(genes, function(x) sum(is.na(x)))
 
 
-count_data <- as.data.frame(t(count_data))
-#count_field$Mouse_ID <- str_remove(count_field$Mouse_ID, "AA_")
-
-
-
-
-meta_data <- hm_selection_g %>%
-  dplyr::select(c(Mouse_ID, origin)) %>%
-  dplyr::rename(id = Mouse_ID) 
-
-#meta_field$id <- str_remove(meta_field$id, "AA_")
-
-
-
-meta_data$origin <- as.factor(meta_data$origin)
-
-
-
-# construct deseq data set object
-dds_field <- DESeqDataSetFromMatrix(countData= count_data, 
-                              colData=meta_data, 
-                              design=~dex, tidy = TRUE)
-
-head(sort(count_field[,1]))
-
-
-?DESeqDataSetFromMatrix
-
-norm_field <- DESeq(count_field)
-
-?DESeq
-
-?
 ```
 
 
 
-
-
-
 ```{r}
-
-# Discarding the origin 
-#genes <- genes %>% dplyr::select(-origin)
 
 
 #had to remove as they were disturbing the imputation: Worms_presence, MC.Eimeria.FEC,  Heligmosomoides_polygurus, Zfy2, Y,  MpiC,
@@ -276,7 +205,7 @@ hm_selection_g <- hm_selection_g %>%
   dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10",
                 "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
-                "TICAM1", "TNF", "origin"))
+                "TICAM1", "TNF", "GAPDH", "PPIB", "origin"))
 # add the new imputed genes to the data
 hm_selection_g <- cbind(hm_selection_g, complete_genes)
 ```
@@ -416,9 +345,133 @@ hm_select <- rbind(hm_selection_g, facs_data)
 hm_select <- unique(hm_select)
 
 
-
-
 ```
+
+# Gene normalization 
+
+
+
+For the field samples the missing values in the house-keeping genes are:
+PPIB: 212
+GAPDH: 10
+
+For the lab samples the missing values in the house-keeping genes are:
+PPIB: 1
+GAPDH: 96
+
+Downlad and install the package for Gene normalization
+
+```{r}
+
+#if (!require("BiocManager", quietly = TRUE))
+ #   install.packages("BiocManager")
+
+#BiocManager::install("DESeq2")
+
+# create a count data set, rows are sample names and columns the genes
+count_data <- hm_select %>%
+  dplyr::select(c(Mouse_ID, origin, all_of(Gene_lab), -IL.10 , GAPDH, PPIB))
+
+# select first the field samples 
+count_field <- count_data %>%
+  dplyr::filter(origin == "Field")
+
+mouse_id <- count_field$Mouse_ID
+
+# row names are samples names
+#rownames(count_field) <-count_field[,1]
+
+# remove the id column
+count_field <- count_field %>% dplyr::select(-c(origin, Mouse_ID))
+
+count_field <- unique(count_field)
+
+# transpose the data frame to get the sample ids as columns
+count_field <- (t(count_field))
+
+# now create the meta data 
+
+meta_field<- hm_select %>%
+  dplyr::select(c(Mouse_ID, origin)) %>%
+  dplyr::filter(origin == "Field") %>%
+  dplyr::rename(id = Mouse_ID) 
+
+#meta_field$id <- str_remove(meta_field$id, "AA_")
+
+# row names are samples names
+
+#rownames(meta_field) <- meta_field[,1]
+
+meta_field$origin <- as.factor(meta_field$origin)
+
+#meta_field <- meta_field %>% 
+ # dplyr::select(-id)
+
+condition <- meta_field$origin
+
+
+all(rownames(meta_field) %in% mouse_id)
+
+all(rownames(meta_field) %in% colnames(count_field))
+
+
+
+# construct deseq data set object
+dds <- DESeqDataSetFromMatrix(countData= count_field, 
+                              colData= meta_data, 
+                              design= ~origin, 
+                              tidy = TRUE)
+
+head(sort(count_field[,1]))
+
+
+?DESeqDataSetFromMatrix
+
+norm_field <- DESeq(count_field)
+
+?DESeq
+
+countData <- matrix(1:100,ncol=4)
+condition <- factor(c("A","A","B","B"))
+?
+```
+Step 1. Normalize to (REF): ∆Cq = Cq (TAR) – Cq (REF)
+Step 2. Exponential expression transform: ∆Cq Expression = 2–∆Cq
+Step 3. Average replicates and calculate standard deviation
+Step 4. Normalize to treatment control
+Step 5. % KD = (1 – ∆∆Cq ) × 100
+
+```{r}
+# create a count data set, rows are sample names and columns the genes
+count_data <- hm_select %>%
+  dplyr::select(c(Mouse_ID, origin, all_of(Gene_lab), -IL.10 , GAPDH, PPIB))
+
+# select first the field samples 
+count_field <- count_data %>%
+  dplyr::filter(origin == "Field")
+
+
+## have to remove rows with only nas 
+
+# We are using GAPDH for the field samples 
+count_field <- count_field %>%
+  mutate(IL.13_dct = GAPDH - IL.13) %>%
+  mutate(IL.13_dct_mean = mean(count_field$IL.13_dct, na.rm = TRUE)) %>%
+  # fold gene expression = 2^-DDCt
+  mutate(IL.13_N = 2^ - (IL.13_dct - IL.13_dct_mean)) %>%
+  mutate(IL.13_N = round(IL.13_N, digits = 2))
+
+mean_IL.13_ct <- mean(count_field$IL.13, )
+
+
+
+#%>%
+  # fold gene expression = 2^-DDCt
+  mutate(IL.13_N = 2^ - (IL.13_dct - IL.13_dct_mean))
+  
+```
+
+
 
 
 
