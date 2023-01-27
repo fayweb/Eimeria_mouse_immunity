@@ -67,23 +67,6 @@ Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
 ```
 
 
-Do we have all the measurements of our housekeeping genes?
-
-```{r}
-#glimpse(hm_selection_g)
-
-#dplyr::select(-Mouse_ID)
-# looking at patterns of nas)
-#pattern_na <-as.data.frame(md.pattern(field_genes))
-sapply(field %>%
-         dplyr::select(c(all_of(Genes_wild), "PPIB", "GAPDH")), 
-                      function(x) sum(is.na(x)))
-
-sapply(lab %>%
-         dplyr::select(c(all_of(Gene_lab), "PPIB", "GAPDH")), 
-                      function(x) sum(is.na(x)))
-         
-```
 # data imputation
 
 # Genes
@@ -156,6 +139,23 @@ sapply(genes, function(x) sum(is.na(x)))
 ```
 
 
+Do we have all the measurements of our housekeeping genes?
+
+```{r}
+#glimpse(hm_selection_g)
+
+#dplyr::select(-Mouse_ID)
+# looking at patterns of nas)
+#pattern_na <-as.data.frame(md.pattern(field_genes))
+sapply(field %>%
+         dplyr::select(c(all_of(Genes_wild), "PPIB", "GAPDH")), 
+                      function(x) sum(is.na(x)))
+
+sapply(lab %>%
+         dplyr::select(c(all_of(Gene_lab), "PPIB", "GAPDH")), 
+                      function(x) sum(is.na(x)))
+         
+```
 
 ```{r}
 
@@ -379,10 +379,10 @@ count_field <- count_data %>%
 mouse_id <- count_field$Mouse_ID
 
 # row names are samples names
-#rownames(count_field) <-count_field[,1]
+rownames(count_field) <-count_field[,1]
 
 # remove the id column
-count_field <- count_field %>% dplyr::select(-c(origin, Mouse_ID))
+#count_field <- count_field %>% dplyr::select(-c(origin, Mouse_ID))
 
 count_field <- unique(count_field)
 
@@ -455,38 +455,83 @@ count_field <- count_data %>%
 
 # We are using GAPDH for the field samples
 
-normalize_gene <- function(x, y) { # x = target gene, y = housekeeping gene
- dct <- count_field$x - count_field$y
-
- dct_mean <- mean(count_field$dct, na.rm = TRUE)
+normalize_gene_field <- function(x, y) { # x = target gene, y = housekeeping gene, o = origin
+ df <- count_data %>%
+  dplyr::filter(origin == "Field")
+ 
+ dct <- df %>% dplyr::select(all_of(x)) - df %>% dplyr::select(all_of(y))
+ 
+ dct <- unlist(as.vector(df %>% dplyr::select(all_of(x))))
+ 
+ dct_mean <- mean(dct, na.rm = TRUE)
+ 
  #fold gene expression
  norm_gene <- 2^ - (dct - dct_mean)
  norm_gene <- round(norm_gene, digits = 2)
 
 }
+
+x <- "IL.13"
+y <- "GAPDH"
+ df <- count_data %>%
+  dplyr::filter(origin == "Field")
+
+df <- df %>%
+  mutate(IL.13_dct = IL.13 - GAPDH)
  
-x <- normalize_gene(IL.13, GAPDH) 
+ 
+ dct_mean <- mean(df$IL.13_dct, na.rm = TRUE)
+ 
+ #fold gene expression
+ df <- df %>%
+   mutate(IL.13_N = 2^ - (IL.13_dct - dct_mean)) %>%
+   mutate(IL.13_N = round(IL.13_N, digits = 2))
+ 
+
+ 
+x <- normalize_gene_field("IL.13", "GAPDH") 
   
-normalize_gene <- function(x, y) { 
-   count_field <- count_field %>%
-  mutate(dct = y - x) %>%
-  mutate(dct_mean = mean(count_field$dct_mean, na.rm = TRUE)) %>%
-  # fold gene expression = 2^-DDCt
-  mutate(N = 2^ - (dct - dct_mean)) %>%
-  mutate(N = round(paste(x, "_N", sep = ""), digits = 2)) 
-}
 
+library(pcr)
+# create a count data set, rows are sample names and columns the genes
+count_data <- hm_select %>%
+  dplyr::select(c(Mouse_ID, origin, all_of(Gene_lab), -IL.10 , GAPDH, PPIB))
 
+count_field <- count_data %>% filter(origin == "Field")
 
+# row names are samples names
+rownames(count_field) <-count_field[,1]
+group <- count_field$origin
+Mouse_ID <- count_field$Mouse_ID
+count_field <- count_field[,-(1:2)]
 
+#count_field <- count_field %>% pivot_wider(names_from = o)
+#count_field <- as.data.frame(t(count_field))
 
-#%>%
-  # fold gene expression = 2^-DDCt
-  mutate(IL.13_N = 2^ - (IL.13_dct - IL.13_dct_mean))
+x <- pcr_analyze(df = count_field %>% dplyr::select(c("IL.13", "GAPDH")), 
+            group_var = group,
+            reference_gene = "GAPDH",
+            method = "delta_delta_ct",
+            reference_group = "Field")
+
+?pcr_analyze
   
 ```
 
 
+```{r}
+# if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+#BiocManager::install("ddCt")
+library(ddCt)
+
+?ddCt
+data <- SMDFrame()
+
+?SMDFrame
+ddCt(object = count_field, housekeepingGenes = "GAPDH" )
+```
 
 
 
