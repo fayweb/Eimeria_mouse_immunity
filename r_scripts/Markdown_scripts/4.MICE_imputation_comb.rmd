@@ -40,7 +40,7 @@ library(DESeq2)
 hm <- read.csv("output_data/1.MICE_cleaned_data.csv")
 ```
 
-I only include GAPDH as a housekeeping gene, as PPIB is missing in a large number
+
 
 ```{r}
 # Vectors for selecting genes
@@ -123,7 +123,7 @@ hm_genes <- rbind(gene_lab_mouse, genes_mouse_field)
 hm_selection_g <- rbind(lab, field)
 
 genes <- cbind(hm_selection_g %>%
-                 dplyr::select(c(origin, GAPDH, PPIB)), hm_genes)
+                 dplyr::select(origin), hm_genes)
 
 genes <- genes %>%
   dplyr::select(-Mouse_ID)
@@ -148,11 +148,11 @@ Do we have all the measurements of our housekeeping genes?
 # looking at patterns of nas)
 #pattern_na <-as.data.frame(md.pattern(field_genes))
 sapply(field %>%
-         dplyr::select(c(all_of(Genes_wild), "PPIB", "GAPDH")), 
+         dplyr::select(c(all_of(Genes_wild))), 
                       function(x) sum(is.na(x)))
 
 sapply(lab %>%
-         dplyr::select(c(all_of(Gene_lab), "PPIB", "GAPDH")), 
+         dplyr::select(c(all_of(Gene_lab))), 
                       function(x) sum(is.na(x)))
          
 ```
@@ -205,7 +205,7 @@ hm_selection_g <- hm_selection_g %>%
   dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10",
                 "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
-                "TICAM1", "TNF", "GAPDH", "PPIB", "origin"))
+                "TICAM1", "TNF", "origin"))
 # add the new imputed genes to the data
 hm_selection_g <- cbind(hm_selection_g, complete_genes)
 ```
@@ -347,191 +347,7 @@ hm_select <- unique(hm_select)
 
 ```
 
-# Gene normalization 
 
-
-
-For the field samples the missing values in the house-keeping genes are:
-PPIB: 212
-GAPDH: 10
-
-For the lab samples the missing values in the house-keeping genes are:
-PPIB: 1
-GAPDH: 96
-
-Downlad and install the package for Gene normalization
-
-```{r}
-
-#if (!require("BiocManager", quietly = TRUE))
- #   install.packages("BiocManager")
-
-#BiocManager::install("DESeq2")
-
-# create a count data set, rows are sample names and columns the genes
-count_data <- hm_select %>%
-  dplyr::select(c(Mouse_ID, origin, all_of(Gene_lab), -IL.10 , GAPDH, PPIB))
-
-# select first the field samples 
-count_field <- count_data %>%
-  dplyr::filter(origin == "Field")
-
-mouse_id <- count_field$Mouse_ID
-
-# row names are samples names
-rownames(count_field) <-count_field[,1]
-
-# remove the id column
-#count_field <- count_field %>% dplyr::select(-c(origin, Mouse_ID))
-
-count_field <- unique(count_field)
-
-# transpose the data frame to get the sample ids as columns
-count_field <- (t(count_field))
-
-# now create the meta data 
-
-meta_field<- hm_select %>%
-  dplyr::select(c(Mouse_ID, origin)) %>%
-  dplyr::filter(origin == "Field") %>%
-  dplyr::rename(id = Mouse_ID) 
-
-#meta_field$id <- str_remove(meta_field$id, "AA_")
-
-# row names are samples names
-
-#rownames(meta_field) <- meta_field[,1]
-
-meta_field$origin <- as.factor(meta_field$origin)
-
-#meta_field <- meta_field %>% 
- # dplyr::select(-id)
-
-condition <- meta_field$origin
-
-
-all(rownames(meta_field) %in% mouse_id)
-
-all(rownames(meta_field) %in% colnames(count_field))
-
-
-
-# construct deseq data set object
-dds <- DESeqDataSetFromMatrix(countData= count_field, 
-                              colData= meta_data, 
-                              design= ~origin, 
-                              tidy = TRUE)
-
-head(sort(count_field[,1]))
-
-
-?DESeqDataSetFromMatrix
-
-norm_field <- DESeq(count_field)
-
-?DESeq
-
-countData <- matrix(1:100,ncol=4)
-condition <- factor(c("A","A","B","B"))
-?
-```
-Step 1. Normalize to (REF): ∆Cq = Cq (TAR) – Cq (REF)
-Step 2. Exponential expression transform: ∆Cq Expression = 2–∆Cq
-Step 3. Average replicates and calculate standard deviation
-Step 4. Normalize to treatment control
-Step 5. % KD = (1 – ∆∆Cq ) × 100
-
-```{r}
-# create a count data set, rows are sample names and columns the genes
-count_data <- hm_select %>%
-  dplyr::select(c(Mouse_ID, origin, all_of(Gene_lab), -IL.10 , GAPDH, PPIB))
-
-# select first the field samples 
-count_field <- count_data %>%
-  dplyr::filter(origin == "Field")
-
-
-## have to remove rows with only nas 
-
-# We are using GAPDH for the field samples
-
-normalize_gene_field <- function(x, y) { # x = target gene, y = housekeeping gene, o = origin
- df <- count_data %>%
-  dplyr::filter(origin == "Field")
- 
- dct <- df %>% dplyr::select(all_of(x)) - df %>% dplyr::select(all_of(y))
- 
- dct <- unlist(as.vector(df %>% dplyr::select(all_of(x))))
- 
- dct_mean <- mean(dct, na.rm = TRUE)
- 
- #fold gene expression
- norm_gene <- 2^ - (dct - dct_mean)
- norm_gene <- round(norm_gene, digits = 2)
-
-}
-
-x <- "IL.13"
-y <- "GAPDH"
- df <- count_data %>%
-  dplyr::filter(origin == "Field")
-
-df <- df %>%
-  mutate(IL.13_dct = IL.13 - GAPDH)
- 
- 
- dct_mean <- mean(df$IL.13_dct, na.rm = TRUE)
- 
- #fold gene expression
- df <- df %>%
-   mutate(IL.13_N = 2^ - (IL.13_dct - dct_mean)) %>%
-   mutate(IL.13_N = round(IL.13_N, digits = 2))
- 
-
- 
-x <- normalize_gene_field("IL.13", "GAPDH") 
-  
-
-library(pcr)
-# create a count data set, rows are sample names and columns the genes
-count_data <- hm_select %>%
-  dplyr::select(c(Mouse_ID, origin, all_of(Gene_lab), -IL.10 , GAPDH, PPIB))
-
-count_field <- count_data %>% filter(origin == "Field")
-
-# row names are samples names
-rownames(count_field) <-count_field[,1]
-group <- count_field$origin
-Mouse_ID <- count_field$Mouse_ID
-count_field <- count_field[,-(1:2)]
-
-#count_field <- count_field %>% pivot_wider(names_from = o)
-#count_field <- as.data.frame(t(count_field))
-
-x <- pcr_analyze(df = count_field %>% dplyr::select(c("IL.13", "GAPDH")), 
-            group_var = group,
-            reference_gene = "GAPDH",
-            method = "delta_delta_ct",
-            reference_group = "Field")
-
-?pcr_analyze
-  
-```
-
-
-```{r}
-# if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-#BiocManager::install("ddCt")
-library(ddCt)
-
-?ddCt
-data <- SMDFrame()
-
-?SMDFrame
-ddCt(object = count_field, housekeepingGenes = "GAPDH" )
-```
 
 
 

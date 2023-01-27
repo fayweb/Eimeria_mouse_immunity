@@ -1,0 +1,813 @@
+---
+title: "4.4_Mice_imputation_comb.rmd"
+author: "Fay"
+date: '2022-11-01'
+output:
+  pdf_lab_document:
+    keep_md: yes 
+    fig_width: 12
+    fig_height: 8
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+# Load libraries
+
+
+
+```{r}
+library(mice)
+library(tidyr)
+library(tidyverse)
+library(VIM)
+library(fitdistrplus)
+library(fitur)
+library(visdat)
+library(DESeq2)
+```
+
+# Load data
+
+# Import data
+
+```{r}
+hm <- read.csv("output_data/1.MICE_cleaned_data.csv")
+```
+
+I only include GAPDH as a housekeeping gene, as PPIB is missing in a large number
+
+```{r}
+# Vectors for selecting genes
+#Lab genes
+# The measurements of IL.12 and IRG6 are done with an other assay and will 
+#ignore for now
+Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF") #"IL.12", "IRG6")
+
+Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF") #, "IL.12", "IRG6")
+
+Facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8","Treg_prop", 
+                    "IL17A_CD4")  
+
+Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
+                     "Act_CD8", "IFNy_CD4", "IL17A_CD4", "IFNy_CD8")
+```
+
+
+# data imputation
+
+# Genes
+```{r imputing_mice}
+hm$Mouse_ID <- str_replace(hm$Mouse_ID, "_", "")
+
+field <- hm %>%
+  dplyr::filter(origin == "Field") 
+
+field <- unique(field)
+genes_mouse_field <- field %>%
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild), )) 
+genes <- genes_mouse_field  %>%
+  dplyr::select(-Mouse_ID)
+#remove rows with only nas
+genes <- genes[,colSums(is.na(genes))<nrow(genes)]
+#remove colums with only nas 
+genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
+genes_mouse_field <- genes_mouse_field[row.names(genes), ]
+
+##select same rows in the first table
+field <- field[row.names(genes), ]
+
+
+###############lab
+#select the genes and lab muce
+lab <- hm %>%
+  dplyr::filter(origin == "Lab", Position == "mLN") #selecting for mln to avoid
+# duplicates
+lab <- unique(lab)
+gene_lab_mouse <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab))) 
+
+gene_lab_mouse <- unique(gene_lab_mouse)
+
+genes_lab <- gene_lab_mouse[, -1]
+
+#remove rows with only nas
+genes_lab <- genes_lab[,colSums(is.na(genes_lab))<nrow(genes_lab)]
+
+#remove colums with only nas 
+genes_lab <- genes_lab[rowSums(is.na(genes_lab)) != ncol(genes_lab), ]
+
+genes_lab <- unique(genes_lab)
+
+#select same rows in the first table
+gene_lab_mouse <- gene_lab_mouse[row.names(genes_lab), ]
+
+##select same rows in the first table
+lab <- lab[row.names(genes_lab), ]
+
+hm_genes <- rbind(gene_lab_mouse, genes_mouse_field)
+
+hm_selection_g <- rbind(lab, field)
+
+genes <- cbind(hm_selection_g %>%
+                 dplyr::select(c(origin, GAPDH, PPIB)), hm_genes)
+
+genes <- genes %>%
+  dplyr::select(-Mouse_ID)
+  
+genes$origin <- as.factor(genes$origin)
+
+#dplyr::select(-Mouse_ID)
+# looking at patterns of nas)
+#pattern_na <-as.data.frame(md.pattern(field_genes))
+sapply(genes, function(x) sum(is.na(x)))
+
+
+```
+
+
+Do we have all the measurements of our housekeeping genes?
+
+```{r}
+#glimpse(hm_selection_g)
+
+#dplyr::select(-Mouse_ID)
+# looking at patterns of nas)
+#pattern_na <-as.data.frame(md.pattern(field_genes))
+sapply(field %>%
+         dplyr::select(c(all_of(Genes_wild), "PPIB", "GAPDH")), 
+                      function(x) sum(is.na(x)))
+
+sapply(lab %>%
+         dplyr::select(c(all_of(Gene_lab), "PPIB", "GAPDH")), 
+                      function(x) sum(is.na(x)))
+         
+```
+
+```{r}
+
+
+#had to remove as they were disturbing the imputation: Worms_presence, MC.Eimeria.FEC,  Heligmosomoides_polygurus, Zfy2, Y,  MpiC,
+#vis_miss(field)
+# The frequency distribution of the missing cases per variable can be obtained 
+# as:
+init <- mice(genes, maxit = 0)
+
+#we want to impute only the specific variables
+meth <- init$method
+```
+
+
+```{r}
+aggr_plot <- aggr(hm_genes, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(hm_genes), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+```
+
+
+```{r}
+marginplot(hm_genes[c(6,8)])
+```
+
+
+
+```{r}
+# removing il 10
+genes <- genes %>%
+  dplyr::select(-IL.10)
+# m=5 refers to the number of imputed datasets. Five is the default value.
+igf <- mice(genes, m = 5, seed = 500) # method = meth,
+
+summary(igf)
+
+# to check each column with imputed data
+## igf$imp$IFNy
+#Now we can get back the completed dataset using the complete()
+complete_genes <- complete(igf, 1)
+
+#sapply(complete_field, function(x) sum(is.na(x)))
+#visualize missingness
+vis_dat(complete_genes)
+
+#remove the non imputed genes from our data set
+hm_selection_g <- hm_selection_g %>%
+  dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10",
+                "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                "TICAM1", "TNF", "GAPDH", "PPIB", "origin"))
+# add the new imputed genes to the data
+hm_selection_g <- cbind(hm_selection_g, complete_genes)
+```
+
+inspect the trace lines for convergence: 
+
+```{r}
+plot(igf)
+```
+
+
+
+Let’s compare the distributions of original and imputed data using a some useful 
+plots.First of all we can use a scatterplot and plot Ozone against all the other 
+variables. Let's first plot the variables for which we have few missing values.
+
+
+
+```{r distr_orig_pred}
+xyplot(igf, IFNy ~ IL.13 + IRGM1 + MUC2, pch=18,cex=1)
+```
+
+
+What we would like to see is that the shape of the magenta points (imputed) 
+matches the shape of the blue ones (observed). The matching shape tells us that 
+the imputed values are indeed “plausible values”.
+
+Now let's plot the variables with many missing data points.
+
+
+```{r distr_orig_pred2}
+xyplot(igf,IFNy ~ IL.13 + PRF1 + CASP1, pch=18,cex=1)
+```
+
+
+
+```{r }
+stripplot(igf, pch = c(20,21), cex = 1.2)
+#bwplot(igf)
+```
+
+
+
+```{r }
+densityplot(igf)
+```
+
+The density of the imputed data for each imputed dataset is showed in magenta 
+while the density of the observed data is showed in blue. Again, under our 
+previous assumptions we expect the distributions to be similar.
+
+Another useful visual take on the distributions can be obtained using the 
+stripplot() function that shows the distributions of the variables as individual 
+points
+
+
+
+
+
+# Facs
+
+```{r}
+###############lab
+#select the facs and lab muce
+lab <- hm %>%
+  dplyr::filter(origin == "Lab", Position == "mLN") #selecting for mln to avoid
+
+# duplicates
+lab <- unique(lab)
+
+facs_mouse <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_lab))) #choosing the same with the wild
+
+facs_mouse <- unique(facs_mouse)
+
+facs_lab <- facs_mouse[, -1]
+
+#remove rows with only nas
+facs_lab <- facs_lab[,colSums(is.na(facs_lab))<nrow(facs_lab)]
+#remove colums with only nas 
+facs_lab <- facs_lab[rowSums(is.na(facs_lab)) != ncol(facs_lab), ]
+
+#select same rows in the first table
+facs_mouse_lab <- facs_mouse[row.names(facs_lab), ]
+
+
+
+
+#########################Field
+###########field
+# somehow the field samples have the origin na,
+# fix that
+field <- hm %>%
+  dplyr::filter(origin == "Field") 
+
+field <- unique(field)
+facs_mouse <- field %>%
+  dplyr::select(c(Mouse_ID, all_of(Facs_wild))) 
+facs_field <- facs_mouse[,-1]
+#remove rows with only nas
+facs_field <- facs_field[,colSums(is.na(facs_field))<nrow(facs_field)]
+#remove colums with only nas 
+facs_field <- facs_field[rowSums(is.na(facs_field)) != ncol(facs_field), ]
+
+#select same rows in the first table
+facs_mouse_field <- facs_mouse[row.names(facs_field), ]
+
+# full join the two tables 
+facs_data <- full_join(facs_mouse_lab, facs_mouse_field)
+
+length(intersect(hm_selection_g$Mouse_ID, facs_data$Mouse_ID))
+
+facs_data <- facs_data %>%
+  left_join(hm) 
+
+
+```
+
+We don't need to impute anything for the facs data as we have a complete data
+set
+
+# join the gene expression data with the facs data
+```{r}
+setdiff(facs_data$Mouse_ID, hm_selection_g$Mouse_ID)
+
+
+facs_data <- facs_data %>%
+  dplyr::filter(Mouse_ID %in% setdiff(facs_data$Mouse_ID, hm_selection_g$Mouse_ID))
+
+
+# We expect 477 mice in the new data frame 
+472 + 5 
+
+#now combine the two data frames
+hm_select <- rbind(hm_selection_g, facs_data)
+
+hm_select <- unique(hm_select)
+
+
+```
+
+# Gene normalization 
+
+
+
+For the field samples the missing values in the house-keeping genes are:
+PPIB: 212
+GAPDH: 10
+
+For the lab samples the missing values in the house-keeping genes are:
+PPIB: 1
+GAPDH: 96
+
+Downlad and install the package for Gene normalization
+
+
+Step 1. Normalize to (REF): ∆Cq = Cq (TAR) – Cq (REF)
+Step 2. Exponential expression transform: ∆Cq Expression = 2–∆Cq
+Step 3. Average replicates and calculate standard deviation
+Step 4. Normalize to treatment control
+Step 5. % KD = (1 – ∆∆Cq ) × 100
+
+```{r}
+# create a count data set, rows are sample names and columns the genes
+count_data <- hm_select %>%
+  dplyr::select(c(Mouse_ID, origin, all_of(Gene_lab), -IL.10 , GAPDH, PPIB))
+
+####################### field ##########################
+# select first the field samples 
+count_field <- count_data %>%
+  dplyr::filter(origin == "Field")
+
+df <- count_field
+
+############### IL.13 
+# dct
+df <- df %>%
+  mutate(IL.13_dct = IL.13 - GAPDH)
+# mean of dct
+dct_mean <- mean(df$IL.13_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(IL.13_N = 2^ - (IL.13_dct - dct_mean)) %>%
+   mutate(IL.13_N = round(IL.13_N, digits = 2))
+ 
+############# I tried writing a nice function but I failed so now I am
+ # going t repeat this many many times
+ 
+ ############### IFNy
+ # dct
+df <- df %>%
+  mutate(IFNy_dct = IFNy - GAPDH)
+
+# mean of dct
+dct_mean <- mean(df$IFNy_dct, na.rm = TRUE)
+ 
+#fold gene expression
+ df <- df %>%
+   mutate(IFNy_N = 2^ - (IFNy_dct - dct_mean)) %>%
+   mutate(IFNy_N = round(IFNy_N, digits = 2))
+ 
+
+ ############### CXCR3
+ df <- df %>%
+  mutate(CXCR3_dct = CXCR3 - GAPDH)
+
+# mean of dct
+dct_mean <- mean(df$CXCR3_dct, na.rm = TRUE)
+ 
+#fold gene expression
+ df <- df %>%
+   mutate(CXCR3_N = 2^ - (CXCR3_dct - dct_mean)) %>%
+   mutate(CXCR3_N = round(CXCR3_N, digits = 2))
+ 
+ ############### IL.6
+ df <- df %>%
+  mutate(IL.6_dct = IL.6 - GAPDH)
+
+# mean of dct
+dct_mean <- mean(df$IL.6_dct, na.rm = TRUE)
+ 
+#fold gene expression
+ df <- df %>%
+   mutate(IL.6_N = 2^ - (IL.6_dct - dct_mean)) %>%
+   mutate(IL.6_N = round(IL.6_N, digits = 2))
+
+ ##############  IL1RN
+ df <- df %>%
+  mutate(IL1RN_dct = IL1RN - GAPDH)
+
+# mean of dct
+dct_mean <- mean(df$IL1RN_dct, na.rm = TRUE)
+ 
+#fold gene expression
+ df <- df %>%
+   mutate(IL1RN_N = 2^ - (IL1RN_dct - dct_mean)) %>%
+   mutate(IL1RN_N = round(IL1RN_N, digits = 2))
+ 
+ 
+ ##############  CASP1
+ df <- df %>%
+  mutate(CASP1_dct = CASP1 - GAPDH)
+
+# mean of dct
+dct_mean <- mean(df$CASP1_dct, na.rm = TRUE)
+ 
+#fold gene expression
+ df <- df %>%
+   mutate(CASP1_N = 2^ - (CASP1_dct - dct_mean)) %>%
+   mutate(CASP1_N = round(CASP1_N, digits = 2))
+ 
+ 
+ ##############  CXCL9
+ df <- df %>%
+  mutate(CXCL9_dct = CXCL9 - GAPDH)
+
+# mean of dct
+dct_mean <- mean(df$CXCL9_dct, na.rm = TRUE)
+ 
+#fold gene expression
+ df <- df %>%
+   mutate(CXCL9_N = 2^ - (CXCL9_dct - dct_mean)) %>%
+   mutate(CXCL9_N = round(CXCL9_N, digits = 2))
+ 
+  ##############  IDO1
+ df <- df %>%
+  mutate(IDO1_dct = IDO1 - GAPDH)
+# mean of dct
+dct_mean <- mean(df$IDO1_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(IDO1_N = 2^ - (IDO1_dct - dct_mean)) %>%
+   mutate(IDO1_N = round(IDO1_N, digits = 2))
+ 
+  ##############  IRGM1
+ df <- df %>%
+  mutate(IRGM1_dct = IRGM1 - GAPDH)
+# mean of dct
+dct_mean <- mean(df$IRGM1_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(IRGM1_N = 2^ - (IRGM1_dct - dct_mean)) %>%
+   mutate(IRGM1_N = round(IRGM1_N, digits = 2))
+ 
+  ##############  MPO
+ df <- df %>%
+  mutate(MPO_dct = MPO - GAPDH)
+# mean of dct
+dct_mean <- mean(df$MPO_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(MPO_N = 2^ - (MPO_dct - dct_mean)) %>%
+   mutate(MPO_N = round(MPO_N, digits = 2))
+ 
+ 
+  ##############  MUC2
+ df <- df %>%
+  mutate(MUC2_dct = MUC2 - GAPDH)
+# mean of dct
+dct_mean <- mean(df$MUC2_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(MUC2_N = 2^ - (MUC2_dct - dct_mean)) %>%
+   mutate(MUC2_N = round(MUC2_N, digits = 2))
+ 
+  ##############  MUC5AC
+ df <- df %>%
+  mutate(MUC5AC_dct = MUC5AC - GAPDH)
+# mean of dct
+dct_mean <- mean(df$MUC5AC_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(MUC5AC_N = 2^ - (MUC5AC_dct - dct_mean)) %>%
+   mutate(MUC5AC_N = round(MUC5AC_N, digits = 2))
+ 
+  ##############  MYD88
+ df <- df %>%
+  mutate(MYD88_dct = MYD88 - GAPDH)
+# mean of dct
+dct_mean <- mean(df$MYD88_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(MYD88_N = 2^ - (MYD88_dct - dct_mean)) %>%
+   mutate(MYD88_N = round(MYD88_N, digits = 2))
+ 
+  ##############  NCR1
+ df <- df %>%
+  mutate(NCR1_dct = NCR1 - GAPDH)
+# mean of dct
+dct_mean <- mean(df$NCR1_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(NCR1_N = 2^ - (NCR1_dct - dct_mean)) %>%
+   mutate(NCR1_N = round(NCR1_N, digits = 2))
+ 
+ 
+  ##############  PRF1
+ df <- df %>%
+  mutate(PRF1_dct = PRF1 - GAPDH)
+# mean of dct
+dct_mean <- mean(df$PRF1_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(PRF1_N = 2^ - (PRF1_dct - dct_mean)) %>%
+   mutate(PRF1_N = round(PRF1_N, digits = 2))
+ 
+  ##############  RETNLB
+ df <- df %>%
+  mutate(RETNLB_dct = RETNLB - GAPDH)
+# mean of dct
+dct_mean <- mean(df$RETNLB_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(RETNLB_N = 2^ - (RETNLB_dct - dct_mean)) %>%
+   mutate(RETNLB_N = round(RETNLB_N, digits = 2))
+ 
+ 
+ 
+  ##############  SOCS1
+ df <- df %>%
+  mutate(SOCS1_dct = SOCS1 - GAPDH)
+# mean of dct
+dct_mean <- mean(df$SOCS1_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(SOCS1_N = 2^ - (SOCS1_dct - dct_mean)) %>%
+   mutate(SOCS1_N = round(SOCS1_N, digits = 2))
+ 
+  ##############  TICAM1
+ df <- df %>%
+  mutate(TICAM1_dct = TICAM1 - GAPDH)
+# mean of dct
+dct_mean <- mean(df$TICAM1_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(TICAM1_N = 2^ - (TICAM1_dct - dct_mean)) %>%
+   mutate(TICAM1_N = round(TICAM1_N, digits = 2))
+ 
+ ##############  TNF
+ df <- df %>%
+  mutate(TNF_dct = TNF - GAPDH)
+# mean of dct
+dct_mean <- mean(df$TNF_dct, na.rm = TRUE)
+#fold gene expression
+ df <- df %>%
+   mutate(TNF_N = 2^ - (TNF_dct - dct_mean)) %>%
+   mutate(TNF_N = round(TNF_N, digits = 2))
+  
+ 
+ 
+ ################################# lab 
+ # select first the field samples 
+count_Lab <- count_data %>%
+  dplyr::filter(origin == "Lab")
+
+df_lab <- count_Lab
+
+  ############### IFNy
+  df_lab <- df_lab %>%
+  mutate(IFNy_dct = IFNy - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$IFNy_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(IFNy_N = 2^ - (IFNy_dct - dct_mean)) %>%
+   mutate(IFNy_N = round(IFNy_N, digits = 2))
+ 
+ 
+ 
+ ############### CXCR3
+  df_lab <- df_lab %>%
+  mutate(CXCR3_dct = CXCR3 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$CXCR3_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(CXCR3_N = 2^ - (CXCR3_dct - dct_mean)) %>%
+   mutate(CXCR3_N = round(CXCR3_N, digits = 2))
+ 
+ ############### IL.6
+   df_lab <- df_lab %>%
+  mutate(IL.6_dct = IL.6 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$IL.6_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(IL.6_N = 2^ - (IL.6_dct - dct_mean)) %>%
+   mutate(IL.6_N = round(IL.6_N, digits = 2))
+ 
+ 
+ ############## IL.13
+   df_lab <- df_lab %>%
+  mutate(IL.13_dct = IL.13 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$IL.13_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(IL.13_N = 2^ - (IL.13_dct - dct_mean)) %>%
+   mutate(IL.13_N = round(IL.13_N, digits = 2))
+ 
+ ##############  IL1RN
+   df_lab <- df_lab %>%
+  mutate(IL1RN_dct = IL1RN - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$IL1RN_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(IL1RN_N = 2^ - (IL1RN_dct - dct_mean)) %>%
+   mutate(IL1RN_N = round(IL1RN_N, digits = 2))
+ 
+ ##############  CASP1
+   df_lab <- df_lab %>%
+  mutate(CASP1_dct = CASP1 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$CASP1_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(CASP1_N = 2^ - (CASP1_dct - dct_mean)) %>%
+   mutate(CASP1_N = round(CASP1_N, digits = 2))
+ 
+ 
+ ##############  CXCL9
+   df_lab <- df_lab %>%
+  mutate(CXCL9_dct = CXCL9 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$CXCL9_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(CXCL9_N = 2^ - (CXCL9_dct - dct_mean)) %>%
+   mutate(CXCL9_N = round(CXCL9_N, digits = 2))
+ 
+ 
+  ##############  IDO1
+   df_lab <- df_lab %>%
+  mutate(IDO1_dct = IDO1 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$IDO1_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(IDO1_N = 2^ - (IDO1_dct - dct_mean)) %>%
+   mutate(IDO1_N = round(IDO1_N, digits = 2))
+ 
+  ##############  IRGM1
+   df_lab <- df_lab %>%
+  mutate(IRGM1_dct = IRGM1 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$IRGM1_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(IRGM1_N = 2^ - (IRGM1_dct - dct_mean)) %>%
+   mutate(IRGM1_N = round(IRGM1_N, digits = 2))
+ 
+  ##############  MPO
+   df_lab <- df_lab %>%
+  mutate(MPO_dct = MPO - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$MPO_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(MPO_N = 2^ - (MPO_dct - dct_mean)) %>%
+   mutate(MPO_N = round(MPO_N, digits = 2))
+ 
+  ##############  MUC2
+   df_lab <- df_lab %>%
+  mutate(MUC2_dct = MUC2 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$MUC2_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(MUC2_N = 2^ - (MUC2_dct - dct_mean)) %>%
+   mutate(MUC2_N = round(MUC2_N, digits = 2))
+ 
+  ##############  MUC5AC
+   df_lab <- df_lab %>%
+  mutate(MUC5AC_dct = MUC5AC - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$MUC5AC_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(MUC5AC_N = 2^ - (MUC5AC_dct - dct_mean)) %>%
+   mutate(MUC5AC_N = round(MUC5AC_N, digits = 2))
+ 
+ 
+  ##############  MYD88
+   df_lab <- df_lab %>%
+  mutate(MYD88_dct = MYD88 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$MYD88_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(MYD88_N = 2^ - (MYD88_dct - dct_mean)) %>%
+   mutate(MYD88_N = round(MYD88_N, digits = 2))
+ 
+ 
+  ##############  NCR1
+   df_lab <- df_lab %>%
+  mutate(NCR1_dct = NCR1 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$NCR1_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(NCR1_N = 2^ - (NCR1_dct - dct_mean)) %>%
+   mutate(NCR1_N = round(NCR1_N, digits = 2))
+ 
+  ##############  PRF1
+   df_lab <- df_lab %>%
+  mutate(PRF1_dct = PRF1 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$PRF1_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(PRF1_N = 2^ - (PRF1_dct - dct_mean)) %>%
+   mutate(PRF1_N = round(PRF1_N, digits = 2))
+ 
+  ##############  RETNLB
+   df_lab <- df_lab %>%
+  mutate(RETNLB_dct = RETNLB - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$RETNLB_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(RETNLB_N = 2^ - (RETNLB_dct - dct_mean)) %>%
+   mutate(RETNLB_N = round(RETNLB_N, digits = 2))
+ 
+  ##############  SOCS1
+   df_lab <- df_lab %>%
+  mutate(SOCS1_dct = SOCS1 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$SOCS1_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(SOCS1_N = 2^ - (SOCS1_dct - dct_mean)) %>%
+   mutate(SOCS1_N = round(SOCS1_N, digits = 2))
+ 
+  ##############  TICAM1
+   df_lab <- df_lab %>%
+  mutate(TICAM2_dct = TICAM2 - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$TICAM2_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(TICAM2_N = 2^ - (TICAM2_dct - dct_mean)) %>%
+   mutate(TICAM2_N = round(TICAM2_N, digits = 2))
+ 
+ ##############  TNF
+   df_lab <- df_lab %>%
+  mutate(TNF_dct = TNF - PPIB)
+# mean of dct
+dct_mean <- mean(df_lab$TNF_dct, na.rm = TRUE)
+#fold gene expression
+ df_lab <- df_lab %>%
+   mutate(TNF_N = 2^ - (TNF_dct - dct_mean)) %>%
+   mutate(TNF_N = round(TNF_N, digits = 2))
+```
+
+
+
+
+
+
+
+```{r}
+ ##save the imputed data 
+write.csv(hm_select, "output_data/2.imputed_MICE_data_set.csv", row.names = FALSE)
+```
