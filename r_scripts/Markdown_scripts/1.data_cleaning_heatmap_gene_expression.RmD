@@ -68,8 +68,8 @@ Challenge = experimental challenge infection data
 SOTA = State of the Art, of wild data
 
 ```{r}
-Challenge <- read.csv("input_data/Challenge_infections.csv")
-SOTA <- read.csv("input_data/SOTA_Data_Product.csv")
+Challenge <- read.csv("https://raw.githubusercontent.com/derele/Eimeria_Lab/master/data_products/Challenge_infections.csv")
+SOTA <- read.csv("https://raw.githubusercontent.com/derele/Mouse_Eimeria_Field/master/data_products/SOTA_Data_Product.csv")
 # Vectors for selecting genes
 #Lab genes
 # The measurements of IL.12 and IRG6 are done with an other assay and will 
@@ -249,7 +249,7 @@ annotation_df <- as_tibble(data) %>%
     dplyr::filter(origin == "Lab", infection == "challenge", dpi == dpi_max)%>%
     dplyr::group_by(Mouse_ID) %>%
     dplyr::select(c("Mouse_ID", "Parasite_challenge", "infection_history",
-                    "mouse_strain", "max_WL")) 
+                    "mouse_strain", "WL_max")) 
   
 annotation_df <- unique(annotation_df) %>%
     dplyr::filter(Mouse_ID %in% colnames(heatmap_data))

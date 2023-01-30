@@ -144,10 +144,10 @@ str(res.pca)
  #add an ending to the imputed columns
 #colnames(gene) <- paste(colnames(gene[, 2:21]), "imp", sep = "_")
 
-mouse_id <- as.data.frame(gene$Mouse_ID)
+mouse_id <- gene %>%
+  dplyr::select(Mouse_ID)
 
-mouse_id <- mouse_id %>%
-  rename(Mouse_ID = "gene$Mouse_ID")
+
 
 mouse_id$pc1 <- res.pca$ind$coord[, 1] # indexing the first column
 
@@ -276,6 +276,9 @@ fviz_pca_biplot(res.pca,
 ################## Linear models: 
 
 ```{r lm_weight_pc, echo = FALSE}
+lab <- lab %>%
+  mutate(max_WL = WL_max)
+
 weight_lm <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge, data = lab)
 summary(weight_lm)
 AIC(weight_lm)

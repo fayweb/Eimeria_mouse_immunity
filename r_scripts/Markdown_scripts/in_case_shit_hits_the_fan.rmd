@@ -1,0 +1,89 @@
+
+# Genes
+```{r imputing_mice}
+hm$Mouse_ID <- str_replace(hm$Mouse_ID, "_", "")
+
+field <- hm %>%
+  dplyr::filter(origin == "Field") 
+
+field <- unique(field)
+genes_mouse_field <- field %>%
+  dplyr::select(c(Mouse_ID, all_of(Genes_wild), )) 
+genes <- genes_mouse_field  %>%
+  dplyr::select(-Mouse_ID)
+#remove rows with only nas
+genes <- genes[,colSums(is.na(genes))<nrow(genes)]
+#remove colums with only nas 
+genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
+genes_mouse_field <- genes_mouse_field[row.names(genes), ]
+
+##select same rows in the first table
+field <- field[row.names(genes), ]
+
+
+###############lab
+#select the genes and lab muce
+lab <- hm %>%
+  dplyr::filter(origin == "Lab", Position == "mLN") #selecting for mln to avoid
+# duplicates
+lab <- unique(lab)
+gene_lab_mouse <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab))) 
+
+gene_lab_mouse <- unique(gene_lab_mouse)
+
+genes_lab <- gene_lab_mouse[, -1]
+
+#remove rows with only nas
+genes_lab <- genes_lab[,colSums(is.na(genes_lab))<nrow(genes_lab)]
+
+#remove colums with only nas 
+genes_lab <- genes_lab[rowSums(is.na(genes_lab)) != ncol(genes_lab), ]
+
+genes_lab <- unique(genes_lab)
+
+#select same rows in the first table
+gene_lab_mouse <- gene_lab_mouse[row.names(genes_lab), ]
+
+##select same rows in the first table
+lab <- lab[row.names(genes_lab), ]
+
+hm_genes <- rbind(gene_lab_mouse, genes_mouse_field)
+
+hm_selection_g <- rbind(lab, field)
+
+genes <- cbind(hm_selection_g %>%
+                 dplyr::select(origin), hm_genes)
+
+genes <- genes %>%
+  dplyr::select(-Mouse_ID)
+  
+genes$origin <- as.factor(genes$origin)
+
+#dplyr::select(-Mouse_ID)
+# looking at patterns of nas)
+#pattern_na <-as.data.frame(md.pattern(field_genes))
+sapply(genes, function(x) sum(is.na(x)))
+
+
+```
+
+
+
+Do we have all the measurements of our housekeeping genes?
+
+```{r}
+#glimpse(hm_selection_g)
+
+#dplyr::select(-Mouse_ID)
+# looking at patterns of nas)
+#pattern_na <-as.data.frame(md.pattern(field_genes))
+sapply(field %>%
+         dplyr::select(c(all_of(Genes_wild))), 
+                      function(x) sum(is.na(x)))
+
+sapply(lab %>%
+         dplyr::select(c(all_of(Gene_lab))), 
+                      function(x) sum(is.na(x)))
+         
+```

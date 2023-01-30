@@ -1,27 +1,8 @@
----
-title: "4.4_Mice_imputation_comb.rmd"
-author: "Fay"
-date: '2022-11-01'
-output:
-  pdf_lab_document:
-    keep_md: yes 
-    fig_width: 12
-    fig_height: 8
-
----
-
-```{r setup, include=FALSE}
+## ----setup, include=FALSE--------------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
-```
 
 
-
-
-# Load libraries
-
-
-
-```{r}
+## --------------------------------------------------------------------------------
 library(mice)
 library(tidyr)
 library(tidyverse)
@@ -30,19 +11,13 @@ library(fitdistrplus)
 library(fitur)
 library(visdat)
 library(DESeq2)
-```
 
-# Load data
 
-# Import data
+## --------------------------------------------------------------------------------
+hm <- read.csv("output_data/1.MICE_cleaned_data.csv")
 
-```{r}
-  hm <- read.csv("output_data/1.MICE_cleaned_data.csv")
-```
 
-I only include GAPDH as a housekeeping gene, as PPIB is missing in a large number
-
-```{r}
+## --------------------------------------------------------------------------------
 # Vectors for selecting genes
 #Lab genes
 # The measurements of IL.12 and IRG6 are done with an other assay and will 
@@ -64,12 +39,9 @@ Facs_lab <- c("CD4", "Treg", "Div_Treg", "Treg17", "Th1",
 
 Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
                      "Act_CD8", "IFNy_CD4", "IL17A_CD4", "IFNy_CD8")
-```
 
 
-
-# Genes
-```{r imputing_mice}
+## ----imputing_mice---------------------------------------------------------------
 hm$Mouse_ID <- str_replace(hm$Mouse_ID, "_", "")
 
 field <- hm %>%
@@ -121,12 +93,9 @@ lab <- lab[row.names(genes_lab), ]
 
 
 
-```
 
 
-Do we have all the measurements of our housekeeping genes?
-
-```{r}
+## --------------------------------------------------------------------------------
 #glimpse(hm_selection_g)
 
 #dplyr::select(-Mouse_ID)
@@ -140,30 +109,9 @@ sapply(lab %>%
          dplyr::select(c(all_of(Gene_lab), "PPIB", "GAPDH")), 
                       function(x) sum(is.na(x)))
          
-```
-
-# Gene normalization 
 
 
-
-For the field samples the missing values in the house-keeping genes are:
-PPIB: 212
-GAPDH: 10
-
-For the lab samples the missing values in the house-keeping genes are:
-PPIB: 1
-GAPDH: 96
-
-Downlad and install the package for Gene normalization
-
-
-Step 1. Normalize to (REF): ∆Cq = Cq (TAR) – Cq (REF)
-Step 2. Exponential expression transform: ∆Cq Expression = 2–∆Cq
-Step 3. Average replicates and calculate standard deviation
-Step 4. Normalize to treatment control
-Step 5. % KD = (1 – ∆∆Cq ) × 100
-
-```{r}
+## --------------------------------------------------------------------------------
 
 
 ####################### field ##########################
@@ -388,10 +336,9 @@ dct_mean <- mean(df$TNF_dct, na.rm = TRUE)
  
  df -> df_field
 
-```
 
-Genes Lab
-```{r}
+
+## --------------------------------------------------------------------------------
  ################################# lab 
  # select first the field samples 
 
@@ -594,45 +541,22 @@ dct_mean <- mean(df_lab$TNF_dct, na.rm = TRUE)
  df_lab <- df_lab %>%
    mutate(TNF_N = 2^ - (TNF_dct - dct_mean)) %>%
    mutate(TNF_N = round(TNF_N, digits = 2))
-```
-
-#now join the data again
-
-# without the housekeeping genes
-
-First clean and remove the non normalizes genes
-```{r}
-#df_lab <- df_lab %>% 
-#  dplyr::select(-c(all_of(Gene_lab), PPIB, contains("_dct")))
-
-# remove ending _N
-#df_lab <- df_lab %>%
-#  rename_with(~str_remove(.x, "_N"))
-
-#df_field <- df_field %>% 
-#  dplyr::select(-c(all_of(Genes_wild), GAPDH, contains("_dct")))
-
-# remove ending _N
-#df_field <- df_field %>%
- # rename_with(~str_remove(.x, "_N"))
 
 
-
-###################### let's try just using DCT
+## --------------------------------------------------------------------------------
 df_lab <- df_lab %>% 
- dplyr::select(-c(all_of(Gene_lab), PPIB, contains("_N")))
+  dplyr::select(-c(all_of(Gene_lab), PPIB, contains("_dct")))
 
-# remove ending _dct
+# remove ending _N
 df_lab <- df_lab %>%
-  rename_with(~str_remove(.x, "_dct"))
+  rename_with(~str_remove(.x, "_N"))
 
 df_field <- df_field %>% 
-  dplyr::select(-c(all_of(Genes_wild), GAPDH, contains("_N")))
+  dplyr::select(-c(all_of(Genes_wild), GAPDH, contains("_dct")))
 
-# remove ending
+# remove ending _N
 df_field <- df_field %>%
-  rename_with(~str_remove(.x, "_dct"))
-
+  rename_with(~str_remove(.x, "_N"))
 
 # add the new genes to the complete data sets 
 lab <- lab %>%
@@ -644,12 +568,9 @@ field <- field %>%
   left_join(df_field, by = "Mouse_ID")
 
 hm_norm <- rbind(lab, field)
-```
 
 
-
-
-```{r}
+## --------------------------------------------------------------------------------
  ##save the imputed data 
-write.csv(hm_norm, "output_data/2.1.norm_MICE_data_set.csv", row.names = FALSE)
-```
+write.csv(hm_norm, "output_data/1.1.norm_MICE_data_set.csv", row.names = FALSE)
+
