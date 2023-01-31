@@ -279,7 +279,7 @@ fviz_pca_biplot(res.pca,
 lab <- lab %>%
   mutate(max_WL = WL_max)
 
-weight_lm <- lm(max_WL ~ pc1 + pc2 + Parasite_challenge, data = lab)
+weight_lm <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = lab)
 summary(weight_lm)
 AIC(weight_lm)
 ```
