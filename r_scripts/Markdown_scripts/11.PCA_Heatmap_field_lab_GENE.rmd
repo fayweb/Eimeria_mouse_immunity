@@ -37,7 +37,7 @@ hm <- read.csv("output_data/2.imputed_MICE_data_set.csv")
 # vectors for selecting
 
 ```{r}
-Gene_field   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+Gene_field   <- c("IFNy", "CXCR3", "IL.6", "IL.13",# "IL.10",
                 "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                 "TICAM1", "TNF") #"IL.12", "IRG6")
@@ -45,7 +45,7 @@ Gene_field   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
 #add a suffix to represent changes in data file
 Gene_field_imp <- paste(Gene_field, "imp", sep = "_")
 
-Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13",# "IL.10",
                 "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
                 "TICAM1", "TNF") # "IL.12", "IRG6")
@@ -88,7 +88,10 @@ field <- field %>%
   dplyr::mutate(MC.Eimeria = as.factor(MC.Eimeria))
 
 genes_mouse <- field %>%
-  dplyr::select(c(Mouse_ID, all_of(Genes_wild))) 
+  dplyr::select(c(Mouse_ID, "IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF")) 
 
 
 genes <- genes_mouse %>%
@@ -115,7 +118,10 @@ lab <- hm %>%
 lab <- unique(lab)
 
 gene_lab <- lab %>%
-  dplyr::select(c(Mouse_ID, all_of(Gene_lab))) %>%
+  dplyr::select(c(Mouse_ID, "IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF")) %>%
   rename_with(~str_remove(., '_imp'))
 
 genes_lab <- unique(gene_lab)

@@ -532,7 +532,7 @@ model_Parasite <- randomForest(current_infection ~.,
                       ntree = 1500) # number of trees
 
 # save the model 
-save(model_Parasite, file =  "r_scripts/models/predict_infecting_parasite.RData")
+save(model_Parasite, file =  "r_scripts/models/predict_infecting_parasite.rds")
 
 print(model_Parasite)
 
@@ -596,6 +596,125 @@ print(conf_matrix_parasite)
 conf_matrix_parasite$table
 
 plt <- as.data.frame(conf_matrix_parasite$table)
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+
+ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="darkturquoise") +
+        labs(x = "Predictions",y = "Reference") 
+
+```
+
+
+
+
+
+############################################################################################
+### Predicing Eimeria MC: splliting into training and testing
+
+```{r }
+
+str(lab$MC.Eimeria)
+
+MC <- lab %>%
+  dplyr::select(c(Mouse_ID, all_of(Gene_lab), MC.Eimeria))
+
+
+
+MC <- MC %>%
+  dplyr::select(-Mouse_ID)
+
+
+# split data into training and test
+set.seed(182) # this will help us reproduce this random assignment
+# in this way we can pick the random numbers
+training.samples <- MC$MC.Eimeria %>%
+  createDataPartition(p = .7, list = FALSE) 
+
+train.data_MC <- MC[training.samples, ] 
+test.data_MC <- MC[-training.samples, ] 
+
+
+```
+
+
+
+### Building the model_MC
+
+```{r }
+
+#train the model
+model_MC <- randomForest(MC.Eimeria ~., 
+                               data = train.data_MC, proximity = TRUE,
+                      ntree = 1500) # number of trees
+
+# save the model 
+save(model_MC, file =  "r_scripts/models/predict_MC.rds")
+
+print(model_MC)
+
+```
+
+
+### Quality checks
+
+
+#### Cross-validation 
+
+MSE: As a brief explanation, mean squared error (MSE) is the average of the 
+summation of the squared difference between the actual output value and the 
+predicted output value. Our goal is to reduce the MSE as much as possible. 
+
+Variance explained: %explained variance is a measure of how well out-of-bag 
+predictions explain the target variance of the training set.
+
+```{r}
+model_MC_cv <- rf.crossValidation(x = model_MC, xdata =  
+                                          train.data_MC, 
+                                    p = 0.10, n = 99, ntree = 501)
+
+model_MC_cv$fit.var.exp
+
+
+# Plot cross validation versus model producers accuracy
+
+
+```
+
+### Testing the model: Predictions
+
+
+```{r }
+
+#The predict() function in R is used to predict the values based on the input 
+# data.
+predictions_MC <- predict(model_MC_cv, test.data_MC )
+
+# assign test.data to a new object, so that we can make changes
+result_MC <- test.data_MC
+#add the new variable of predictions to the result object
+result_MC <- cbind(result_MC, predictions_MC)
+#add the results to a data frame containing test data and the prediction
+result_MC <- cbind(lab[row.names(result_MC), ], predictions_MC)
+```
+
+
+### Visualizing predictions_MC
+
+
+
+```{r }
+
+conf_matrix_MC <- 
+  confusionMatrix(
+    result_MC$predictions_MC,
+    reference = result_MC$MC.Eimeria)
+
+print(conf_matrix_MC)
+
+conf_matrix_MC$table
+
+plt <- as.data.frame(conf_matrix_MC$table)
 plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
 
 ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +

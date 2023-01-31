@@ -126,8 +126,6 @@ set.seed(540)
 #The predict() function in R is used to predict the values based on the input data.
 predictions_field <- predict(weight_loss_predict, genes)
 
-#make the vector positive so that the distributions further down work
-predictions_field <- predictions_field * (-1)
 
 # assign test.data to a new object, so that we can make changes
 result_field <- genes
@@ -137,6 +135,10 @@ result_field <- cbind(result_field, predictions_field)
 
 # add it to the field data 
 Field <- cbind(Field, predictions_field)
+
+Field <- Field %>%
+  dplyr::mutate(predictions_pos = (-1) * predictions_field)
+
 ```
 
 
@@ -202,10 +204,8 @@ Ratios / Percentages are not normally distributed. Weibull is a good distributio
 Alice used weibull for the qpcr data. (paper) 
 
 ```{r}
-Field <- Field %>%
-dplyr::mutate(WL = predictions_field)
 
-x <- Field$WL
+x <- Field$predictions_pos
 
 descdist(data = x, discrete = FALSE)
 descdist(data = x, discrete = FALSE, #data is continuous
@@ -307,21 +307,22 @@ summary(weibull_)
 Field$Sex <- as.factor(Field$Sex)
 
 
-parasiteLoad::getParamBounds("normal", data = Field, response = "WL")
+
+parasiteLoad::getParamBounds("normal", data = Field, response = "predictions_pos")
 
 
-speparam <- c(L1start = 10,
-                     L1LB = 1e-9,
-                     L1UB = 20,
-                     L2start = 10,
-                     L2LB = 1e-9,
-                     L2UB = 20,
+speparam <- c(L1start = -10.510012081,
+                     L1LB = -13.335976577,
+                     L1UB = -4.233544127,
+                     L2start = -10.510012081,
+                     L2LB = -13.335976577,
+                     L2UB = -4.233544127,
                      alphaStart = 0, alphaLB = -5, alphaUB = 5,
                      myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
 
 ##All
 fitWL_Sex <- parasiteLoad::analyse(data = Field,
-                        response = "WL",
+                        response = "predictions_pos",
                         model = "normal",
                         group = "Sex")
 
@@ -329,7 +330,7 @@ fitWL_Sex <- parasiteLoad::analyse(data = Field,
 
 plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
              data = Field,
-             response = "WL",
+             response = "predictions_pos",
              group = "Sex") +
     scale_fill_manual(values = c("blueviolet", "limegreen")) +
   scale_color_manual(values = c("blueviolet", "limegreen")) +
@@ -367,6 +368,8 @@ H3: the mean load can differ both across subspecies and between 2 groups
 
 
 ```{r}
+Field <- Field %>%
+  dplyr::rename(WL = predictions_pos)
 ggplot(data = Field, aes(x = delta_ct_cewe_MminusE, y = WL)) +
   geom_point() +
   stat_smooth(method= "lm") 
@@ -439,5 +442,23 @@ summary(bmi)
 
 confint(bmi)
 
+```
+
+
+
+```{r}
+# load predicting weight loss model
+predict_parasite <- load("r_scripts/models/predict_infecting_parasite.rds")
+predict_mc <- load("r_scripts/models/predict_MC.rds")
+
+set.seed(540)
+
+Field_parasite <- Field %>%
+  dplyr::select(all_of(Genes_wild), eimeriaSpecies) %>%
+  dplyr::filter(!eimeriaSpecies == "NA")
+
+#The predict() function in R is used to predict the values based on the input data.
+
+predictions_parasite <- predict(predict_parasite, Field_parasite)
 ```
 
