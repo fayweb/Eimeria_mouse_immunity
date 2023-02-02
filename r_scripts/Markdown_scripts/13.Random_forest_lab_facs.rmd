@@ -54,7 +54,8 @@ We start with the data from experimental lab infections.
 
 ```{r import_data,  message = FALSE, warnings = FALSE }
 #import data
-hm <- read.csv("output_data/2.imputed_MICE_data_set.csv")
+hm <- read.csv("output_data/1.MICE_cleaned_data.csv")
+hm_genes <- read.csv("output_data/2.imputed_MICE_data_set.csv")
 ```
 
 # vectors for selecting
@@ -115,6 +116,7 @@ lab <- unique(lab)
 facs_mouse <- lab %>%
   dplyr::select(c(Mouse_ID, all_of(Facs_lab)))
 
+facs_mouse <-unique(facs_mouse)
 
 facs <- facs_mouse[, -1]
 
@@ -123,8 +125,6 @@ facs <- facs[,colSums(is.na(facs))<nrow(facs)]
 
 #remove colums with only nas 
 facs <- facs[rowSums(is.na(facs)) != ncol(facs), ]
-
-
 
 #select same rows in the first table
 facs_mouse <- facs_mouse[row.names(facs), ]
@@ -136,21 +136,58 @@ res.pca <- PCA(facs)
 
 # select the same rows from the lab data
 lab <- lab[row.names(facs),]
-M_W <- lab %>%
+
+
+lab <- lab %>%
+  dplyr::select(-c("IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF"))
+
+genes <- hm_genes %>%
+  dplyr::select(c(Mouse_ID, "IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF"))
+
+#remove rows with only nas
+genes <- genes[,colSums(is.na(genes))<nrow(genes)]
+
+#remove colums with only nas 
+genes <- genes[rowSums(is.na(genes)) != ncol(genes), ]
+
+
+
+lab <- lab %>% 
+  left_join(genes, by = "Mouse_ID")
+
+lab <- lab %>%
+  drop_na(IFNy)
+
+immune <- lab %>% 
+  dplyr::select(c(Mouse_ID, WL_max, "IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10", 
+                  "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
+                  "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
+                  "TICAM1", "TNF","CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
+                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
+                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8"))
+M_W <- immune %>%
   dplyr::select(c(Mouse_ID, WL_max)) 
-facs <- cbind(M_W, facs)
-facs <- unique(facs) %>%
+
+
+immune <- immune %>%
   dplyr::select(-Mouse_ID)
+
 # split data into training and test
 set.seed(123) # this will help us reproduce this random assignment
 # in this way we can pick the random numbers
-training.samples <- facs$WL_max%>%
+training.samples <- immune$WL_max%>%
   createDataPartition(p = .7, 
                       list = FALSE) 
 # this is the partiicition! In this case 0.7 = training data and 0.3 = testing
 # we don't want to get a list in return
-train.data <- facs[training.samples, ] 
-test.data <- facs[-training.samples, ] 
+train.data <- immune[training.samples, ] 
+test.data <- immune[-training.samples, ] 
 ```
 
 
@@ -163,7 +200,7 @@ weight_loss_predict <- randomForest(WL_max ~., data = train.data,
                                     proximity = TRUE, ntree = 1000) 
 # ntree = number of trees     
 # save the model 
-save(weight_loss_predict, file =  "r_scripts/models/predict_weight_loss.RData")
+save(weight_loss_predict, file =  "r_scripts/models/facs_predict_weight_loss.RData")
 print(weight_loss_predict)
 ```
 

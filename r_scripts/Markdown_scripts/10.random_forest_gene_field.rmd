@@ -462,3 +462,65 @@ Field_parasite <- Field %>%
 predictions_parasite <- predict(predict_parasite, Field_parasite)
 ```
 
+
+```{r}
+Field <- Field %>%
+  mutate(tolerance = WL / delta_ct_cewe_MminusE)
+
+Field$tolerance
+
+Field_tol <- Field %>%
+  filter(!is.na(tolerance))
+
+Field_tol <- Field_tol[-37, ]
+
+
+hist(Field_tol$tolerance)
+
+parasiteLoad::getParamBounds("normal", data = Field_tol, response = "tolerance")
+
+
+speparam <- c(L1start = 10,
+                     L1LB = 1e-9,
+                     L1UB = 20,
+                     L2start = 10,
+                     L2LB = 1e-9,
+                     L2UB = 20,
+                     alphaStart = 0, alphaLB = -5, alphaUB = 5,
+                     myshapeStart = 1, myshapeLB = 1e-9, myshapeUB = 5)
+
+##All
+fitWL_Sex <- parasiteLoad::analyse(data = Field_tol,
+                        response = "tolerance",
+                        model = "normal",
+                        group = "Sex")
+
+
+
+plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
+             data = Field_tol,
+             response = "tolerance",
+             group = "Sex") +
+    scale_fill_manual(values = c("blueviolet", "limegreen")) +
+  scale_color_manual(values = c("blueviolet", "limegreen")) +
+  theme_bw() 
+
+# Create HI bar
+HIgradientBar <- ggplot(data.frame(hi = seq(0,1,0.0001)),
+                        aes(x=hi, y=1, fill = hi)) +
+  geom_tile() +
+  theme_void() +
+  scale_fill_gradient(low = "blue", high = "red")  + 
+  scale_x_continuous(expand=c(.01,0)) + 
+  scale_y_continuous(expand=c(0,0)) +
+  theme(legend.position = 'none')
+
+plot_grid(plot_WL_Sex, 
+          HIgradientBar,
+          nrow = 2,
+          align = "v",
+          axis = "tlr",
+          rel_heights = c(13, 1))
+plot_WL_Sex
+```
+
