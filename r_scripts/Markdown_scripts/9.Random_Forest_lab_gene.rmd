@@ -688,14 +688,14 @@ model_MC_cv$fit.var.exp
 
 #The predict() function in R is used to predict the values based on the input 
 # data.
-predictions_MC <- predict(model_MC_cv, test.data_MC )
+#predictions_MC <- predict(model_MC_cv, test.data_MC)
 
 # assign test.data to a new object, so that we can make changes
-result_MC <- test.data_MC
+#result_MC <- test.data_MC
 #add the new variable of predictions to the result object
-result_MC <- cbind(result_MC, predictions_MC)
+#result_MC <- cbind(result_MC, predictions_MC)
 #add the results to a data frame containing test data and the prediction
-result_MC <- cbind(lab[row.names(result_MC), ], predictions_MC)
+#result_MC <- cbind(lab[row.names(result_MC), ], predictions_MC)
 ```
 
 
@@ -705,22 +705,22 @@ result_MC <- cbind(lab[row.names(result_MC), ], predictions_MC)
 
 ```{r }
 
-conf_matrix_MC <- 
-  confusionMatrix(
-    result_MC$predictions_MC,
-    reference = result_MC$MC.Eimeria)
+#conf_matrix_MC <- 
+ # confusionMatrix(
+  #  result_MC$predictions_MC,
+   # reference = result_MC$MC.Eimeria)
 
-print(conf_matrix_MC)
+#print(conf_matrix_MC)
 
-conf_matrix_MC$table
+#conf_matrix_MC$table
 
-plt <- as.data.frame(conf_matrix_MC$table)
-plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
+#plt <- as.data.frame(conf_matrix_MC$table)
+#plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
 
-ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
-        geom_tile() + geom_text(aes(label=Freq)) +
-        scale_fill_gradient(low="white", high="darkturquoise") +
-        labs(x = "Predictions",y = "Reference") 
+#ggplot(plt, aes(x = Prediction, y =  Reference, fill= Freq)) +
+ #       geom_tile() + geom_text(aes(label=Freq)) +
+  #      scale_fill_gradient(low="white", high="darkturquoise") +
+   #     labs(x = "Predictions",y = "Reference") 
 
 ```
 

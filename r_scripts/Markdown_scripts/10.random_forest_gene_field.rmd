@@ -326,7 +326,7 @@ fitWL_Sex <- parasiteLoad::analyse(data = Field,
                         model = "normal",
                         group = "Sex")
 
-
+Field$predictions_field
 
 plot_WL_Sex<- bananaPlot(mod = fitWL_Sex$H3,
              data = Field,
@@ -430,7 +430,7 @@ Field <- Field %>%
   dplyr::mutate(BMI = Body_Weight / (Body_Length)) #^2) which is the correct
 # way to calculatebmi?
 
-ggplot(data = Field, aes(x = BMI, y = WL)) +
+ggplot(data = Field, aes(x = BMI, y = predictions_field)) +
   geom_point() +
   stat_smooth(method= "lm") 
 
@@ -459,7 +459,7 @@ Field_parasite <- Field %>%
 
 #The predict() function in R is used to predict the values based on the input data.
 
-predictions_parasite <- predict(predict_parasite, Field_parasite)
+#predictions_parasite <- predict(predict_parasite, Field_parasite)
 ```
 
 
