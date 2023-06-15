@@ -48,14 +48,15 @@ facs_field <- c("CD4", "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
 ```{r}
 
 ### Select the measurements from the mesenterial lymphnodes
-### Prepare the annotation data frame for the heatmap
+### Prepare the annotation data frame for the heatma
+
 annotation_df <- MICE %>% 
   filter(origin == "Lab") %>% # filter the lab data 
   filter(Position == "mLN") %>%
   filter(infection == "challenge") %>%
   drop_na("CD4") %>%
   dplyr::select(c("Mouse_ID", "Parasite_challenge", "infection_history",
-                    "mouse_strain", "max_WL")) 
+                    "mouse_strain", "WL_max")) 
   ### Drop the columns that contain nas in the column CD4 of 
 #the facs columns
   

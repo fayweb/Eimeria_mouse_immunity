@@ -16,6 +16,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Run before imputation!
+
 
 # Aim: 
 
@@ -42,6 +44,20 @@ for the laboratory samples 80 % of GAPDH is missing.
 I would have liked to use the geometric mean of two housekeeping genes. 
 In this case I am limited to use one for each data set. 
 
+
+Immune Gene Expression Normalization
+
+Gene expression data obtained from our quantitative PCR (qPCR) experiments were normalized and processed through a series of steps to ensure validity and reliability of our findings.
+
+First, we normalized our target gene (TAR) expression levels to a reference gene (REF), a process known as delta cycle threshold (ΔCq) calculation. This was done to control for variations between samples that may have arisen due to differences in PCR efficiency or loading discrepancies (refer to a paper on your reference gene selection and the ΔCq method, e.g., Vandesompele et al., 2002).
+
+After normalization to the reference gene, we then transformed the ΔCq values using an exponential function (2^(-ΔCq)), a process known as exponential expression transform. This transformation allowed us to convert the values into relative expression levels, providing a clear representation of gene expression fold changes (Livak and Schmittgen, 2001).
+
+We then averaged the technical replicates for each sample and calculated the standard deviation (again, reference a paper explaining why this is a standard practice, possibly a statistical paper or a similar study in your field).
+
+Next, we normalized the relative expression values to our treatment control group. The specific details of this normalization step varied depending on the design of our experiments and the specific comparisons we wished to make (reference a paper that describes normalization in your experimental context).
+
+Finally, we calculated the percentage of knockdown (% KD) using the relative expression values (ΔΔCq). The % KD quantifies the extent of gene knockdown or inhibition (refer to a paper explaining the concept and calculation of % KD).
 
 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3489534/#:~:text=We%20suggest%20that%20normalization%20be,imputation%2C%20significance%20analysis%20and%20visualization.
 In publication:
