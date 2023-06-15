@@ -1,0 +1,37 @@
+---
+title: "Disease_mapping"
+author: "Fay"
+date: '2023-03-01'
+output: html_document
+output:
+  pdf_document:
+    keep_md: yes 
+    fig_width: 12
+    fig_height: 8
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import libraries
+```{r, warnings = FALSE, message = FALSE}
+library(R.matlab)
+```
+
+
+# Load data 
+```{r}
+data <- read.csv("output_data/2.1.norm_MICE_data_set.csv")
+
+
+x <- read.delim("https://raw.githubusercontent.com/bytorres/PlosBio2015/master/Data.txt")
+
+y <- readMat("https://github.com/bytorres/PlosBio2015/blob/master/Area.mat")
+
+```
+
+
+
