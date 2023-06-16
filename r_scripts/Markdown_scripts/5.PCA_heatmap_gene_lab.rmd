@@ -276,10 +276,10 @@ fviz_pca_biplot(res.pca,
 ################## Linear models: 
 
 ```{r lm_weight_pc, echo = FALSE}
-lab <- lab %>%
-  mutate(max_WL = WL_max)
+#lab <- lab %>%
+ # mutate(WL_max = WL_max)
 
-weight_lm <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = lab)
+weight_lm <- lm(WL_max ~ pc1 + pc2 + hybrid_status, data = lab)
 summary(weight_lm)
 AIC(weight_lm)
 ```
@@ -289,7 +289,7 @@ AIC(weight_lm)
 
 ```{r lm_pc_parasite_hybrid, echo = FALSE}
 
-weight_lm2 <- lm(max_WL ~ pc1 + pc2, #+ Parasite_challenge + hybrid_status, 
+weight_lm2 <- lm(WL_max ~ pc1 + pc2, #+ Parasite_challenge + hybrid_status, 
                  data = lab)
 summary(weight_lm2)
 AIC(weight_lm2)
@@ -308,10 +308,10 @@ Another way is to compare the AIC. (function : step)
 ```{r}
 
 
-weight_lm3 <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = lab)
-weight_no_pc1 <- lm(max_WL ~ pc2 + hybrid_status, data = lab)
-weight_no_pc2 <- lm(max_WL ~ pc1  + hybrid_status, data = lab)
-weight_no_hybrid <- lm(max_WL ~ pc1 + pc2, data = lab)
+weight_lm3 <- lm(WL_max ~ pc1 + pc2 + hybrid_status, data = lab)
+weight_no_pc1 <- lm(WL_max ~ pc2 + hybrid_status, data = lab)
+weight_no_pc2 <- lm(WL_max ~ pc1  + hybrid_status, data = lab)
+weight_no_hybrid <- lm(WL_max ~ pc1 + pc2, data = lab)
 lrtest(weight_lm3, weight_no_pc1)
 lrtest(weight_lm3, weight_no_pc2)
 lrtest(weight_lm3, weight_no_hybrid)
@@ -319,7 +319,7 @@ lrtest(weight_lm3, weight_no_hybrid)
 
 
 ```{r lm_pc_hybrid, echo = FALSE}
-weight_lm3 <- lm(max_WL ~ pc1 + pc2 + hybrid_status, data = lab)
+weight_lm3 <- lm(WL_max ~ pc1 + pc2 + hybrid_status, data = lab)
 summary(weight_lm3)
 AIC(weight_lm3)
 ```
@@ -327,7 +327,7 @@ AIC(weight_lm3)
 
 
 ```{r lm_inf_histoy, echo=FALSE}
-weight_lm4 <- lm(max_WL ~ pc1 + pc2 + infection_history, data = lab)
+weight_lm4 <- lm(WL_max ~ pc1 + pc2 + infection_history, data = lab)
 summary(weight_lm4)
 AIC(weight_lm4)
 
@@ -335,7 +335,7 @@ AIC(weight_lm4)
 
 
 ```{r lm_pc, echo = FALSE}
-weight_lm_exp_only <- lm(max_WL ~ pc1 + pc2, data = lab)
+weight_lm_exp_only <- lm(WL_max ~ pc1 + pc2, data = lab)
 summary(weight_lm_exp_only)
 AIC(weight_lm, weight_lm_exp_only)
 ```
@@ -368,7 +368,7 @@ AIC(weight_lm, weight_lm_exp_only)
   
 #Prepare the annotation data frame
 annotation_df <- as_tibble(lab) %>%
-    dplyr::select(c("Mouse_ID",  "max_WL", "Parasite_challenge")) 
+    dplyr::select(c("Mouse_ID",  "WL_max", "Parasite_challenge")) 
   
 annotation_df <- unique(annotation_df) 
 
