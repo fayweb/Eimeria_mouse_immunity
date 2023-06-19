@@ -87,27 +87,20 @@ fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 70))
              Expression in Laboratory-Controlled Eimeria Infections"
              
 Part of the first figure in the publication in colour blind friendly colours.
- width = 10, height = 6, units = "cm", res = 1000
-```{r PCA_gene_lab_fig_1, dpi = 500 }
-fviz_pca_var(res.pca, col.var = "cos2",
-             gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"),
-             repel = TRUE, title = "")
-```
-```{r 2, dpi = 200 }
-fviz_pca_var(res.pca, col.var = "cos2",
-             gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"),
-             repel = TRUE, title = "")
-```
-```{r 3,  res = 1000}
+
+Description: In this Principal Component Analysis plot, each point represents an individual mouse's immune response to a controlled Eimeria spp. infection, as determined by the expression levels of 19 key immune genes. The horizontal (PC1) and vertical (PC2) axes represent the two principal components that account for the largest possible variance in the gene expression data. In essence, these axes reveal the primary patterns of variation in immune gene expression across our samples.
+ 
+```{r PCA_gene_lab_fig_1_1, resolution = 1000}
 fviz_pca_var(res.pca, col.var = "cos2",
              gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"),
              repel = TRUE, title = "")
 ```
 
-```{r individual_plot_pca }
+
+```{r individual_plot_pca, resolution = 1000 }
 fviz_pca_ind(res.pca, col.ind = "cos2", 
                   gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"), 
-                  repel = TRUE)
+                  repel = TRUE, title = "")
 ```
 
 
@@ -117,27 +110,11 @@ fviz_pca_ind(res.pca, col.ind = "cos2",
 dimdesc(res.pca)
 ```
 
-Caution: When imputing data, the percentages of inertia associated with the first dimensions will be overestimated.
 
-Another problem: the imputed data are, when the pca is performed considered like real observations.
-But they are estimations!! 
-
-Visualizing uncertainty due to issing data:
-
---> mulrimple imputation: generate several plausible values for each missing data point
-
-We here visualize the variability, that is uncertainty on the plane defined by two pca axes. 
-
-```{r, echo = FALSE, include = FALSE}
-str(res.pca)
-```
-
+Adding the PC Eigenvectors to the data set. 
 
 
 ```{r, echo = FALSE}
-
- #add an ending to the imputed columns
-#colnames(gene) <- paste(colnames(gene[, 2:21]), "imp", sep = "_")
 
 mouse_id <- gene %>%
   dplyr::select(Mouse_ID)
@@ -171,31 +148,9 @@ circ <- circleFun(c(0,0),2,npoints = 500)
 ```
 
 
-Biplot of the imputed gene pca
 
 
-```{r biplot_pca_genes}
-
-#Now we can make our initial plot of the PCA.
-lab %>%
-  ggplot(aes(x = pc1, y = pc2, 
-             color = Parasite_challenge, 
-             shape = Parasite_challenge)) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2) +
-  geom_point(alpha = 0.8) +
-  stat_ellipse(geom="polygon", 
-               aes(fill = challenge_infection), 
-               alpha = 0.2, show.legend = FALSE,
-               level = 0.95) +
-  theme_minimal() +
-  theme(panel.grid = element_blank(), 
-        panel.border = element_rect(fill= "transparent")) 
-  
-```
-
-
-```{r correlations_genes_dimensions, echo = FALSE}
+```{r correlations_genes_dimensions, resolution = 1000}
 #It’s possible to use the function corrplot() [corrplot package] to highlight 
 #the most contributing variables for each dimension:
 var.contrib <- res.pca$var$contrib
@@ -204,12 +159,30 @@ corrplot(var.contrib, is.corr=FALSE)
 
 The function fviz_contrib() [factoextra package] can be used to draw a bar plot of variable contributions. If your data contains many variables, you can decide to show only the top contributing variables. The R code below shows the top 10 variables contributing to the principal components:
 
+### Contributions to the first dimension
 
-```{r contr_var_pc_genes, echo = FALSE}
+```{r contr_var_pc_genes_dimension1_figure_1_2, resolution = 1000}
 # Contributions of variables to PC1
-fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 18, 
+             title = "Contribution of immune genes to the first dimension of the PCA")
 
+# res.pca$var$contrib
 ```
+Title: "Contribution of Immune Genes to the First Principal Component of Gene Expression Analysis"
+
+Description:
+
+"The plot represents the contribution of each of the 19 immune genes to the first principal component (PC1) of a principal component analysis based on gene expression data derived from controlled infection experiments in laboratory mice.
+
+Among these immune genes, 'CXCR3' and 'CASP1' emerged as the highest contributors to PC1, with contributions of approximately 8.56 and 8.60 respectively. These genes might play crucial roles in discriminating between the different infection statuses. Their high contribution to the first principal component suggests that their expression is a significant source of variation in our dataset and potentially correlated with the infection types under study.
+
+Other immune genes like 'IFNy', 'IL1RN', 'IRGM1', and 'MUC2' also showed significant contributions to PC1, with values ranging from approximately 6.12 to 7.89. The strong representation of these genes on PC1 implies that their expression varies significantly across the mice and infection types, and they might play a role in the different immune responses.
+
+In contrast, some genes, including 'IL.13' and 'TICAM1', had relatively low contributions to PC1, approximately 0.04 and 0.92 respectively, suggesting that these genes may not vary as much across our samples, at least not in a way that corresponds to the main axis of variation represented by PC1.
+
+It is important to note that the high or low contribution to PC1 doesn't necessarily imply biological importance or irrelevance of a given gene in response to infection. The PCA is a statistical tool that identifies patterns in the dataset, and the contributions are based on the variance of gene expression.
+
+Further investigation is required to validate these findings and understand the biological implications, preferably through experimental validation and correlation with phenotypic outcomes."
 
 The genes CASP1, CXCR3, MUC2, and IRGM1 are involved in various immune responses and have different roles:
 
@@ -225,10 +198,30 @@ The common thread connecting these genes and immune responses is their involveme
 
 Regarding damaging processes to the host, excessive or dysregulated activation of immune responses can lead to tissue damage and inflammation. Inflammatory conditions associated with uncontrolled immune responses can have detrimental effects on the host. For example, chronic inflammation can contribute to tissue destruction, organ damage, and autoimmune diseases. Balancing the immune response is essential to prevent excessive damage while effectively combating pathogens or maintaining tissue homeostasis.
 
-```{r}
+
+### Contributions to the second dimension
+
+```{r contr_var_pc_genes_dimension2_figure_1_3, resolution = 1000}
 # Contributions of variables to PC2
-fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 18, 
+             title = "Contribution of immune genes to the second dimension of the PCA")
 ```
+Title: "Contribution of Immune Genes to the Second Principal Component of Gene Expression Analysis"
+
+Description:
+
+"The plot represents the contribution of each of the 19 immune genes to the second principal component (PC2) of a principal component analysis based on gene expression data derived from controlled infection experiments in laboratory mice.
+
+The gene 'IL.13' shows the highest contribution to PC2, with a value of approximately 11.56. This significant contribution suggests that the expression level of this gene varies in a way that is significantly related to the second largest source of variation in our data set and could be strongly correlated with another aspect of the infection types that is different from what PC1 is capturing.
+
+The gene 'IDO1' also exhibits a considerable contribution to PC2, with a value of around 15.21. The 'TICAM1' gene, on the other hand, shows a lower contribution to PC2, with a value of approximately 1.26, indicating that its variance might be less related to the second dimension of variation.
+
+Notably, 'CXCR3' and 'CASP1', which were the highest contributors to PC1, show significantly lower contributions to PC2 (0.55 and 0.89 respectively), suggesting that the variations in their expression are less aligned with the axis represented by PC2.
+
+It's essential to remember that these values represent statistical correlations and not necessarily biological significance. The actual biological interpretation of these findings will require further investigation, possibly involving a correlation with phenotypic outcomes or functional studies of these genes."
+
+
+
 
 In the context of intestinal parasites, the involvement of IDO1, TICAM1, SOCS1, and Interleukin 13 (IL-13) can vary depending on the specific parasite and the host immune response. Here is some information regarding their roles in the context of intestinal parasites:
 
@@ -264,17 +257,6 @@ In this case, the expected average contribution (cutoff) is calculated as follow
 
 
 
-```{r pca_contribution_genes, echo = FALSE}
-
-#The most important (or, contributing) variables can be highlighted on the 
-#correlation plot as follow:
-fviz_pca_var(res.pca, col.var = "contrib",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
-             )
-```
-
-
-
 To visualize the contribution of individuals to the first two principal components:
 
 ```{r contr_individuals_genes, echo = FALSE}
@@ -284,7 +266,16 @@ fviz_contrib(res.pca, choice = "ind", axes = 1:2)
 
 PCA + Biplot combination
 
-```{r pca_biplot_genes, echo = FALSE}
+Figure description: "This PCA biplot presents a comprehensive view of our dataset, incorporating both the samples' positioning (mice) and variable contributions (immune gene expression). Each point represents an individual mouse categorized by infection status: Eimeria falciformis infection, Eimeria ferrisi infection, and uninfected. The two primary axes, PC1 and PC2, encapsulate the greatest variance in immune response as dictated by the measured immune gene expressions.
+
+Vectors, or arrows, represent the 19 key immune genes analyzed. The direction and length of each arrow indicate how each gene contributes to the two principal components. The acute angle between the arrows corresponds to the correlation between the genes: a small angle indicates a strong positive correlation, a large angle suggests a weak correlation, and an orthogonal angle represents no correlation.
+
+Observing the cluster patterns of the different infection statuses, we notice mice infected with Eimeria falciformis aggregate towards one section of the biplot, and similarly for the mice infected with Eimeria ferrisi and the uninfected mice. This clustering illustrates the distinct expression patterns of immune genes under the three conditions.
+
+Importantly, the proximity of each group to the various gene vectors provides an initial indication of which genes may be driving these distinct patterns. For instance, if mice infected with Eimeria falciformis are near vectors corresponding to certain immune genes, this suggests these genes may be particularly upregulated in response to Eimeria falciformis infection, and so on for each group.
+
+Overall, the biplot provides an integrative view of the immune responses in the European house mouse under different infection statuses, offering key insights into the genes potentially pivotal in mediating these responses."
+```{r pca_biplot_genes_infecting_parasite_figure_1_4, resolution = 1000}
 #select same rows in the first table
 lab <- lab[row.names(genes), ]
 
@@ -292,7 +283,8 @@ fviz_pca_biplot(res.pca,
                 col.ind = lab$Parasite_challenge, palette = "jco", 
                 addEllipses = TRUE, label = "var",
                 col.var = "black", repel = TRUE,
-                legend.title = "Parasite in the challenge infection") 
+                legend.title = "Infection groups",
+                title = "") 
 
 ```
  In the following example, we want to color both individuals and variables by groups. The trick is to use pointshape = 21 for individual points. This particular point shape can be filled by a color using the argument fill.ind. The border line color of individual points is set to “black” using col.ind. To color variable by groups, the argument col.var will be used.
@@ -301,35 +293,75 @@ fviz_pca_biplot(res.pca,
 
 
 
-################## Linear models: 
+################## Linear models: Predicting weight loss with the PCA eigenvectors
 
-```{r , echo = FALSE}
+Are the pc1 and pc2 components relevant in predicting the maximum weight loss per
+mouse? 
 
 
-weight_lm <- lm(WL_max ~ pc1 + pc2, data = lab)
-summary(weight_lm)
-AIC(weight_lm)
+```{r Linear_model_1, echo = FALSE}
+# predicting weight loss with the pc1 and pc2
+model_1_pc1_pc2 <- lm(WL_max ~ pc1 + pc2, data = lab)
+summary(model_1_pc1_pc2)
+AIC(model_1_pc1_pc2)
 ```
 
-```{r lm_weight_pc, echo = FALSE}
-#lab <- lab %>%
- # mutate(WL_max = WL_max)
+Our linear regression model aimed to predict maximum weight loss (WL_max) in laboratory mice based on the first two principal components of immune gene expression (pc1 and pc2). The model accounted for approximately 27.6% of the variability in weight loss (Multiple R-squared = 0.276), with an adjusted R-squared of 0.265. The adjusted R-squared considers the number of predictors in the model, offering a more conservative estimate of the model's explanatory power.
 
-weight_lm <- lm(WL_max ~ pc1 + pc2 + hybrid_status, data = lab)
-summary(weight_lm)
-AIC(weight_lm)
+The F-statistic is 25.16 with a very low p-value (5.538e-10), implying that at least one of the predictors is significantly related to the outcome variable.
+
+Specifically, both pc1 and pc2 are significantly related to the outcome variable (WL_max). For pc1, an increase of 1 unit is associated with an average increase of 0.7126 units in WL_max, with a standard error of 0.1857 (t = 3.838, p = 0.000191). For pc2, an increase of 1 unit is associated with an average decrease of 2.3593 units in WL_max, indicating a negative relationship between pc2 and weight loss (standard error = 0.3955, t = -5.965, p = 2.11e-08).
+
+The residual standard error of 6.79 suggests there's some variation in weight loss that our model doesn't explain, indicating potential room for model improvement. The intercept term (-9.6962) represents the predicted weight loss when pc1 and pc2 are both zero, though this may not have a meaningful interpretation in the context of this study.
+
+
+```{r linear_model_2, echo = FALSE}
+
+model_2_pc1_pc2_challenge <- lm(WL_max ~ pc1 + pc2 + Parasite_challenge, data = lab)
+summary(model_2_pc1_pc2_challenge)
+AIC(model_2_pc1_pc2_challenge)
 ```
 
+In the second linear regression model, we expanded our predictor set to include the first two principal components of immune gene expression (pc1 and pc2) and the experimental infection group (Parasite_challenge). This model had a better fit to our data, explaining approximately 40.36% of the variability in maximum weight loss (WL_max) in laboratory mice (Multiple R-squared = 0.4036), with an adjusted R-squared of 0.3853.
+
+The F-statistic of this model is 22, and the corresponding p-value (6.967e-14) is very small, providing strong evidence that at least one of the predictors is significantly related to the outcome variable.
+
+Looking at individual predictors:
+
+For pc1, an increase of 1 unit is associated with an average increase of 0.4024 units in WL_max, with a standard error of 0.1797 (t = 2.239, p = 0.0269).
+
+For pc2, an increase of 1 unit is associated with an average decrease of 2.0155 units in WL_max, indicating a negative relationship between pc2 and weight loss (standard error = 0.3793, t = -5.314, p = 4.53e-07).
+
+Compared to the baseline category of Parasite_challenge (E_falciformis), mice in the E_ferrisi group had an average increase of 6.7836 units in WL_max (standard error = 1.4954, t = 4.536, p = 1.29e-05), and those in the uninfected group had an average increase of 7.7796 units (standard error = 1.5501, t = 5.019, p = 1.67e-06).
+
+The residual standard error of this model is 6.21, showing an improvement over the first model. This suggests the inclusion of Parasite_challenge as a predictor helps account for more variation in the outcome. The intercept term (-15.4210) represents the predicted weight loss when all predictors are zero (which may not be meaningful in this context).
+
+Lastly, the Akaike Information Criterion (AIC) of this model is 883.0803. The AIC is a measure of the relative quality of statistical models for a given dataset; lower AIC values indicate a better-fitting model. Thus, this model would be preferred over any other models with a higher AIC such as the model before.
 
 
+```{r linear_model_3, echo = FALSE}
 
-```{r lm_pc_parasite_hybrid, echo = FALSE}
-
-weight_lm2 <- lm(WL_max ~ pc1 + pc2 + Parasite_challenge + hybrid_status, 
+model_3_Parasite_challenge_hybrid_status <- lm(WL_max ~ pc1 + pc2 + hybrid_status, 
                  data = lab)
-summary(weight_lm2)
-AIC(weight_lm2)
+summary(model_3_Parasite_challenge_hybrid_status)
+AIC(model_3_Parasite_challenge_hybrid_status)
 ```
+
+In this third model, the predictors include the first two principal components of immune gene expression (pc1 and pc2) and the hybrid_status, which indicates the type of hybrid mouse. The model explains approximately 31.92% of the variability in maximum weight loss (WL_max) in laboratory mice (Multiple R-squared = 0.3192), with an adjusted R-squared of 0.2817.
+
+The F-statistic of this model is 8.507, and the corresponding p-value (1.611e-08) is very small, providing strong evidence that at least one of the predictors is significantly related to the outcome variable.
+
+Examining individual predictors:
+
+For pc1, an increase of 1 unit is associated with an average increase of 0.5505 units in WL_max, with a standard error of 0.2407 (t = 2.287, p = 0.0238).
+
+For pc2, an increase of 1 unit is associated with an average decrease of 2.0370 units in WL_max, indicating a negative relationship between pc2 and weight loss (standard error = 0.4910, t = -4.149, p = 6.07e-05).
+
+The hybrid_status categories are compared against the baseline (presumably "F0 M. m. domesticus"). The "F0 M. m. musculus" group had a lower average weight loss by 3.2572 units (standard error = 1.5805, t = -2.061, p = 0.0414). The remaining hybrid groups did not exhibit a statistically significant difference from the baseline group.
+
+The residual standard error of this model is 6.713, and the intercept term (-8.5522) represents the predicted weight loss when all predictors are zero (which may not be meaningful in this context).
+
+Finally, the Akaike Information Criterion (AIC) of this model is 906.9537. The AIC is a measure of the relative quality of statistical models for a given dataset. Lower AIC values indicate a better-fitting model. However, in this case, the AIC is higher than the previous model, suggesting that the second model (including pc1, pc2, and Parasite_challenge) might provide a better fit to the data.
 
 
 Try instead: 
@@ -341,44 +373,147 @@ In this way you compare each model, with the different variables usesd to predic
 
 Another way is to compare the AIC. (function : step)
 
-```{r}
+```{r LLR_test}
+# Compare
+llr_test <- anova(model_1_pc1_pc2, model_2_pc1_pc2_challenge)
+print(llr_test)
+```
 
+"In order to assess the predictive capacity of principal component scores (pc1 and pc2) and parasite challenge group on maximum weight loss (WL_max), two linear regression models were compared. The first model only included the principal component scores (pc1 and pc2), while the second model additionally accounted for the effect of the parasite challenge group.
 
-weight_lm3 <- lm(WL_max ~ pc1 + pc2 + hybrid_status, data = lab)
-weight_no_pc1 <- lm(WL_max ~ pc2 + hybrid_status, data = lab)
-weight_no_pc2 <- lm(WL_max ~ pc1  + hybrid_status, data = lab)
-weight_no_hybrid <- lm(WL_max ~ pc1 + pc2, data = lab)
-lrtest(weight_lm3, weight_no_pc1)
-lrtest(weight_lm3, weight_no_pc2)
+A significant improvement in the prediction of maximum weight loss was observed when the parasite challenge group was included in the model (F(2, 130) = 13.914, p < 0.00001). This suggests that the parasite challenge group has a significant effect on the maximum weight loss and improves the predictive power of the model beyond that provided by the principal component scores alone.
+
+Consequently, the second model (WL_max ~ pc1 + pc2 + Parasite_challenge) demonstrated superior explanatory power for maximum weight loss during infection experiments compared to the first model (WL_max ~ pc1 + pc2)."
+
+```{r Likelihood_ratio_test}
+# model_2_pc1_pc2_challenge <- lm(WL_max ~ pc1 + pc2 + Parasite_challenge, data = lab)
+
+weight_no_pc1 <- lm(WL_max ~ pc2 + Parasite_challenge, data = lab)
+weight_no_pc2 <- lm(WL_max ~ pc1  + Parasite_challenge, data = lab)
+weight_no_Parasite_challenge <- lm(WL_max ~ pc1 + pc2, data = lab)
+lrtest(model_2_pc1_pc2_challenge, weight_no_pc1)
+lrtest(model_2_pc1_pc2_challenge, weight_no_pc2)
+lrtest(model_2_pc1_pc2_challenge, weight_no_Parasite_challenge)
 lrtest(weight_no_pc1, weight_no_pc2)
-lrtest(weight_lm3, weight_no_hybrid)
-```
-
-
-```{r lm_pc_hybrid, echo = FALSE}
-weight_lm3 <- lm(WL_max ~ pc1 + pc2 + hybrid_status, data = lab)
-summary(weight_lm3)
-AIC(weight_lm3)
-```
-
-
-
-```{r lm_inf_histoy, echo=FALSE}
-weight_lm4 <- lm(WL_max ~ pc1 + pc2 + infection_history, data = lab)
-summary(weight_lm4)
-AIC(weight_lm4)
 
 ```
+"To investigate the importance of principal component scores (pc1 and pc2) and parasite challenge group in predicting maximum weight loss (WL_max) in mice during infection experiments, we performed likelihood ratio tests comparing different linear regression models.
+
+The first comparison was between a model with both principal component scores and parasite challenge group (WL_max ~ pc1 + pc2 + Parasite_challenge) and a model excluding pc1 (WL_max ~ pc2 + Parasite_challenge). The results indicated that the inclusion of pc1 significantly improved model fit (deltax²(1) = 5.108, p = 0.0238).
+
+The second comparison was between the model with both principal component scores and parasite challenge group (WL_max ~ pc1 + pc2 + Parasite_challenge) and a model excluding pc2 (WL_max ~ pc1 + Parasite_challenge). The model with pc2 was significantly better at explaining the variation in maximum weight loss (deltax²(1) = 26.535, p < 0.0001).
+
+The third comparison was between the model with both principal component scores and parasite challenge group (WL_max ~ pc1 + pc2 + Parasite_challenge) and a model excluding the parasite challenge group (WL_max ~ pc1 + pc2). The inclusion of the parasite challenge group significantly improved the model fit (deltax²(2) = 26.187, p < 0.0001).
+
+The final comparison was between a model with pc2 and parasite challenge group (WL_max ~ pc2 + Parasite_challenge) and a model with pc1 and parasite challenge group (WL_max ~ pc1 + Parasite_challenge). The model with pc2 was significantly better than the model with pc1 in explaining the variation in maximum weight loss (deltax²(0) = 21.427, p < 0.0001).
+
+These results suggest that both principal component scores and the parasite challenge group contribute significantly to the predictive capacity of the model for maximum weight loss in mice during infection experiments. The full model including both principal component scores and the parasite challenge group (WL_max ~ pc1 + pc2 + Parasite_challenge) provides the best fit to the data."
+
+## Visualizing the regression models
+### scatter plot with regression lines 
 
 
-```{r lm_pc, echo = FALSE}
-weight_lm_exp_only <- lm(WL_max ~ pc1 + pc2, data = lab)
-summary(weight_lm_exp_only)
-AIC(weight_lm, weight_lm_exp_only)
+```{r scatter_plot_pc1_WL_linear_model, resolution = 1000}
+# for the model with pc1 and pc2
+ggplot(lab, aes(x = pc1, y = WL_max)) +
+  geom_point(aes(color = Parasite_challenge)) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  labs(x = "PC1", y = "Maximum Weight Loss") +
+  theme_bw()
+
+
 ```
 
+```{r scatter_plot_pc2_WL_linear_model, resolution = 1000}
+# for the model with pc2 and Parasite_challenge
+ggplot(lab, aes(x = pc2, y = WL_max)) +
+  geom_point(aes(color = Parasite_challenge)) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  labs(x = "PC2", y = "Maximum Weight Loss") +
+  theme_bw()
+
+```
+
+### Residual Plots
+
+Residual plots help to assess if the residuals have constant variance 
+(homoscedasticity), which is an important assumption in linear regression. 
+You can plot the residuals against the fitted values, or against each predictor 
+variable.
+
+```{r residual_plot_pc1, resolution = 1000}
+# calculate residuals for the model with pc1 and pc2
+lab$residuals_pc1_pc2 <- resid(model_1_pc1_pc2)
+
+ggplot(lab, aes(x = pc1, y = residuals_pc1_pc2)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "PC1", y = "Residuals") +
+  theme_bw()
+```
+```{r residual_plot_pc2, resolution = 1000}
+ggplot(lab, aes(x = pc2, y = residuals_pc1_pc2)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "PC2", y = "Residuals") +
+  theme_bw()
+```
+```{r residual_plot_parasite_Challenge, resolution = 1000}
+ggplot(lab, aes(x = Parasite_challenge, y = residuals_pc1_pc2)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Infection group", y = "Residuals") +
+  theme_bw()
+```
+
+### 3D plots
+
+```{r scatter_p1_infections_colours, resolution = 1000}
+
+# First, make sure Parasite_challenge is a factor
+lab$Parasite_challenge <- as.factor(lab$Parasite_challenge)
+
+# Then, define the color for each level of Parasite_challenge
+color_mapping <- c("E_falciformis" = "salmon", 
+                   "E_ferrisi" = "green", 
+                   "uninfected" = "blue")
+
+# Now create the scatter plot using this color mapping
+ggplot(lab, aes(x = pc1, y = WL_max, color = Parasite_challenge)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, aes(color = Parasite_challenge)) +
+  scale_color_manual(values = color_mapping) +
+  labs(x = "PC1", y = "Maximum Weight Loss") +
+  theme_bw()
+
+```
+
+```{r scatter_p2_infections_colours, resolution = 1000}
+# Now create the scatter plot using this color mapping
+ggplot(lab, aes(x = pc2, y = WL_max, color = Parasite_challenge)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, aes(color = Parasite_challenge)) +
+  scale_color_manual(values = color_mapping) +
+  labs(x = "PC2", y = "Maximum Weight Loss") +
+  theme_bw()
+
+```
+```{r scatterplot3d_pc1_pc2, resolution = 1000}
+library(scatterplot3d)
+
+
+# Create a new color column in your dataframe by mapping 'Parasite_challenge' to your colors
+lab$color <- color_mapping[lab$Parasite_challenge]
+
+# 3D scatter plot
+scatterplot3d(lab$pc1, lab$pc2, lab$WL_max, pch = 16, color = lab$color,
+              xlab = "PC1", ylab = "PC2", zlab = "Maximum Weight Loss")
+
+```
+
+# Heatmap
 ### repeating the heatmap on the now imputed data
-```{r}
+```{r }
  # turn the data frame into a matrix and transpose it. We want to have each cell 
  # type as a row name 
  gene <- t(as.matrix(gene))
@@ -431,6 +566,16 @@ annotation_df <- annotation_df %>% dplyr::select(-Mouse_ID, )
 Heatmap on gene expression data: 
 
 
-```{r, echo = FALSE}
-pheatmap(heatmap_data, annotation_col = annotation_df,  scale = "row",  clustering_distance_rows = "euclidean", clustering_distance_cols = "euclidean")
+```{r, Heatmap_gene_expression, resolution = 1000}
+# Define colors for each parasite
+parasite_colors <- c("E_falciformis" = "coral2",
+                     "E_ferrisi" = "chartreuse4",
+                     "uninfected" = "cornflowerblue")
+
+# Generate the heat map
+pheatmap(heatmap_data, annotation_col = annotation_df,  scale = "row",
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",
+         annotation_colors = list(Parasite_challenge = parasite_colors)) # use annotation_colors
+
 ```
