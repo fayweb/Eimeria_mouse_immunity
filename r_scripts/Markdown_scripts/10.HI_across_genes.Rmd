@@ -1,5 +1,5 @@
 ---
-title: "5.Gene_expression_analysis"
+title: "Gene_expression_analysis"
 author: "Fay"
 date: '2022-08-09'
 output:
@@ -33,31 +33,17 @@ hm <- read.csv("output_data/2.imputed_MICE_data_set.csv")
 
 
 ```{r}
-
-# Selecting genes
-Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10",
+Gene_lab   <- c("IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10",
                 "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                 "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
-                "TICAM1", "TNF") # "IL.12", "IRG6")
+                "TICAM1", "TNF") #"IL.12", "IRG6")
 
-#add a suffix to represent changes in data file
-Gene_lab_imp <- paste(Gene_lab, "imp", sep = "_")
 
-Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", "IL.10", 
+
+Genes_wild   <- c("IFNy", "CXCR3", "IL.6", "IL.13", #"IL.10", 
                   "IL1RN","CASP1", "CXCL9", "IDO1", "IRGM1", "MPO", 
                   "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB", "SOCS1", 
-                  "TICAM1", "TNF") #"IRG6")
-
-Genes_wild_imp <- paste(Genes_wild, "imp", sep = "_")
-
-Facs_lab <- c("Position", "CD4", "Treg", "Div_Treg", "Treg17", "Th1", 
-                    "Div_Th1", "Th17", "Div_Th17", "CD8", "Act_CD8", 
-                    "Div_Act_CD8", "IFNy_CD4", "IFNy_CD8") #,"Treg_prop", 
-                   # "IL17A_CD4")  
-
-
-Facs_wild <- c( "Treg", "CD4", "Treg17", "Th1", "Th17", "CD8",
-                     "Act_CD8", "IFNy_CD4",  "IFNy_CD8") #"IL17A_CD4",
+                  "TICAM1", "TNF") #, "IL.12", "IRG6")
 
 ```
 
