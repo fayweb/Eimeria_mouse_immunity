@@ -106,7 +106,7 @@ fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 70))
 ```
 ```{r}
 fviz_pca_var(res.pca, col.var = "cos2",
-             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"),
              repel = TRUE)
 ```
 ```{r}
@@ -216,12 +216,45 @@ fviz_contrib(res.pca, choice = "var", axes = 1, top = 18)
 
 ```
 
+The genes CASP1, CXCR3, MUC2, and IRGM1 are involved in various immune responses and have different roles:
+
+CASP1 (Caspase 1): It plays a crucial role in the innate immune response by activating pro-inflammatory cytokines IL-1β and IL-18. CASP1 is involved in initiating pyroptosis, a form of programmed cell death, and is associated with inflammatory conditions.
+
+CXCR3 (C-X-C motif chemokine receptor 3): It is a chemokine receptor expressed on immune cells, including T cells and natural killer cells. CXCR3 is involved in the recruitment of immune cells to sites of inflammation and plays a role in immune responses against pathogens and tumors.
+
+MUC2 (Mucin 2): It is a major component of the mucus layer that lines various epithelial surfaces, including the intestinal tract. MUC2 provides a physical barrier and helps protect against pathogens and other harmful substances.
+
+IRGM1 (Immunity-Related GTPase Family M Member 1): It is an immunity-related GTPase involved in host defense against intracellular pathogens. IRGM1 participates in autophagy, a cellular process that eliminates intracellular pathogens and helps regulate immune responses.
+
+The common thread connecting these genes and immune responses is their involvement in the innate immune system. The innate immune system provides immediate defense against pathogens and triggers an inflammatory response. These genes and their respective proteins contribute to the recognition of pathogens, recruitment of immune cells, activation of cytokines, and protection of epithelial surfaces.
+
+Regarding damaging processes to the host, excessive or dysregulated activation of immune responses can lead to tissue damage and inflammation. Inflammatory conditions associated with uncontrolled immune responses can have detrimental effects on the host. For example, chronic inflammation can contribute to tissue destruction, organ damage, and autoimmune diseases. Balancing the immune response is essential to prevent excessive damage while effectively combating pathogens or maintaining tissue homeostasis.
 
 ```{r}
 # Contributions of variables to PC2
 fviz_contrib(res.pca, choice = "var", axes = 2, top = 18)
 ```
 
+In the context of intestinal parasites, the involvement of IDO1, TICAM1, SOCS1, and Interleukin 13 (IL-13) can vary depending on the specific parasite and the host immune response. Here is some information regarding their roles in the context of intestinal parasites:
+
+IDO1 (Indoleamine 2,3-dioxygenase 1): IDO1 is an enzyme involved in the metabolism of tryptophan, an essential amino acid. In the context of intestinal parasites, IDO1 expression can be induced as part of the host immune response to control parasite infections. IDO1 can modulate immune responses by degrading tryptophan, leading to the inhibition of parasite growth and the generation of immunoregulatory metabolites.
+
+TICAM1 (Toll-like receptor adaptor molecule 1): TICAM1 is an adaptor protein involved in Toll-like receptor (TLR) signaling pathways. TLRs play a crucial role in recognizing microbial components and initiating immune responses. In the context of intestinal parasites, TICAM1 may be involved in the activation of TLR signaling pathways in response to parasite-derived molecules, leading to the production of pro-inflammatory cytokines and the initiation of an immune response.
+
+SOCS1 (Suppressor of Cytokine Signaling 1): SOCS1 is a negative regulator of cytokine signaling. It helps control the duration and intensity of cytokine signaling by inhibiting downstream signaling pathways. In the context of intestinal parasites, SOCS1 may be induced as part of a negative feedback mechanism to prevent excessive immune activation and inflammation caused by the host response to the parasite. It can inhibit cytokine signaling pathways, including those involving IL-13, to regulate the immune response.
+
+Interleukin 13 (IL-13): IL-13 is an immunoregulatory cytokine that plays a role in mediating the host immune response to intestinal parasites. IL-13 can be produced by immune cells, such as T cells and innate lymphoid cells, in response to parasite infection. It can contribute to the activation of immune cells, promote the recruitment of inflammatory cells to the site of infection, and induce the production of mucus and other factors that can help expel parasites from the intestine.
+
+It's important to note that the specific roles and interactions of these factors can vary depending on the type of intestinal parasite, the host immune response, and the specific mechanisms of immune evasion employed by the parasite.
+
+
+The reactions involving IDO1, TICAM1, SOCS1, and Interleukin 13 (IL-13) in response to intestinal parasites can have both beneficial and potentially damaging effects on the host. The degree of damage depends on various factors, including the type and virulence of the parasite, the intensity and duration of the immune response, and the susceptibility of the host.
+
+Beneficial Effects: These reactions are part of the host's immune defense against parasites and aim to control and eliminate the infection. The immune response triggered by these factors can help limit parasite growth, prevent parasite dissemination, and promote the clearance of the parasites from the intestinal tract. Additionally, the production of cytokines, such as IL-13, can stimulate the production of mucus and enhance the barrier function of the intestinal epithelium, aiding in the expulsion of parasites.
+
+Potential Damaging Effects: In some cases, the immune response can be excessive or dysregulated, leading to tissue damage and inflammation. Chronic or uncontrolled immune responses can cause collateral damage to the host tissues and disrupt normal physiological processes in the intestine. Excessive production of pro-inflammatory cytokines and chemokines can contribute to tissue damage, inflammation, and alteration of the gut microbiota. Additionally, prolonged activation of immune signaling pathways, such as those involving TICAM1 and SOCS1, can lead to immune system dysfunction and contribute to chronic inflammation.
+
+It's important to note that the balance between the beneficial and damaging effects of the immune response is crucial. In an effective immune response, the host can effectively control and eliminate the parasites while minimizing damage to its own tissues. However, in some cases, the immune response can be insufficient, allowing the parasites to persist and cause chronic infections or tissue damage. The overall impact on the host depends on the interplay between the host immune response, the parasite's virulence factors, and the host's genetic and environmental factors.
 
 ```{r contr_var_pc1_2_genes, echo = FALSE}
 fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 18)
@@ -275,6 +308,14 @@ fviz_pca_biplot(res.pca,
 
 ################## Linear models: 
 
+```{r , echo = FALSE}
+
+
+weight_lm <- lm(WL_max ~ pc1 + pc2, data = lab)
+summary(weight_lm)
+AIC(weight_lm)
+```
+
 ```{r lm_weight_pc, echo = FALSE}
 #lab <- lab %>%
  # mutate(WL_max = WL_max)
@@ -289,7 +330,7 @@ AIC(weight_lm)
 
 ```{r lm_pc_parasite_hybrid, echo = FALSE}
 
-weight_lm2 <- lm(WL_max ~ pc1 + pc2, #+ Parasite_challenge + hybrid_status, 
+weight_lm2 <- lm(WL_max ~ pc1 + pc2 + Parasite_challenge + hybrid_status, 
                  data = lab)
 summary(weight_lm2)
 AIC(weight_lm2)
@@ -314,6 +355,7 @@ weight_no_pc2 <- lm(WL_max ~ pc1  + hybrid_status, data = lab)
 weight_no_hybrid <- lm(WL_max ~ pc1 + pc2, data = lab)
 lrtest(weight_lm3, weight_no_pc1)
 lrtest(weight_lm3, weight_no_pc2)
+lrtest(weight_no_pc1, weight_no_pc2)
 lrtest(weight_lm3, weight_no_hybrid)
 ```
 
