@@ -88,10 +88,10 @@ fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 70))
              
 Part of the first figure in the publication in colour blind friendly colours.
 
-```{r PCA_gene_lab_fig_1, width = 10, height = 8, units = "cm", res = 1000}
+```{r PCA_gene_lab_fig_1, width = 10, height = 6, units = "cm", res = 1000}
 fviz_pca_var(res.pca, col.var = "cos2",
              gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"),
-             repel = TRUE, title = "Principal Component Analysis of Immune Gene Expression in Laboratory-Controlled Eimeria Infections")
+             repel = TRUE)
 ```
 ```{r individual_plot_pca }
 fviz_pca_ind(res.pca, col.ind = "cos2", 
