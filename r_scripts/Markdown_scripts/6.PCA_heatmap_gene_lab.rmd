@@ -87,12 +87,23 @@ fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 70))
              Expression in Laboratory-Controlled Eimeria Infections"
              
 Part of the first figure in the publication in colour blind friendly colours.
-
-```{r PCA_gene_lab_fig_1, width = 10, height = 6, units = "cm", res = 1000}
+ width = 10, height = 6, units = "cm", res = 1000
+```{r PCA_gene_lab_fig_1, dpi = 500 }
 fviz_pca_var(res.pca, col.var = "cos2",
              gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"),
-             repel = TRUE)
+             repel = TRUE, title = "")
 ```
+```{r 2, dpi = 200 }
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"),
+             repel = TRUE, title = "")
+```
+```{r 3,  res = 1000}
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"),
+             repel = TRUE, title = "")
+```
+
 ```{r individual_plot_pca }
 fviz_pca_ind(res.pca, col.ind = "cos2", 
                   gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"), 
