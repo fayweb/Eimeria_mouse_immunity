@@ -97,28 +97,16 @@ hm$MC.Eimeria <- as.factor(hm$MC.Eimeria)
 # According to the melting curve for eimeria 
 hm <- hm %>%
   dplyr::mutate(infection = case_when(
-    infection == "E_ferrisi" & MC.Eimeria == "TRUE" ~ "E_ferrisi",
-    infection == "E_ferrisi" & MC.Eimeria == "FALSE" ~ "uninfected",
-    infection == "E_falciformis" & MC.Eimeria == "TRUE" ~ "E_falciformis",
-    infection == "E_falciformis" & MC.Eimeria == "FALSE" ~ "uninfected",
-    infection == "uninfected" & MC.Eimeria == "TRUE" ~ "infected_eimeria",
-    infection == "uninfected" & MC.Eimeria == "FALSE" ~ "uninfected",
+    Parasite_challenge == "E_ferrisi" & MC.Eimeria == "TRUE" ~ "E_ferrisi",
+    Parasite_challenge == "E_ferrisi" & MC.Eimeria == "FALSE" ~ "uninfected",
+    Parasite_challenge == "E_falciformis" & MC.Eimeria == "TRUE" ~ "E_falciformis",
+    Parasite_challenge == "E_falciformis" & MC.Eimeria == "FALSE" ~ "uninfected",
+    Parasite_challenge == "uninfected" & MC.Eimeria == "TRUE" ~ "E_falciformis",
+    Parasite_challenge == "uninfected" & MC.Eimeria == "FALSE" ~ "uninfected",
     TRUE ~ ""
   ))
 
 
-# Here I create a new column, where we get the actual infection status
-# According to the melting curve for eimeria 
-hm <- hm %>%
-  dplyr::mutate(infection = case_when(
-    infection == "E_ferrisi" & MC.Eimeria == "TRUE" ~ "E_ferrisi",
-    infection == "E_ferrisi" & MC.Eimeria == "FALSE" ~ "uninfected",
-    infection == "E_falciformis" & MC.Eimeria == "TRUE" ~ "E_falciformis",
-    infection == "E_falciformis" & MC.Eimeria == "FALSE" ~ "uninfected",
-    infection == "uninfected" & MC.Eimeria == "TRUE" ~ "E_falciformis",
-    infection == "uninfected" & MC.Eimeria == "FALSE" ~ "uninfected",
-    TRUE ~ ""
-  ))
 
 ```
 
@@ -205,8 +193,6 @@ For each unique group:
  4. Retain the evaluation score and discard the model
  
 ```{r}
-
-
 
 repeat_cv <- trainControl(method = "repeatedcv", #repeated cross validation
                            number = 5, # 5 fold cross validation
@@ -408,13 +394,13 @@ cor(result$WL_max, result$predictions,
 
 
 test_lab   %>%
-  ggplot(aes(x = predictions, y = WL_max, color = infection, 
+  ggplot(aes(x = predictions, y = WL_max, color = Parasite_challenge, 
                  size = delta_ct_cewe_MminusE)) +
   geom_smooth(method = lm, se = FALSE) +
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
   geom_point(aes(x = predictions, y = WL_max, 
-                 color = infection, size = delta_ct_cewe_MminusE)) +
+                 color = Parasite_challenge, size = delta_ct_cewe_MminusE)) +
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
     theme_bw()
@@ -428,8 +414,7 @@ test_lab   %>%
   geom_smooth(method = lm, se = FALSE) +
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
-  geom_point(aes(x = predictions, y = WL_max, 
-                 color = infection, size = delta_ct_cewe_MminusE)) +
+  geom_point(aes(x = predictions, y = WL_max,  size = delta_ct_cewe_MminusE)) +
   labs(x = "Predictions: Maximum weight loss", 
        y = "Observed: Maximum weight loss") +
     theme_bw()
@@ -449,38 +434,7 @@ test_lab   %>%
 
   
 ```
-## testing for current infection uninfected + MC positive = falciformis
-```{r}
 
-# current_falciformis
-# According to the melting curve for eimeria 
-test_lab <- test_lab %>%
-    dplyr::mutate(current_falciformis = case_when(
-        infection == "E_ferrisi" & MC.Eimeria == "TRUE" ~ "E_ferrisi",
-        infection == "E_ferrisi" & MC.Eimeria == "FALSE" ~ "uninfected",
-        infection == "E_falciformis" & MC.Eimeria == "TRUE" ~ "E_falciformis",
-        infection == "E_falciformis" & MC.Eimeria == "FALSE" ~ "uninfected",
-        infection == "uninfected" & MC.Eimeria == "TRUE" ~ "E_falciformis",
-        infection == "uninfected" & MC.Eimeria == "FALSE" ~ "uninfected",
-        TRUE ~ ""
-    ))
-
-test_lab   %>%
-  ggplot(aes(x = predictions, y = WL_max, color = current_falciformis, 
-                 size = delta_ct_cewe_MminusE)) +
-  geom_smooth(method = lm, se = FALSE) +
-  labs(x = "Predictions: Maximum weight loss", 
-       y = "Observed: Maximum weight loss") +
-  geom_point(aes(x = predictions, y = WL_max, 
-                 color = current_falciformis, size = delta_ct_cewe_MminusE)) +
-  labs(x = "Predictions: Maximum weight loss", 
-       y = "Observed: Maximum weight loss") +
-    theme_bw()
-
-
-
-
-```
 
 # Repeating the process using the whole data set as a training data set
 
@@ -520,7 +474,6 @@ gene_curr <- lab %>%
   dplyr::select(c(Mouse_ID, all_of(Gene_lab), infection))
 
 
-
 gene <- gene_curr %>%
   dplyr::select(-Mouse_ID)
 
@@ -542,16 +495,14 @@ test.data_parasite <- gene[-training.samples, ]
 ### Predicing parasite: splliting into training and testing
 
 ```{r }
+lab$infection <- as.character(lab$infection)
 lab2 <- lab %>% 
-  dplyr::filter(infection %in% c("E_ferrisi", "uninfected"))
-
-
+  dplyr::filter(infection %in% c("E_ferrisi", "uninfected")) %>%
+    dplyr::filter(!infection == "E_falciformis")
 lab2$infection <- as.factor(lab2$infection)
 
 gene_curr <- lab2 %>%
   dplyr::select(c(Mouse_ID, all_of(Gene_lab), infection))
-
-
 
 gene <- gene_curr %>%
   dplyr::select(-Mouse_ID)

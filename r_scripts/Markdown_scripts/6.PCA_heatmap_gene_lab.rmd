@@ -98,6 +98,8 @@ Part of the first figure in the publication in colour blind friendly colours.
 
 Description: In this Principal Component Analysis plot, each point represents an individual mouse's immune response to a controlled Eimeria spp. infection, as determined by the expression levels of 19 key immune genes. The horizontal (PC1) and vertical (PC2) axes represent the two principal components that account for the largest possible variance in the gene expression data. In essence, these axes reveal the primary patterns of variation in immune gene expression across our samples.
 
+
+
 ```{r individual_plot_pca, resolution = 1000 }
 fviz_pca_ind(res.pca, col.ind = "cos2", 
                   gradient.cols = c("#DB6212", "#CC8733", "#5f25e6", "#073DA8"), 

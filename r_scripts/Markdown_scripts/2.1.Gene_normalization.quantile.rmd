@@ -61,8 +61,8 @@ library(VIM)
 library(fitdistrplus)
 library(fitur)
 library(visdat)
-library(DESeq2)
-library(limma)
+#library(DESeq2)
+#library(limma)
 ```
 
 # Load data
@@ -180,6 +180,6 @@ quantile(genes_field$IRGM1, na.rm = TRUE)
 
 
 ```{r}
- ##save the imputed data 
+ ##save the normalized data 
 write.csv(hm_norm, "output_data/2.1.norm_MICE_data_set.csv", row.names = FALSE)
 ```
