@@ -1,13 +1,79 @@
 library(ggplot2)
+library(ggrepel)
+library(dplyr)
+library(viridis)  # for color-blind-friendly palette
+library(scales)
+library(cowplot)
 
 # read the lab data with pca vectors
 lab <- read.csv("output_data/lab_pca")
 
+# change the labels pc1 and pc2 to PC1 / PC2
+lab <- lab %>%
+  dplyr::rename(PC1 = "pc1", PC2 = "pc2")
+
 # read the variance explained by each gene for the pca 
 vpg <- read.csv("output_data/variance_contr_gene_lab")
 
+# Change the first column of the variance contribution of variables to the gene
+# names
+vpg <- vpg %>%
+  dplyr::rename(Variable = vars, PC1 = Dim.1, PC2 = Dim.2)
+
+# add cos2 to lab
+lab <- lab %>% mutate(cos2 = lab$PC1^2 + lab$PC2^2)
+
+# Define custom gradient colors
+gradient_colors <- c("#0072B2", "#D55E00", "#E69F00", "#009E73")
+# PCA graph of individuals
+ggplot(lab, aes(x = PC1, y = PC2, label = row.names(lab))) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "gray50") +
+  geom_vline(xintercept = 0, linetype = "dotted", color = "gray50") +
+  geom_point(aes(color = cos2), size = 3, alpha = 0.5) +
+  geom_text_repel(color = "black", box.padding = 0.7, force = 10,
+                  segment.color = "grey50", max.overlaps = Inf) +
+  labs(x = "PC1", y = "PC2", title = "PCA graph of individuals") +
+  theme_minimal() +
+  guides(color = guide_colorbar(title = "Squared Distance from Origin")) +
+  scale_color_gradientn(colors = gradient_colors, guide = "none") +
+  theme(plot.title = element_text(size = 18))
+
+
+
+####### PCA graph of variables
+
+# Add cos2 variable to the dataframe
+vpg$cos2 <- with(vpg, PC1^2 + PC2^2)
+
+
+# Define custom gradient colors
+gradient_colors <- c("#0072B2", "#D55E00", "#E69F00", "#009E73")
+
+# Define the breaks and labels for the color legend
+breaks <- c(0, 50, 100, 150)
+labels <- c("0", "50", "100", "150")
+
+# Plotting the factor map 
+ggplot(vpg, aes(x = PC1, y = PC2, color = cos2)) +
+  geom_segment(aes(xend = 0, yend = 0), color = "gray50") +
+  geom_point(size = 3) +
+  geom_label_repel(aes(label = Variable), size = 3, box.padding = 0.5, max.overlaps = 20) +
+  coord_equal() +
+  xlab("PC1") +
+  ylab("PC2") +
+  ggtitle("PCA Plot of Variables") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  guides(color = guide_colorbar(title = "Squared Distance from Origin")) +
+  scale_color_gradientn(colors = gradient_colors, guide = "none")  +
+  theme(plot.title = element_text(size = 18))
+
+
+####################
+
+
 # pc1 predicting weight loss
-ggplot(lab, aes(x = pc1, y = WL_max)) +
+ggplot(lab, aes(x = PC1, y = WL_max)) +
     geom_point(aes(color = infection, alpha = 0.8, 
                    shape = infection, size = 2)) +
     geom_smooth(method = "lm",formula = y ~ x, 
@@ -16,6 +82,9 @@ ggplot(lab, aes(x = pc1, y = WL_max)) +
     labs(x = "PC1", y = "Maximum weight loss", title = 
     "First principal compenonent predicting maximum weight loss during an infection") +
     theme_bw()
+
+
+
 
 
 # for the model with pc2 and infection
