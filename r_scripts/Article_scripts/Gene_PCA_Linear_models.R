@@ -137,9 +137,12 @@ circ <- circleFun(c(0,0),2,npoints = 500)
 var.contrib <- as.data.frame(res.pca$var$contrib)
 corrplot(var.contrib, is.corr=FALSE) 
 
+
+pca_var <- as.data.frame(pca.vars)
+
 ## save the variance contribution of each gene 
 ##save the normalized data 
-write.csv(var.contrib, "output_data/variance_contr_gene_lab", row.names = FALSE)
+write.csv(pca_var, "output_data/variance_contr_gene_lab", row.names = TRUE)
 
 ### Contributions to the first dimension
 
@@ -181,21 +184,40 @@ model_1_pc1_pc2 <- lm(WL_max ~ pc1 + pc2, data = lab)
 summary(model_1_pc1_pc2)
 AIC(model_1_pc1_pc2)
 
+### use the ggefects package
+# 
 
 # predicting weight loss with pc1
 model_1_pc1 <- lm(WL_max ~ pc1, data = lab)
 summary(model_1_pc1)
 AIC(model_1_pc1)
 
+
+# Here the base of comparison is E_ferrisi. I should change it to compare to the
+# uninfected mice
 model_2_pc1_pc2_challenge <- lm(WL_max ~ pc1 + pc2 + infection, data = lab)
 summary(model_2_pc1_pc2_challenge)
 AIC(model_2_pc1_pc2_challenge)
+
+
+# homozygous / heterozygous infection
+
+
+# correlations between infection and the immune responses
+plot(model_2_pc1_pc2_challenge)
+
+# covariance matrix of the fixed effects of the model
 
 
 model_3_infection_hybrid_status <- lm(WL_max ~ pc1 + pc2 + hybrid_status, 
                  data = lab)
 summary(model_3_infection_hybrid_status)
 AIC(model_3_infection_hybrid_status)
+
+### information of previous infections, some mice are actually reacting for the 
+# first time, as the
+
+
 
 # Compare
 llr_test <- anova(model_1_pc1_pc2, model_2_pc1_pc2_challenge)

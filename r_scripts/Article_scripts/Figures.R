@@ -4,6 +4,7 @@ library(dplyr)
 library(viridis)  # for color-blind-friendly palette
 library(scales)
 library(cowplot)
+library(ggthemes)
 
 # read the lab data with pca vectors
 lab <- read.csv("output_data/lab_pca")
@@ -23,21 +24,26 @@ vpg <- vpg %>%
 # add cos2 to lab
 lab <- lab %>% mutate(cos2 = lab$PC1^2 + lab$PC2^2)
 
-# Define custom gradient colors
-gradient_colors <- c("#0072B2", "#D55E00", "#E69F00", "#009E73")
-# PCA graph of individuals
-ggplot(lab, aes(x = PC1, y = PC2, label = row.names(lab))) +
-  geom_hline(yintercept = 0, linetype = "dotted", color = "gray50") +
-  geom_vline(xintercept = 0, linetype = "dotted", color = "gray50") +
-  geom_point(aes(color = cos2), size = 3, alpha = 0.5) +
-  geom_text_repel(color = "black", box.padding = 0.7, force = 10,
-                  segment.color = "grey50", max.overlaps = Inf) +
-  labs(x = "PC1", y = "PC2", title = "PCA graph of individuals") +
-  theme_minimal() +
-  guides(color = guide_colorbar(title = "Squared Distance from Origin")) +
-  scale_color_gradientn(colors = gradient_colors, guide = "none") +
-  theme(plot.title = element_text(size = 18))
+# Define color palette
+color_palette <- c("E_ferrisi" = "#66C2A5", "uninfected" = "#8DA0CB", "E_falciformis" = "#FC8D62")
 
+# PCA graph of individuals
+ggplot(lab, aes(x = PC1, y = PC2, color = infection, shape = infection)) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "gray50") + 
+  geom_vline(xintercept = 0, linetype = "dotted", color = "gray50") +
+  geom_point(size = 3, alpha = 0.8) +
+  labs(x = "PC1", y = "PC2", title = "PCA graph of individuals",
+       colour = "Current infection", shape ="Current infection") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 24, face = "bold"),
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 12),
+        legend.position = "right") +
+  scale_color_manual(values = color_palette) +
+  scale_shape_manual(values = c("E_ferrisi" = 17, "uninfected" = 16, "E_falciformis" = 18)) +
+  guides(color = guide_legend(override.aes = list(size = 4)))
 
 
 ####### PCA graph of variables
@@ -70,7 +76,45 @@ ggplot(vpg, aes(x = PC1, y = PC2, color = cos2)) +
 
 
 ####################
+# Define color palette
+color_palette <- c("E_ferrisi" = "#66C2A5", "uninfected" = "#8DA0CB", "E_falciformis" = "#FC8D62")
 
+# PCA: PC1 predicting weight loss
+ggplot(lab, aes(x = PC1, y = WL_max, color = infection, shape = infection)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, color = "black", size = 0.5) +
+  labs(x = "PC1", y = "Maximum weight loss", title = "First principal component predicting maximum weight loss during an infection") +
+  scale_color_manual(values = color_palette, guide = FALSE) +
+  scale_shape_manual(values = c("E_ferrisi" = 16, "uninfected" = 17, "E_falciformis" = 18)) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 10),
+    legend.key = element_blank()
+  )
+
+
+# PCA: PC1 predicting weight loss with single regression line
+ggplot(lab, aes(x = PC1, y = WL_max, color = infection, shape = infection)) +
+  geom_point(colour = infection, size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, color = "black", size = 0.5) +
+  labs(x = "PC1", y = "Maximum weight loss", title = "First principal component predicting maximum weight loss during an infection") +
+  scale_color_manual(values = color_palette, guide = FALSE) +
+  scale_shape_manual(values = c("E_ferrisi" = 16, "uninfected" = 17, "E_falciformis" = 18)) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 10),
+    legend.key = element_blank()
+  )
 
 # pc1 predicting weight loss
 ggplot(lab, aes(x = PC1, y = WL_max)) +
