@@ -11,6 +11,8 @@ library(janitor)
 library(pheatmap)
 library(visdat)
 library(scatterplot3d)
+library(clusterProfiler) # gene enrichment analysis
+library(org.Mmu.eg.db) # gene ids identifiers
 
 
 # Load the normalized and imputed data set
@@ -383,6 +385,136 @@ pheatmap(heatmap_data, annotation_col = annotation_df,  scale = "row",
          clustering_distance_rows = "euclidean",
          clustering_distance_cols = "euclidean",
          annotation_colors = list(infection = parasite_colors)) # use annotation_colors
+
+
+####### Gene enrichment analysis
+#create a new vector n to match the genes with gene ids in the package
+# Enrichr
+
+# Get the available keytypes in the database
+keytypes <- keytypes(org.Mmu.eg.db)
+
+# View the list of keytypes
+print(keytypes)
+
+# creating vector according to gene names NIH
+#https://www.ncbi.nlm.nih.gov/gene/?term=Mus+musculus+Prf1
+gene_ids <- c("15978", #IFNG, 
+               "12766", #CXCR3"
+               "16193", #IL6
+               "16163", #IL13",
+               "16181", #IL1RN
+               "12362", #CASP1
+               "17329", #CXCL9
+               "15930", #IDO1
+               "15944", #IRGM1
+               "17523", #MPO"
+               "17831", #MUC2
+               "17833", #MUC5AC
+               "17874", #MYD88
+               "17086", #NCR1
+               "18646", #PRF1
+               "57263", #RETNLB
+               "12703", #SOCS1
+               "106759", #TICAM1
+               "21926") #TNF
+
+
+gene_symbols <- c("IFNG", "CXCR3", "IL6", "IL13", "IL1RN", "CASP1", "CXCL9", "IDO1",
+              "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB",
+              "SOCS1", "TICAM1", "TNF")
+
+
+
+# Perform gene ontology enrichment analysis
+enrich_result <- enrichGO(gene = gene_symbols,
+                          OrgDb = org.Mmu.eg.db,
+                          ont = "BP",
+                          keyType = "SYMBOL")
+
+
+# View the enrichment result
+enrich_result
+
+           
+# Extract the relevant columns from the enrichment table
+enriched_terms <- enrich_result$Description
+p_values <- enrich_result$p.adjust
+gene_ratio <- enrich_result$GeneRatio
+
+# Sort the enriched terms based on p-values
+sorted_terms <- enriched_terms[order(p_values)]
+
+# Create the bar plot
+barplot(-log10(p_values), names.arg = sorted_terms, horiz = FALSE,
+        xlab = "Enriched GO Terms", ylab = "-log10(p-value)",
+        main = "Gene Ontology Enrichment Analysis",
+        col = "steelblue", border = "black")
+
+## Now go on to select the interest groupings seen on the pca
+# IL.13
+
+# TICAM1
+
+# NCR1, SOCS1, IRGM1, MUC2
+gene_symbols <- c("NCR1", "SOCS1", "IRGM1", "MUC2")
+
+# Perform gene ontology enrichment analysis
+enrich_result <- enrichGO(gene = gene_symbols,
+                          OrgDb = org.Mmu.eg.db,
+                          ont = "BP",
+                          keyType = "SYMBOL")
+
+# View the enrichment result
+enrich_result
+
+
+# Extract the relevant columns from the enrichment table
+enriched_terms <- enrich_result$Description
+p_values <- enrich_result$p.adjust
+gene_ratio <- enrich_result$GeneRatio
+
+# Sort the enriched terms based on p-values
+sorted_terms <- enriched_terms[order(p_values)]
+
+# Create the bar plot
+barplot(-log10(p_values), names.arg = sorted_terms, horiz = FALSE,
+        xlab = "Enriched GO Terms", ylab = "-log10(p-value)",
+        main = "Gene Ontology Enrichment Analysis",
+        col = "steelblue", border = "black")
+
+# Extract the enriched terms and gene ratios
+enriched_terms <- enrich_result$Description
+gene_ratio <- enrich_result$GeneRatio
+p_value <- enrich_result$pvalue
+
+# Create a data frame for the heatmap data
+data_df <- data.frame(Gene_Ratio = as.numeric(as.factor(gene_ratio[complete_cases])),
+                      P_Value = as.numeric(p_value[complete_cases]),
+                      stringsAsFactors = FALSE)
+
+rownames(data_df) <- enriched_terms
+
+# Convert the data frame to a matrix
+data_matrix <- as.matrix(data_df)
+
+# Sort the data frame by P_Value in ascending order
+sorted_df <- data_df[order(data_df$P_Value), ]
+
+# Select the first 15 rows
+sorted_df[1:15, ]
+
+#negative regulation of alpha-beta T cell differentiation                        
+#positive regulation of CD4-positive, alpha-beta T cell differentiation
+
+
+# CASP1, PRF1, CXCR3, IL6, MUC5AC
+
+# ILRN
+
+# MPO, IFNG, CXCL9, TNF
+
+
 
 # save the lab data frame for figures
 write.csv(lab, "output_data/lab_pca", row.names = FALSE)
