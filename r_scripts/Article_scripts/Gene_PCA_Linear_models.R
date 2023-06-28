@@ -12,7 +12,8 @@ library(pheatmap)
 library(visdat)
 library(scatterplot3d)
 library(clusterProfiler) # gene enrichment analysis
-library(org.Mmu.eg.db) # gene ids identifiers
+library(org.Mm.eg.db) # gene ids identifiers Mus musculus
+library(viridis)
 
 
 # Load the normalized and imputed data set
@@ -353,6 +354,7 @@ scatterplot3d(lab$pc1, lab$pc2, lab$WL_max, pch = 16, color = lab$color,
                                    nrow(heatmap_data)]
  
   
+
 #Prepare the annotation data frame
 annotation_df <- as_tibble(lab) %>%
     dplyr::select(c("Mouse_ID",  "WL_max", "infection")) 
@@ -360,8 +362,6 @@ annotation_df <- as_tibble(lab) %>%
 annotation_df <- unique(annotation_df) 
 
 annotation_df <- as.data.frame(annotation_df)
-
-
 
 
 ### Prepare the annotation columns for the heatmap
@@ -392,82 +392,83 @@ pheatmap(heatmap_data, annotation_col = annotation_df,  scale = "row",
 # Enrichr
 
 # Get the available keytypes in the database
-keytypes <- keytypes(org.Mmu.eg.db)
+keytypes <- keytypes(org.Mm.eg.db)
 
 # View the list of keytypes
 print(keytypes)
-
-# creating vector according to gene names NIH
-#https://www.ncbi.nlm.nih.gov/gene/?term=Mus+musculus+Prf1
-gene_ids <- c("15978", #IFNG, 
-               "12766", #CXCR3"
-               "16193", #IL6
-               "16163", #IL13",
-               "16181", #IL1RN
-               "12362", #CASP1
-               "17329", #CXCL9
-               "15930", #IDO1
-               "15944", #IRGM1
-               "17523", #MPO"
-               "17831", #MUC2
-               "17833", #MUC5AC
-               "17874", #MYD88
-               "17086", #NCR1
-               "18646", #PRF1
-               "57263", #RETNLB
-               "12703", #SOCS1
-               "106759", #TICAM1
-               "21926") #TNF
+                  
+gene_ens <-  c("ENSMUSG00000055170", #IFNG, 
+               "ENSMUSG00000050232", #CXCR3"
+               "ENSMUSG00000025746", #IL6
+               "ENSMUSG00000020383", #IL13",
+               "ENSMUSG00000026981", #IL1RN
+               "ENSMUSG00000025888", #CASP1
+               "ENSMUSG00000029417", #CXCL9
+               "ENSMUSG00000031551", #IDO1
+               "ENSMUSG00000046879", #IRGM1
+               "ENSMUSG00000009350", #MPO"
+               "ENSMUSG00000025515", #MUC2
+               "ENSMUSG00000037974", #MUC5AC
+               "ENSMUSG00000032508", #MYD88
+               "ENSMUSG00000062524", #NCR1
+               "ENSMUSG00000037202.7", #PRF1
+               "ENSMUSG00000022650", #RETNLB
+               "ENSMUSG00000038037", #SOCS1
+               "ENSMUSG00000047123", #TICAM1
+               "ENSMUSG00000024401") #TNF             
 
 
-gene_symbols <- c("IFNG", "CXCR3", "IL6", "IL13", "IL1RN", "CASP1", "CXCL9", "IDO1",
-              "IRGM1", "MPO", "MUC2", "MUC5AC", "MYD88", "NCR1", "PRF1", "RETNLB",
-              "SOCS1", "TICAM1", "TNF")
-
-
-
+#All genes
 # Perform gene ontology enrichment analysis
-enrich_result <- enrichGO(gene = gene_symbols,
-                          OrgDb = org.Mmu.eg.db,
+enrich_result <- enrichGO(gene = gene_ens,
+                          OrgDb = org.Mm.eg.db,
                           ont = "BP",
-                          keyType = "SYMBOL")
-
+                          keyType = "ENSEMBL")
 
 # View the enrichment result
 enrich_result
 
-           
 # Extract the relevant columns from the enrichment table
 enriched_terms <- enrich_result$Description
 p_values <- enrich_result$p.adjust
 gene_ratio <- enrich_result$GeneRatio
 
 # Sort the enriched terms based on p-values
-sorted_terms <- enriched_terms[order(p_values)]
+sorted_terms <- as.data.frame(enriched_terms[order(p_values)])
+sorted_terms[1:10,]
 
-# Create the bar plot
-barplot(-log10(p_values), names.arg = sorted_terms, horiz = FALSE,
-        xlab = "Enriched GO Terms", ylab = "-log10(p-value)",
-        main = "Gene Ontology Enrichment Analysis",
-        col = "steelblue", border = "black")
+
+# Create a data frame for the bar plot
+bar_data <- data.frame(GO_Term = sorted_terms[1:35,], p_value = -log10(p_values[1:35]))
+
+# Sort the data frame in ascending order
+bar_data <- bar_data[order(bar_data$p_value), ]
+
+# Create the bar plot using ggplot2
+ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
+  geom_segment(aes(xend = GO_Term, yend = 0), color = "mediumvioletred", size = 1.5) +
+  geom_point(size = 3, shape = 19, color = "mediumvioletred", fill = "white") +
+  coord_flip() +
+  labs(x = "Enriched GO Terms", y = "-log10(p-value)",
+       title = "Gene Ontology Enrichment Analysis") +
+  theme_minimal()
+
 
 ## Now go on to select the interest groupings seen on the pca
-# IL.13
-
-# TICAM1
-
-# NCR1, SOCS1, IRGM1, MUC2
-gene_symbols <- c("NCR1", "SOCS1", "IRGM1", "MUC2")
+############################# IL.13
+# "positive regulation of mast cell activation involved in immune response"
+#  "leukocyte activation involved in inflammatory response" 
+#"positive regulation of B cell proliferation"
+gene_ens <-    "ENSMUSG00000020383"#IL13"
 
 # Perform gene ontology enrichment analysis
-enrich_result <- enrichGO(gene = gene_symbols,
-                          OrgDb = org.Mmu.eg.db,
+enrich_result <- enrichGO(gene = gene_ens,
+                          OrgDb = org.Mm.eg.db,
                           ont = "BP",
-                          keyType = "SYMBOL")
+                          keyType = "ENSEMBL")
 
 # View the enrichment result
 enrich_result
-
 
 # Extract the relevant columns from the enrichment table
 enriched_terms <- enrich_result$Description
@@ -475,44 +476,245 @@ p_values <- enrich_result$p.adjust
 gene_ratio <- enrich_result$GeneRatio
 
 # Sort the enriched terms based on p-values
-sorted_terms <- enriched_terms[order(p_values)]
+sorted_terms <- as.data.frame(enriched_terms[order(p_values)])
+sorted_terms[1:50,]
 
-# Create the bar plot
-barplot(-log10(p_values), names.arg = sorted_terms, horiz = FALSE,
-        xlab = "Enriched GO Terms", ylab = "-log10(p-value)",
-        main = "Gene Ontology Enrichment Analysis",
-        col = "steelblue", border = "black")
 
-# Extract the enriched terms and gene ratios
+# Create a data frame for the bar plot
+bar_data <- data.frame(GO_Term = sorted_terms[1:35,], p_value = -log10(p_values[1:35]))
+
+# Sort the data frame in ascending order
+bar_data <- bar_data[order(bar_data$p_value), ]
+
+# Create the bar plot using ggplot2
+ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
+  geom_segment(aes(xend = GO_Term, yend = 0), color = "mediumvioletred", size = 1.5) +
+  geom_point(size = 3, shape = 19, color = "mediumvioletred", fill = "white") +
+  coord_flip() +
+  labs(x = "Enriched GO Terms", y = "-log10(p-value)",
+       title = "Gene Ontology Enrichment Analysis, IL13") +
+  theme_minimal()
+
+
+####################### TICAM1
+# "MyD88-independent toll-like receptor signaling pathway" 
+# "macrophage activation involved in immune response" 
+#"positive regulation of B cell proliferation"                                             
+#[14] "positive regulation of interferon-beta production" 
+#  "positive regulation of cytokine production involved in immune response"  
+# "positive regulation of interleukin-6 production"  
+gene_ens <-  "ENSMUSG00000047123" #TICAM1
+
+# Perform gene ontology enrichment analysis
+enrich_result <- enrichGO(gene = gene_ens,
+                          OrgDb = org.Mm.eg.db,
+                          ont = "BP",
+                          keyType = "ENSEMBL")
+
+# View the enrichment result
+enrich_result
+
+# Extract the relevant columns from the enrichment table
 enriched_terms <- enrich_result$Description
+p_values <- enrich_result$p.adjust
 gene_ratio <- enrich_result$GeneRatio
-p_value <- enrich_result$pvalue
 
-# Create a data frame for the heatmap data
-data_df <- data.frame(Gene_Ratio = as.numeric(as.factor(gene_ratio[complete_cases])),
-                      P_Value = as.numeric(p_value[complete_cases]),
-                      stringsAsFactors = FALSE)
-
-rownames(data_df) <- enriched_terms
-
-# Convert the data frame to a matrix
-data_matrix <- as.matrix(data_df)
-
-# Sort the data frame by P_Value in ascending order
-sorted_df <- data_df[order(data_df$P_Value), ]
-
-# Select the first 15 rows
-sorted_df[1:15, ]
-
-#negative regulation of alpha-beta T cell differentiation                        
-#positive regulation of CD4-positive, alpha-beta T cell differentiation
+# Sort the enriched terms based on p-values
+sorted_terms <- as.data.frame(enriched_terms[order(p_values)])
+sorted_terms[1:50,]
 
 
-# CASP1, PRF1, CXCR3, IL6, MUC5AC
+# Create a data frame for the bar plot
+bar_data <- data.frame(GO_Term = sorted_terms[1:35,], p_value = -log10(p_values[1:35]))
 
-# ILRN
+# Sort the data frame in ascending order
+bar_data <- bar_data[order(bar_data$p_value), ]
 
-# MPO, IFNG, CXCL9, TNF
+# Create the bar plot using ggplot2
+ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
+  geom_segment(aes(xend = GO_Term, yend = 0), color = "mediumvioletred", size = 1.5) +
+  geom_point(size = 3, shape = 19, color = "mediumvioletred", fill = "white") +
+  coord_flip() +
+  labs(x = "Enriched GO Terms", y = "-log10(p-value)",
+       title = "Gene Ontology Enrichment Analysis, TICAM1") +
+  theme_minimal()
+
+
+################### NCR1, SOCS1, IRGM1, MUC2
+# "regulation of response to interferon-gamma" 
+# regulation of response to cytokine stimulus
+# reggulation of innate immun response
+# positive regulation of regulatory T cell differentiation
+gene_ens <- c("ENSMUSG00000062524", #NCR1, 
+              "ENSMUSG00000038037", #SOCS1
+              "ENSMUSG00000046879", #IRGM1
+              "ENSMUSG00000025515") #MUC2
+
+# Perform gene ontology enrichment analysis
+enrich_result <- enrichGO(gene = gene_ens,
+                          OrgDb = org.Mm.eg.db,
+                          ont = "BP",
+                          keyType = "ENSEMBL")
+
+# View the enrichment result
+enrich_result
+
+# Extract the relevant columns from the enrichment table
+enriched_terms <- enrich_result$Description
+p_values <- enrich_result$p.adjust
+gene_ratio <- enrich_result$GeneRatio
+
+# Sort the enriched terms based on p-values
+sorted_terms <- as.data.frame(enriched_terms[order(p_values)])
+sorted_terms[1:10,]
+
+
+# Create a data frame for the bar plot
+bar_data <- data.frame(GO_Term = sorted_terms[1:35,], p_value = -log10(p_values[1:35]))
+
+# Sort the data frame in ascending order
+bar_data <- bar_data[order(bar_data$p_value), ]
+
+# Create the bar plot using ggplot2
+ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
+  geom_segment(aes(xend = GO_Term, yend = 0), color = "mediumvioletred", size = 1.5) +
+  geom_point(size = 3, shape = 19, color = "mediumvioletred", fill = "white") +
+  coord_flip() +
+  labs(x = "Enriched GO Terms", y = "-log10(p-value)",
+       title = "Gene Ontology Enrichment Analysis, NCR1, SOCS1, IRGM1, MUC2") +
+  theme_minimal()
+
+
+#################### CASP1, PRF1, CXCR3, IL6, MUC5AC
+##  "positive regulation of interleukin-1 beta production
+## positive regulation of inflammatory response
+gene_ens <- c("ENSMUSG00000025888", #CASP1
+              "ENSMUSG00000037202.7", #PRF1
+              "ENSMUSG00000050232", #CXCR3"
+              "ENSMUSG00000025746", #IL6
+              "ENSMUSG00000037974") #MUC5AC
+
+# Perform gene ontology enrichment analysis
+enrich_result <- enrichGO(gene = gene_ens,
+                          OrgDb = org.Mm.eg.db,
+                          ont = "BP",
+                          keyType = "ENSEMBL")
+
+# View the enrichment result
+enrich_result
+
+# Extract the relevant columns from the enrichment table
+enriched_terms <- enrich_result$Description
+p_values <- enrich_result$p.adjust
+gene_ratio <- enrich_result$GeneRatio
+
+# Sort the enriched terms based on p-values
+sorted_terms <- as.data.frame(enriched_terms[order(p_values)])
+sorted_terms[1:15,]
+
+
+# Create a data frame for the bar plot
+bar_data <- data.frame(GO_Term = sorted_terms[1:35,], p_value = -log10(p_values[1:35]))
+
+# Sort the data frame in ascending order
+bar_data <- bar_data[order(bar_data$p_value), ]
+
+# Create the bar plot using ggplot2
+ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
+  geom_segment(aes(xend = GO_Term, yend = 0), color = "mediumvioletred", size = 1.5) +
+  geom_point(size = 3, shape = 19, color = "mediumvioletred", fill = "white") +
+  coord_flip() +
+  labs(x = "Enriched GO Terms", y = "-log10(p-value)",
+       title = "Gene Ontology Enrichment Analysis, CASP1, PRF1, CXCR3, IL6, MUC5AC") +
+  theme_minimal()
+
+
+############################ ILRN
+# interleukin-1-mediated signaling pathway
+# negative regulation of cytokine-mediated signaling pathway
+# negative regulation of response to cytokine stimulus
+gene_ens <-  "ENSMUSG00000026981" #IL1RN
+
+# Perform gene ontology enrichment analysis
+enrich_result <- enrichGO(gene = gene_ens,
+                          OrgDb = org.Mm.eg.db,
+                          ont = "BP",
+                          keyType = "ENSEMBL")
+
+# View the enrichment result
+enrich_result
+
+# Extract the relevant columns from the enrichment table
+enriched_terms <- enrich_result$Description
+p_values <- enrich_result$p.adjust
+gene_ratio <- enrich_result$GeneRatio
+
+# Sort the enriched terms based on p-values
+sorted_terms <- as.data.frame(enriched_terms[order(p_values)])
+sorted_terms[1:50,]
+
+
+# Create a data frame for the bar plot
+bar_data <- data.frame(GO_Term = sorted_terms[1:35,], p_value = -log10(p_values[1:35]))
+
+# Sort the data frame in ascending order
+bar_data <- bar_data[order(bar_data$p_value), ]
+
+# Create the bar plot using ggplot2
+ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
+  geom_segment(aes(xend = GO_Term, yend = 0), color = "mediumvioletred", size = 1.5) +
+  geom_point(size = 3, shape = 19, color = "mediumvioletred", fill = "white") +
+  coord_flip() +
+  labs(x = "Enriched GO Terms", y = "-log10(p-value)",
+       title = "Gene Ontology Enrichment Analysis, ILRN") +
+  theme_minimal()
+
+################## MPO, IFNG, CXCL9, TNF
+# 	leukocyte activation involved in inflammatory response
+#	positive regulation of B cell mediated immunity
+# leukocyte activation involved in inflammatory response
+# "positive regulation of B cell mediated immunity"                   
+#"positive regulation of immunoglobulin mediated immune response"  
+gene_ens <-  c("ENSMUSG00000009350", #MPO"
+               "ENSMUSG00000055170", #IFNG, 
+               "ENSMUSG00000029417", #CXCL9
+               "ENSMUSG00000024401") #TNF 
+               
+
+# Perform gene ontology enrichment analysis
+enrich_result <- enrichGO(gene = gene_ens,
+                          OrgDb = org.Mm.eg.db,
+                          ont = "BP",
+                          keyType = "ENSEMBL")
+
+# View the enrichment result
+enrich_result
+
+# Extract the relevant columns from the enrichment table
+enriched_terms <- enrich_result$Description
+p_values <- enrich_result$p.adjust
+gene_ratio <- enrich_result$GeneRatio
+
+# Sort the enriched terms based on p-values
+sorted_terms <- as.data.frame(enriched_terms[order(p_values)])
+sorted_terms[1:50,]
+
+
+# Create a data frame for the bar plot
+bar_data <- data.frame(GO_Term = sorted_terms[1:35,], p_value = -log10(p_values[1:35]))
+
+# Sort the data frame in ascending order
+bar_data <- bar_data[order(bar_data$p_value), ]
+
+# Create the bar plot using ggplot2
+ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
+  geom_segment(aes(xend = GO_Term, yend = 0), color = "mediumvioletred", size = 1.5) +
+  geom_point(size = 3, shape = 19, color = "mediumvioletred", fill = "white") +
+  coord_flip() +
+  labs(x = "Enriched GO Terms", y = "-log10(p-value)",
+       title = "Gene Ontology Enrichment Analysis: MPO, IFNG, CXCL9, TNF") +
+  theme_minimal()
+
 
 
 
