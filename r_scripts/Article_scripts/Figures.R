@@ -6,6 +6,8 @@ library(scales)
 library(cowplot)
 library(ggthemes)
 
+options(ggrepel.max.overlaps = Inf)
+
 # read the lab data with pca vectors
 lab <- read.csv("output_data/lab_pca")
 
