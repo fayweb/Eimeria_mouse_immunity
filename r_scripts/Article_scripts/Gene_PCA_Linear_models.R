@@ -453,6 +453,42 @@ ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
        title = "Gene Ontology Enrichment Analysis") +
   theme_minimal()
 
+#########################################
+# Retrieve the gene set for the GO term of interest
+go_term <- "positive regulation of inflammatory response"
+
+enrich_result$geneID
+
+results <- as.data.frame()
+geneid <- enrich_result$geneID
+genes_sel <- as.data.frame(geneid, enrich_result$Description) 
+
+genes_sel <- genes_sel %>%
+  mutate(gene_des = row.names(genes_sel))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Now go on to select the interest groupings seen on the pca
 ############################# IL.13
@@ -715,8 +751,28 @@ ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
        title = "Gene Ontology Enrichment Analysis: MPO, IFNG, CXCL9, TNF") +
   theme_minimal()
 
+x <- org.Mm.egGO
+mapped_genes<-mappedkeys(x)
+xx<-as.list(x[mapped_genes])
 
 
+library(Mus.musculus)
+
+## merge all this information in a data frame to combine mouse
+## annotations with gene_id from Cufflinks get the information from
+## this annotation dbi into data frames
+.get.annot.frame <- function(){
+  ens2geneID <- as.data.frame(org.Mm.egENSEMBL)
+  name2SY <- as.data.frame(org.Mm.egSYMBOL2EG) # get 5 digit "symbol" to "short gene name" mapping
+  SY2Lname<- as.data.frame(org.Mm.egGENENAME) # get 5 digit "symbol" to "long name name" mapping
+  SY2GO <- as.data.frame(org.Mm.egGO) # get 5 digit "symbol" to gene ontology mapping
+  annot.frame <- merge(name2SY, ens2geneID, by = "gene_id")
+  annot.frame <- merge(annot.frame, SY2GO, by = "gene_id")
+  annot.frame <- merge(annot.frame, SY2Lname, by = "gene_id")
+  return(annot.frame)
+}
+
+annot.frame <- .get.annot.frame()
 
 # save the lab data frame for figures
 write.csv(lab, "output_data/lab_pca", row.names = FALSE)

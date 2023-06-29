@@ -26,6 +26,53 @@ vpg <- vpg %>%
 # add cos2 to lab
 lab <- lab %>% mutate(cos2 = lab$PC1^2 + lab$PC2^2)
 
+### add labels indicating the function of the genes according on their 
+# grouping on the pca
+
+vpg <- vpg %>%
+  dplyr::mutate(Gene_function =
+                  case_when(
+                    Variable == "IL.13" ~ "Leukocyte activation involved in inflammatory response",
+                    Variable == "TICAM1" ~ "Positive regulation of cytokine production involved in immune response",
+                    Variable == "NCR1", "SOCS1", "IRGM1", "MUC2") ~ "Regulation of response to interferon-gamma and to cytokine stimulus",
+                )))
+
+## Now go on to select the interest groupings seen on the pca
+############################# IL.13
+# "positive regulation of mast cell activation involved in immune response"
+#  "leukocyte activation involved in inflammatory response" 
+#"positive regulation of B cell proliferation"
+
+####################### TICAM1
+# "MyD88-independent toll-like receptor signaling pathway" 
+# "macrophage activation involved in immune response" 
+#"positive regulation of B cell proliferation"                                             
+#[14] "positive regulation of interferon-beta production" 
+#  "positive regulation of cytokine production involved in immune response"  
+# "positive regulation of interleukin-6 production
+
+################### NCR1, SOCS1, IRGM1, MUC2
+# "regulation of response to interferon-gamma" 
+# regulation of response to cytokine stimulus
+# reggulation of innate immun response
+# positive regulation of regulatory T cell differentiation
+
+#################### CASP1, PRF1, CXCR3, IL6, MUC5AC
+##  "positive regulation of interleukin-1 beta production
+## positive regulation of inflammatory response
+
+############################ ILRN
+# interleukin-1-mediated signaling pathway
+# negative regulation of cytokine-mediated signaling pathway
+# negative regulation of response to cytokine stimulus
+
+################## MPO, IFNG, CXCL9, TNF
+# 	leukocyte activation involved in inflammatory response
+#	positive regulation of B cell mediated immunity
+# leukocyte activation involved in inflammatory response
+# "positive regulation of B cell mediated immunity"                   
+#"positive regulation of immunoglobulin mediated immune response"  
+
 # Define color palette
 color_palette <- c("E_ferrisi" = "#66C2A5", "uninfected" = "#8DA0CB", "E_falciformis" = "#FC8D62")
 
