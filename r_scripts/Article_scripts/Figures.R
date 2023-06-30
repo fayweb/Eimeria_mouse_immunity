@@ -1,4 +1,9 @@
-library(ggplot2)
+
+# positive regulation of regulatory T cell differentiation
+
+#################### CASP1, PRF1, CXCR3, IL6, MUC5AC
+##  "positive regulation of interleukin-1 beta production
+## positive regulation of inflammatory reslibrary(ggplot2)
 library(ggrepel)
 library(dplyr)
 library(viridis)  # for color-blind-friendly palette
@@ -26,53 +31,6 @@ vpg <- vpg %>%
 # add cos2 to lab
 lab <- lab %>% mutate(cos2 = lab$PC1^2 + lab$PC2^2)
 
-### add labels indicating the function of the genes according on their 
-# grouping on the pca
-
-vpg <- vpg %>%
-  dplyr::mutate(Gene_function =
-                  case_when(
-                    Variable == "IL.13" ~ "Leukocyte activation involved in inflammatory response",
-                    Variable == "TICAM1" ~ "Positive regulation of cytokine production involved in immune response",
-                    Variable == "NCR1", "SOCS1", "IRGM1", "MUC2") ~ "Regulation of response to interferon-gamma and to cytokine stimulus",
-                )))
-
-## Now go on to select the interest groupings seen on the pca
-############################# IL.13
-# "positive regulation of mast cell activation involved in immune response"
-#  "leukocyte activation involved in inflammatory response" 
-#"positive regulation of B cell proliferation"
-
-####################### TICAM1
-# "MyD88-independent toll-like receptor signaling pathway" 
-# "macrophage activation involved in immune response" 
-#"positive regulation of B cell proliferation"                                             
-#[14] "positive regulation of interferon-beta production" 
-#  "positive regulation of cytokine production involved in immune response"  
-# "positive regulation of interleukin-6 production
-
-################### NCR1, SOCS1, IRGM1, MUC2
-# "regulation of response to interferon-gamma" 
-# regulation of response to cytokine stimulus
-# reggulation of innate immun response
-# positive regulation of regulatory T cell differentiation
-
-#################### CASP1, PRF1, CXCR3, IL6, MUC5AC
-##  "positive regulation of interleukin-1 beta production
-## positive regulation of inflammatory response
-
-############################ ILRN
-# interleukin-1-mediated signaling pathway
-# negative regulation of cytokine-mediated signaling pathway
-# negative regulation of response to cytokine stimulus
-
-################## MPO, IFNG, CXCL9, TNF
-# 	leukocyte activation involved in inflammatory response
-#	positive regulation of B cell mediated immunity
-# leukocyte activation involved in inflammatory response
-# "positive regulation of B cell mediated immunity"                   
-#"positive regulation of immunoglobulin mediated immune response"  
-
 # Define color palette
 color_palette <- c("E_ferrisi" = "#66C2A5", "uninfected" = "#8DA0CB", "E_falciformis" = "#FC8D62")
 
@@ -99,28 +57,28 @@ ggplot(lab, aes(x = PC1, y = PC2, color = infection, shape = infection)) +
 
 # Add cos2 variable to the dataframe
 vpg$cos2 <- with(vpg, PC1^2 + PC2^2)
+vpg_labels <- vpg
 
+# Add specific labels for variables
+vpg_labels$Additional_Label <- NA
+vpg_labels$Additional_Label[vpg_labels$Variable %in% 
+                              c("IFNy", "IL.6", "CASP1", "IDO1", "TNF")] <- 
+  "*"
 
-# Define custom gradient colors
-gradient_colors <- c("#0072B2", "#D55E00", "#E69F00", "#009E73")
-
-# Define the breaks and labels for the color legend
-breaks <- c(0, 50, 100, 150)
-labels <- c("0", "50", "100", "150")
-
-# Plotting the factor map 
-ggplot(vpg, aes(x = PC1, y = PC2, color = cos2)) +
+# Plotting the factor map with labels
+ggplot(vpg_labels, aes(x = PC1, y = PC2)) +
   geom_segment(aes(xend = 0, yend = 0), color = "gray50") +
   geom_point(size = 3) +
   geom_label_repel(aes(label = Variable), size = 3, box.padding = 0.5, max.overlaps = 20) +
+  geom_text_repel(aes(label = ifelse(!is.na(Additional_Label), Additional_Label, ""), 
+                      color = ifelse(!is.na(Additional_Label), "violet", "")), 
+                  size = 8, box.padding = 0.5, max.overlaps = 20) +
   coord_equal() +
   xlab("PC1") +
   ylab("PC2") +
   ggtitle("PCA Plot of Variables") +
   theme_minimal() +
   theme(legend.position = "right") +
-  guides(color = guide_colorbar(title = "Squared Distance from Origin")) +
-  scale_color_gradientn(colors = gradient_colors, guide = "none")  +
   theme(plot.title = element_text(size = 18))
 
 
