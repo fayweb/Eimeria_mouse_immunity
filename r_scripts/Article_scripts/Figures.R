@@ -69,10 +69,12 @@ vpg_labels$Additional_Label[vpg_labels$Variable %in%
 ggplot(vpg_labels, aes(x = PC1, y = PC2)) +
   geom_segment(aes(xend = 0, yend = 0), color = "gray50") +
   geom_point(size = 3) +
+  geom_point(data= vpg_labels %>%
+               dplyr::filter(Pro_infl == "positive regulation of inflammatory response"),
+             pch = 24,
+             size=5, 
+             colour = "red") +
   geom_label_repel(aes(label = Variable), size = 3, box.padding = 0.5, max.overlaps = 20) +
-  geom_text_repel(aes(label = ifelse(!is.na(Additional_Label), Additional_Label, ""), 
-                      color = ifelse(!is.na(Additional_Label), "violet", "")), 
-                  size = 8, box.padding = 0.5, max.overlaps = 20) +
   coord_equal() +
   xlab("PC1") +
   ylab("PC2") +
@@ -81,6 +83,8 @@ ggplot(vpg_labels, aes(x = PC1, y = PC2)) +
   theme(legend.position = "right") +
   theme(plot.title = element_text(size = 18))
 
+# the red triangles signify the variables that are 
+#into positive regulation of inflammatory response
 
 ####################
 # Define color palette
