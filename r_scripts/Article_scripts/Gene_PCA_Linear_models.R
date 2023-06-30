@@ -1,4 +1,3 @@
-library(tidyverse)
 library(dplyr)
 library(stringr)
 library(FactoMineR)
@@ -143,9 +142,6 @@ corrplot(var.contrib, is.corr=FALSE)
 
 pca_var <- as.data.frame(pca.vars)
 
-## save the variance contribution of each gene 
-##save the normalized data 
-write.csv(pca_var, "output_data/variance_contr_gene_lab", row.names = TRUE)
 
 ### Contributions to the first dimension
 
@@ -453,41 +449,109 @@ ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
        title = "Gene Ontology Enrichment Analysis") +
   theme_minimal()
 
-#########################################
-# Retrieve the gene set for the GO term of interest
-go_term <- "positive regulation of inflammatory response"
+########################################
+# FInding out which genes are associated with specific GO:Terms
+# make a data frame out of ENSEMBLID and the descriptions of the genes
+genes_sel <- data.frame(geneID = enrich_result$geneID, 
+                        Description = enrich_result$Description)
 
-enrich_result$geneID
+# Filter the data frame based on conditions
+filter_genes <- function(x)genes_sel %>%
+  filter(str_detect(geneID, paste(gene_ens, collapse = "|")), 
+         Description == x)
 
-results <- as.data.frame()
-geneid <- enrich_result$geneID
-genes_sel <- as.data.frame(geneid, enrich_result$Description) 
+filter_genes("positive regulation of inflammatory response")
 
-genes_sel <- genes_sel %>%
-  mutate(gene_des = row.names(genes_sel))
+# "positive regulation of inflammatory response"
+# ENSMUSG00000055170/ #IFNG,
+#ENSMUSG00000025746/ IL6
+#ENSMUSG00000025888/ CASP1
+#ENSMUSG00000031551/ IDO1
+#ENSMUSG00000024401 TNF
 
-
-
-
-
-
-
-
-
-
-
-
-
+filter_genes("regulation of inflammatory response")
+#ENSMUSG00000020383/ IL.13
+#ENSMUSG00000032508/MYD88
 
 
+pca_var <- pca_var %>%
+  dplyr::mutate(Pro_infl = case_when(
+    vars == "IFNy" ~ "positive regulation of inflammatory response",
+    vars == "IL.6" ~ "positive regulation of inflammatory response",
+    vars == "CASP1" ~ "positive regulation of inflammatory response",
+    vars == "IDO1" ~ "positive regulation of inflammatory response",
+    vars == "TNF" ~ "positive regulation of inflammatory response",
+    vars == "IL.13" ~ "regulation of inflammatory response",
+    vars == "MYD88" ~ "regulation of inflammatory response",
+    TRUE ~ ""))
+    
+filter_genes("positive regulation of T cell activation")
+# ENSMUSG00000055170/ IFNG
+# ENSMUSG00000025746/ IL6
+# ENSMUSG00000038037 SOCS1
+
+filter_genes("negative regulation of T cell activation")
+# ENSMUSG00000031551/ IDO1
+#ENSMUSG00000038037 SOCS1
+pca_var <- pca_var %>%
+  dplyr::mutate(T_activ = case_when(
+    vars == "IFNy" ~ "positive regulation of T cell activation",
+    vars == "IL.6" ~ "positive regulation of T cell activation",
+    vars == "SOCS1" ~ "positive / negative regulation of T cell activation",
+    vars == "IDO1" ~ "negative regulation of T cell activation",
+    TRUE ~ ""))
+
+filter_genes("negative regulation of response to cytokine stimulus")
+# ENSMUSG00000025746 IL6
+# ENSMUSG00000026981 IL1RN
+
+filter_genes("positive regulation of response to cytokine stimulus")
+#ENSMUSG00000025888/ CASP1
+# ENSMUSG00000046879 IRGM1
+pca_var <- pca_var %>%
+  dplyr::mutate(Cytokine_response = case_when(
+    vars == "IL.6" ~ "negative regulation of response to cytokine stimulus",
+    vars == "IL1RN" ~ "negative regulation of response to cytokine stimulus",
+    vars == "CASP1" ~ "positive regulation of response to cytokine stimulus",
+    vars == "IRGM1" ~ "positive regulation of response to cytokine stimulus",
+    TRUE ~ ""))
+
+filter_genes("positive regulation of immune effector process")
+# ENSMUSG00000055170/ IFNG
+#ENSMUSG00000025746/ IL6
+#ENSMUSG00000020383/ IL13
+#ENSMUSG00000047123/ TICAM1
+#ENSMUSG00000024401 TNF
+
+filter_genes("negative regulation of immune system process")
+#ENSMUSG00000055170/ IFNg
+#ENSMUSG00000031551/ IDO1
+#ENSMUSG00000038037/ SOC1
+#ENSMUSG00000024401 TNF
 
 
+filter_genes("negative regulation of cytokine production")
+#ENSMUSG00000055170/ IFNg
+#ENSMUSG00000025746/ IL6
+#ENSMUSG00000020383/ IL13
+#ENSMUSG00000031551/ IDO1
+#ENSMUSG00000024401 TNF
 
-
-
-
-
-
+filter_genes("positive regulation of cytokine production involved in inflammatory response")
+# ENSMUSG00000025746/ IL6
+#ENSMUSG00000032508/MYD88
+#ENSMUSG00000047123/TICAM1
+#ENSMUSG00000024401 TNF
+pca_var <- pca_var %>%
+  dplyr::mutate(Cytokine_response = case_when(
+    vars == "IFNg" ~ "negative regulation of cytokine production",
+    vars == "IL6" ~ "positive / negative regulation of cytokine production",
+    vars == "IL13" ~ "negative regulation of cytokine production",
+    vars == "IDO1" ~ "negative regulation of cytokine production",
+    vars == "TNF" ~ "positive / negative regulation of cytokine production",
+    vars == "MYD88" ~ "positive regulation of cytokine production involved in inflammatory response",
+    vars == "TICAM1" ~ "positive regulation of cytokine production involved in inflammatory response",
+    TRUE ~ ""))
 
 
 ## Now go on to select the interest groupings seen on the pca
@@ -689,7 +753,6 @@ gene_ratio <- enrich_result$GeneRatio
 sorted_terms <- as.data.frame(enriched_terms[order(p_values)])
 sorted_terms[1:50,]
 
-
 # Create a data frame for the bar plot
 bar_data <- data.frame(GO_Term = sorted_terms[1:35,], p_value = -log10(p_values[1:35]))
 
@@ -751,28 +814,10 @@ ggplot(bar_data, aes(x = GO_Term, y = p_value, fill = p_value)) +
        title = "Gene Ontology Enrichment Analysis: MPO, IFNG, CXCL9, TNF") +
   theme_minimal()
 
-x <- org.Mm.egGO
-mapped_genes<-mappedkeys(x)
-xx<-as.list(x[mapped_genes])
-
-
-library(Mus.musculus)
-
-## merge all this information in a data frame to combine mouse
-## annotations with gene_id from Cufflinks get the information from
-## this annotation dbi into data frames
-.get.annot.frame <- function(){
-  ens2geneID <- as.data.frame(org.Mm.egENSEMBL)
-  name2SY <- as.data.frame(org.Mm.egSYMBOL2EG) # get 5 digit "symbol" to "short gene name" mapping
-  SY2Lname<- as.data.frame(org.Mm.egGENENAME) # get 5 digit "symbol" to "long name name" mapping
-  SY2GO <- as.data.frame(org.Mm.egGO) # get 5 digit "symbol" to gene ontology mapping
-  annot.frame <- merge(name2SY, ens2geneID, by = "gene_id")
-  annot.frame <- merge(annot.frame, SY2GO, by = "gene_id")
-  annot.frame <- merge(annot.frame, SY2Lname, by = "gene_id")
-  return(annot.frame)
-}
-
-annot.frame <- .get.annot.frame()
+## save the variance contribution of each gene 
+##save the normalized data 
+write.csv(pca_var, "output_data/variance_contr_gene_lab", row.names = TRUE)
 
 # save the lab data frame for figures
 write.csv(lab, "output_data/lab_pca", row.names = FALSE)
+
