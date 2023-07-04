@@ -483,7 +483,7 @@ pca_var <- pca_var %>%
     vars == "TNF" ~ "positive regulation of inflammatory response",
     vars == "IL.13" ~ "regulation of inflammatory response",
     vars == "MYD88" ~ "regulation of inflammatory response",
-    TRUE ~ ""))
+    TRUE ~ "none"))
     
 filter_genes("positive regulation of T cell activation")
 # ENSMUSG00000055170/ IFNG
@@ -499,7 +499,7 @@ pca_var <- pca_var %>%
     vars == "IL.6" ~ "positive regulation of T cell activation",
     vars == "SOCS1" ~ "positive / negative regulation of T cell activation",
     vars == "IDO1" ~ "negative regulation of T cell activation",
-    TRUE ~ ""))
+    TRUE ~ "none"))
 
 filter_genes("negative regulation of response to cytokine stimulus")
 # ENSMUSG00000025746 IL6
@@ -514,7 +514,7 @@ pca_var <- pca_var %>%
     vars == "IL1RN" ~ "negative regulation of response to cytokine stimulus",
     vars == "CASP1" ~ "positive regulation of response to cytokine stimulus",
     vars == "IRGM1" ~ "positive regulation of response to cytokine stimulus",
-    TRUE ~ ""))
+    TRUE ~ "none"))
 
 filter_genes("positive regulation of immune effector process")
 # ENSMUSG00000055170/ IFNG
@@ -545,13 +545,13 @@ filter_genes("positive regulation of cytokine production involved in inflammator
 pca_var <- pca_var %>%
   dplyr::mutate(Cytokine_response = case_when(
     vars == "IFNg" ~ "negative regulation of cytokine production",
-    vars == "IL6" ~ "positive / negative regulation of cytokine production",
+    vars == "IL6" ~ "regulation of cytokine production",
     vars == "IL13" ~ "negative regulation of cytokine production",
     vars == "IDO1" ~ "negative regulation of cytokine production",
-    vars == "TNF" ~ "positive / negative regulation of cytokine production",
-    vars == "MYD88" ~ "positive regulation of cytokine production involved in inflammatory response",
-    vars == "TICAM1" ~ "positive regulation of cytokine production involved in inflammatory response",
-    TRUE ~ ""))
+    vars == "TNF" ~ "regulation of cytokine production",
+    vars == "MYD88" ~ "positive regulation of cytokine production",
+    vars == "TICAM1" ~ "positive regulation of cytokine production",
+    TRUE ~ "none"))
 
 
 ## Now go on to select the interest groupings seen on the pca

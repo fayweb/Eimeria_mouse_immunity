@@ -4,8 +4,8 @@ library(viridis)  # for color-blind-friendly palette
 library(scales)
 library(cowplot)
 library(ggthemes)
+library(grid)
 
-options(ggrepel.max.overlaps = Inf)
 
 # read the lab data with pca vectors
 lab <- read.csv("output_data/lab_pca")
@@ -67,73 +67,47 @@ vpg$T_activ <- as.factor(vpg$T_activ)
 colours_c <- c("none" = "#6a6b6a",
                "negative regulation of cytokine production" = "#c26674",
                "positive regulation of cytokine production involved in inflammatory response" = "#4bad58",
-               "positive / negative regulation of cytokine production" = "#8a8888")
+               "positive / negative regulation of cytokine production" = "#53b8c9")
 
 colours_t <- c("positive regulation of T cell activation" = "#5190f5",
                "none" = "#6a6b6a",
                "negative regulation of T cell activation" = "#af0db5",
                "positive / negative regulation of T cell activation" =  "#fab65c")
 
-shapes_t <-  c("positive regulation of T cell activation" = 21,
-               "none" = 22,
+shapes_t <-  c("positive regulation of T cell activation" = 22,
+               "none" = 21,
                "negative regulation of T cell activation" = 23,
                "positive / negative regulation of T cell activation" =  24)
 
-# Plotting the factor map with labels
-ggplot(vpg, aes(x = PC1, y = PC2)) +
+ggplot(vpg, aes(x = PC1, y = PC2, color = T_activ, shape = T_activ)) +
   geom_segment(aes(xend = 0, yend = 0), color = "gray50") +
-  geom_point(aes(shape = T_activ, size = 3, alpha = 0.8, fill = T_activ)) +
+  geom_point(aes(size = 2.5, alpha = 0.8, fill = T_activ)) +
   scale_shape_manual(values = shapes_t) +
   scale_fill_manual(values = colours_t) +
-  geom_point(data = vpg %>%
-               dplyr::filter(Pro_infl == "positive regulation of inflammatory response"),
-             pch = 21,
-             size = 6, 
-             colour = "red") +
-  geom_label_repel(aes(label = Variable, color = Cytokine_response), size = 3, box.padding = 0.5, 
-                   max.overlaps = Inf) +
-  scale_color_manual(values = colours_c) +
+  geom_point(data = vpg %>% filter(
+    Pro_infl == "positive regulation of inflammatory response"),
+             pch = 21, size = 6, colour = "red") +
   coord_equal() +
   xlab("PC1") +
   ylab("PC2") +
   ggtitle("PCA Plot of Variables") +
   theme_minimal() +
-  theme(plot.title = element_text(size = 18)) +
-  theme(legend.position = "none")
-
-
-# the red triangles signify the variables that are 
-#into positive regulation of inflammatory response
-
-####################
-# Define color palette
-color_palette <- c("E_ferrisi" = "#66C2A5", "uninfected" = "#8DA0CB", "E_falciformis" = "#FC8D62")
-
-# Plotting the factor map with labels and customized points
-ggplot(vpg_labels, aes(x = PC1, y = PC2)) +
-  geom_segment(aes(xend = 0, yend = 0), color = "gray50") +
-  geom_label_repel(aes(label = Variable), size = 3, box.padding = 0.5, max.overlaps = Inf) +
-  geom_point(aes(color = ifelse(Pro_infl == "positive regulation of inflammatory response", "Positive", "Negative")),
-             shape = ifelse(!is.na(T_activ), T_activ, "NA"),
-             size = 3) +
-  coord_equal() +
-  xlab("PC1") +
-  ylab("PC2") +
-  ggtitle("PCA Plot of Variables") +
-  scale_color_manual(values = c("Positive" = "red", "Negative" = "blue", "NA" = "gray"),
-                     na.value = "gray",
-                     name = "Cytokine Response") +
-  scale_shape_manual(values = c("Positive" = 21, "Negative" = 22, "NA" = 19),
-                     na.value = 19,
-                     name = "T Activation") +
-  theme_minimal() +
-  theme(legend.position = "right") +
   theme(plot.title = element_text(size = 18),
-        legend.title = element_blank(),
-        legend.text = element_text(size = 10))
+        legend.position = "none") +
+  geom_label_repel(aes(label = Variable, color = Cytokine_response), size = 3, 
+                   box.padding = 0.5, max.overlaps = Inf) +
+  scale_color_manual(values = colours_c) +
+  annotate("text", x = 0, y = -0.4, label = "red circles: 
+           positive regulation of inflammatory response", 
+           colour = "red", size = 2.7) +
+  guides(color = guide_legend(title = "Cytokine Response"),
+         shape = guide_legend(title = "T Cell Activation"),
+         fill = guide_legend(title = "T Cell Activation"),
+         size = "none",
+         alpha = "none") +
+  theme(legend.position = c(-0.4, 0.5)) 
 
-
-
+  
 
 #########################################
 # PCA: PC1 predicting weight loss with single regression line
@@ -151,8 +125,7 @@ ggplot(lab, aes(x = PC1, y = WL_max, color = infection, shape = infection)) +
     legend.position = "bottom",
     legend.title = element_blank(),
     legend.text = element_text(size = 10),
-    legend.key = element_blank()
-  )
+    legend.key = element_blank())
 
 # pc1 predicting weight loss
 ggplot(lab, aes(x = PC1, y = WL_max)) +
